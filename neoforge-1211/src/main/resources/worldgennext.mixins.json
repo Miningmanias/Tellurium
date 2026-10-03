@@ -24,7 +24,10 @@
     "BlockShapeCacheMixin",
     "BlockableEventLoopAccessor",
     "MinecraftServerIdleUnloadMixin",
-    "ChunkTaskPriorityQueueMixin"
+    "ChunkTaskPriorityQueueMixin",
+    "WorldGenRegionChunkCacheMixin",
+    "RegionFileHeaderMixin",
+    "OreFeatureMixin"
   ],
   "injectors": {
     "defaultRequire": 1

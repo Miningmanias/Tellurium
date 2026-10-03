@@ -44,6 +44,8 @@ public interface FusedGpuBackend extends AutoCloseable {
         boolean poll();
         ByteBuffer blocks();
         ByteBuffer heights();
+        /** Per chunk, eight ints per aquifer cell (x, y, z, fluid level, fluid type code, unused); valid when aquifers are compiled in. */
+        ByteBuffer aquifers();
         int flags(int chunk);
         ByteBuffer debugColumns();
         ByteBuffer debugCorners();

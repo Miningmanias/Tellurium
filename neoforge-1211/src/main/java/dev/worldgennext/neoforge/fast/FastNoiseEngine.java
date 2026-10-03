@@ -93,7 +93,7 @@ public final class FastNoiseEngine {
     private volatile boolean running = true;
     final AtomicLong gpuChunks = new AtomicLong(), fallbackChunks = new AtomicLong(), bailChunks = new AtomicLong(),
             verifiedChunks = new AtomicLong(), verifyMismatches = new AtomicLong(), batches = new AtomicLong(),
-            surfaceChunks = new AtomicLong(), surfaceBails = new AtomicLong();
+            surfaceChunks = new AtomicLong(), surfaceBails = new AtomicLong(), aquiferPrefills = new AtomicLong();
 
     /** @param surfaceHeader non-zero when the SURFACE stage is fused for this level */
     record LevelProgram(String dimension, FusedGpuBackend.Program program, BlockState[] palette,
@@ -171,9 +171,10 @@ public final class FastNoiseEngine {
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
         }
-        LOG.info("Fast GPU NOISE stopped: gpu={} fallback={} bail={} batches={} verified={} verifyMismatches={} surface={} surfaceBail={}",
+        LOG.info("Fast GPU NOISE stopped: gpu={} fallback={} bail={} batches={} verified={} verifyMismatches={} surface={} surfaceBail={} aquiferPrefill={}",
                 engine.gpuChunks.get(), engine.fallbackChunks.get(), engine.bailChunks.get(), engine.batches.get(),
-                engine.verifiedChunks.get(), engine.verifyMismatches.get(), engine.surfaceChunks.get(), engine.surfaceBails.get());
+                engine.verifiedChunks.get(), engine.verifyMismatches.get(), engine.surfaceChunks.get(), engine.surfaceBails.get(),
+                engine.aquiferPrefills.get());
         if (FastSurfaceState.VERIFY) LOG.info("Fast GPU SURFACE verify: chunks={} mismatched={}",
                 FastSurfaceState.verified.get(), FastSurfaceState.mismatched.get());
         if (engine.device.profiling()) LOG.info("Fast GPU NOISE kernel profile: {}", engine.device.profileSummary());
@@ -599,6 +600,12 @@ public final class FastNoiseEngine {
             blocks.get(i * blockBytes, data);
             int[] h = new int[512];
             for (int k = 0; k < 512; k++) h[k] = heights.getInt((i * 512 + k) * 4);
+            int[] aquiferCells = null;
+            if (program.aquifers() && AquiferPrefill.ENABLED) {
+                aquiferCells = new int[g.aquiferCellCount() * AquiferPrefill.STRIDE];
+                slot.aquifers().duplicate().order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(i * aquiferCells.length, aquiferCells);
+            }
+            int[] cells = aquiferCells;
             double[][] debug = null;
             if (VERIFY && device.debugBuffers()) {
                 var compiled = program.program().compiled();
@@ -611,11 +618,11 @@ public final class FastNoiseEngine {
                 debug = new double[][]{columns, corners};
             }
             double[][] debugFinal = debug;
-            CompletableFuture.runAsync(() -> applyOrVerify(r, data, h, debugFinal), Util.backgroundExecutor());
+            CompletableFuture.runAsync(() -> applyOrVerify(r, data, h, debugFinal, cells), Util.backgroundExecutor());
         }
     }
 
-    private void applyOrVerify(Request r, byte[] data, int[] heights, double[][] debug) {
+    private void applyOrVerify(Request r, byte[] data, int[] heights, double[][] debug, int[] aquiferCells) {
         try {
             var g = r.program().geometry();
             if (VERIFY) {
@@ -641,6 +648,9 @@ public final class FastNoiseEngine {
             if (r.biomes() != null) {
                 FastSurfaceState.mark(r.chunk());
                 surfaceChunks.incrementAndGet();
+            }
+            if (aquiferCells != null && AquiferPrefill.fill(r.chunk(), aquiferCells, g.aquiferCellsY(), r.program().palette()[2])) {
+                aquiferPrefills.incrementAndGet();
             }
             gpuChunks.incrementAndGet();
             r.result().complete(r.chunk());

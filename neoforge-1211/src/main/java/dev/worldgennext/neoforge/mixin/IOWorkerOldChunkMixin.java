@@ -70,6 +70,14 @@ public abstract class IOWorkerOldChunkMixin {
         return worldgenNext$existingRegions.contains(ChunkPos.asLong(regionX, regionZ));
     }
 
+    @Shadow @Final private java.util.Map<ChunkPos, ?> pendingWrites;
+
+    /** The store loop found nothing left to write: bring deferred region headers up to date. */
+    @Inject(method = "storePendingChunk", at = @At("HEAD"))
+    private void worldgenNext$flushHeadersWhenIdle(org.spongepowered.asm.mixin.injection.callback.CallbackInfo callback) {
+        if (pendingWrites.isEmpty()) dev.worldgennext.neoforge.threading.DeferredRegionHeaders.flushAll();
+    }
+
     @Inject(method = "createOldDataForRegion", at = @At("HEAD"), cancellable = true)
     private void worldgenNext$newRegionHasNoOldChunks(int regionX, int regionZ, CallbackInfoReturnable<CompletableFuture<BitSet>> callback) {
         if (!worldgenNext$ENABLED || worldgenNext$existedBefore(regionX, regionZ)) return;

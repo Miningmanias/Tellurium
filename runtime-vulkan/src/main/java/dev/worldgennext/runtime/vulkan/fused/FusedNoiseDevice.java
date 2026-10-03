@@ -325,7 +325,7 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
             public static final int CHUNK_INFO_INTS = 8;
             private final Buffer chunks, columns, corners, aquifer, blocks, beard, flags, heights, xzcache, prelimIndex, prelimCols, prelimOut;
             /** Block output is produced in device memory (the surface kernels rewrite it in place) and copied out once. */
-            private final Buffer blocksHost, biomes, surfTmp;
+            private final Buffer blocksHost, biomes, surfTmp, aquiferHost;
             private final int prelimCapacity;
             private final long descriptorSet;
             private final VkCommandBuffer commands;
@@ -343,6 +343,7 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
                 aquifer = new Buffer((long) n * g.aquiferCellCount() * 8 * 4, false);
                 blocks = new Buffer((long) n * g.blockCount(), false);
                 blocksHost = new Buffer((long) n * g.blockCount(), true);
+                aquiferHost = new Buffer((long) n * g.aquiferCellCount() * 8 * 4, true);
                 biomes = new Buffer((long) n * compiled.biomeWordsPerChunk() * 4, true);
                 surfTmp = new Buffer((long) n * 256 * 4, false);
                 beardCapacityInts = n * 2048;
@@ -447,6 +448,11 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
                         var region = VkBufferCopy.calloc(1, stack);
                         region.get(0).srcOffset(0).dstOffset(0).size((long) count * compiled.geometry().blockCount());
                         vkCmdCopyBuffer(commands, blocks.buffer, blocksHost.buffer, region);
+                        if (compiledAquifers()) {
+                            var cells = VkBufferCopy.calloc(1, stack);
+                            cells.get(0).srcOffset(0).dstOffset(0).size((long) count * compiled.geometry().aquiferCellCount() * 8 * 4);
+                            vkCmdCopyBuffer(commands, aquifer.buffer, aquiferHost.buffer, cells);
+                        }
                         var copied = VkMemoryBarrier.calloc(1, stack).sType$Default()
                                 .srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT).dstAccessMask(VK_ACCESS_HOST_READ_BIT);
                         vkCmdPipelineBarrier(commands, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0,
@@ -507,13 +513,14 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
             public ByteBuffer debugColumns() { return columns.mapped; }
             public ByteBuffer debugCorners() { return corners.mapped; }
             public ByteBuffer heights() { return heights.mapped; }
+            public ByteBuffer aquifers() { return aquiferHost.mapped; }
             public int flags(int chunk) { return flags.mapped.getInt(chunk * 4); }
 
             void destroy() {
                 if (pending) return; // never free storage of an unproven submission
                 vkDestroyFence(device, fence, null);
                 for (Buffer b : new Buffer[]{chunks, columns, corners, aquifer, blocks, beard, flags, heights, xzcache, prelimIndex, prelimCols, prelimOut,
-                        blocksHost, biomes, surfTmp}) b.destroy();
+                        blocksHost, biomes, surfTmp, aquiferHost}) b.destroy();
             }
         }
 
