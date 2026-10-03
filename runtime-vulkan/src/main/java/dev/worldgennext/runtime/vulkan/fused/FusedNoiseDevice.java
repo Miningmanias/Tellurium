@@ -24,7 +24,7 @@ import static org.lwjgl.vulkan.VK10.*;
  * after its fence signalled.  A failed or timed-out fence marks the device
  * lost: no buffer of an unproven submission is ever reused or freed.
  */
-public final class FusedNoiseDevice implements AutoCloseable {
+public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.fused.FusedGpuBackend {
     private static final int BINDINGS = 10;
     private static final String[] KERNELS = {"K_COLUMN", "K_CORNER", "K_AQUIFER", "K_BLOCK", "K_HEIGHT"};
     /** Diagnostic: keep intermediate buffers host-visible so they can be compared with a CPU reference. */
@@ -34,7 +34,7 @@ public final class FusedNoiseDevice implements AutoCloseable {
     private static final java.util.concurrent.atomic.AtomicLong PROFILE_CHUNKS = new java.util.concurrent.atomic.AtomicLong();
     static { for (int i = 0; i < 5; i++) PROFILE_NANOS[i] = new java.util.concurrent.atomic.AtomicLong(); }
 
-    public static String profileSummary() {
+    public static String summary() {
         long chunks = Math.max(1, PROFILE_CHUNKS.get());
         StringBuilder out = new StringBuilder("chunks=" + PROFILE_CHUNKS.get());
         for (int i = 0; i < 5; i++) out.append(' ').append(KERNELS[i]).append('=')
@@ -67,11 +67,26 @@ public final class FusedNoiseDevice implements AutoCloseable {
         this.memoryProperties = memoryProperties;
     }
 
-    public String deviceName() { return deviceName; }
+    @Override public String deviceName() { return deviceName; }
+    @Override public boolean profiling() { return PROFILE; }
+    @Override public boolean debugBuffers() { return DEBUG_BUFFERS; }
+    @Override public String profileSummary() { return summary(); }
+
+    /**
+     * Entry point for an isolated class loader: gives this loader's LWJGL its
+     * own native extraction directory so it cannot collide with another LWJGL
+     * copy in the same process, then opens the device.
+     */
+    public static dev.worldgennext.compiler.vulkan.fused.FusedGpuBackend openIsolated(String nativeDirectory) {
+        if (nativeDirectory != null && !nativeDirectory.isBlank()) {
+            org.lwjgl.system.Configuration.SHARED_LIBRARY_EXTRACT_PATH.set(nativeDirectory);
+        }
+        return open();
+    }
     /** Raw device handle for developer probes in this package. */
     VkDevice vkDevice() { return device; }
-    public boolean lost() { return lost; }
-    public String lostReason() { return lostReason; }
+    @Override public boolean lost() { return lost; }
+    @Override public String lostReason() { return lostReason; }
 
     public static FusedNoiseDevice open() {
         try (MemoryStack stack = MemoryStack.stackPush()) {
@@ -142,6 +157,7 @@ public final class FusedNoiseDevice implements AutoCloseable {
     }
 
     /** Compiles all kernels of one fused program and allocates its batch slots. */
+    @Override
     public synchronized Program load(FusedNoiseCompiler.Compiled compiled, int maxBatchChunks, int slotCount) {
         if (lost) throw new IllegalStateException("Fused NOISE device is lost: " + lostReason);
         Program program = new Program(compiled, maxBatchChunks, slotCount);
@@ -207,7 +223,7 @@ public final class FusedNoiseDevice implements AutoCloseable {
     }
 
     // ---------------------------------------------------------------- program
-    public final class Program implements AutoCloseable {
+    public final class Program implements AutoCloseable, dev.worldgennext.compiler.vulkan.fused.FusedGpuBackend.Program {
         public final FusedNoiseCompiler.Compiled compiled;
         public final int maxBatchChunks;
         private final long descriptorSetLayout;
@@ -279,8 +295,10 @@ public final class FusedNoiseDevice implements AutoCloseable {
             compileNanos = System.nanoTime() - start;
         }
 
-        public int slotCount() { return slots.length; }
-        public Slot slot(int index) { return slots[index]; }
+        @Override public FusedNoiseCompiler.Compiled compiled() { return compiled; }
+        @Override public long compileNanos() { return compileNanos; }
+        @Override public int slotCount() { return slots.length; }
+        @Override public Slot slot(int index) { return slots[index]; }
 
         @Override
         public synchronized void close() {
@@ -297,7 +315,7 @@ public final class FusedNoiseDevice implements AutoCloseable {
         }
 
         /** One in-flight batch: all buffers are owned until its fence signals. */
-        public final class Slot {
+        public final class Slot implements dev.worldgennext.compiler.vulkan.fused.FusedGpuBackend.Slot {
             public static final int CHUNK_INFO_INTS = 8;
             private final Buffer chunks, columns, corners, aquifer, blocks, beard, flags, heights;
             private final long descriptorSet;

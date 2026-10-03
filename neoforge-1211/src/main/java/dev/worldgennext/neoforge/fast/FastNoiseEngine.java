@@ -2,7 +2,7 @@
 package dev.worldgennext.neoforge.fast;
 
 import dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler;
-import dev.worldgennext.runtime.vulkan.fused.FusedNoiseDevice;
+import dev.worldgennext.compiler.vulkan.fused.FusedGpuBackend;
 import dev.worldgennext.semantic.snapshot.WorldgenSnapshot;
 import net.minecraft.Util;
 import net.minecraft.server.MinecraftServer;
@@ -84,7 +84,7 @@ public final class FastNoiseEngine {
 
     private static volatile FastNoiseEngine INSTANCE;
 
-    private final FusedNoiseDevice device;
+    private final FusedGpuBackend device;
     private final Map<RandomState, LevelProgram> programs = new ConcurrentHashMap<>();
     private final ArrayDeque<Request> queue = new ArrayDeque<>();
     private final Thread worker;
@@ -92,14 +92,14 @@ public final class FastNoiseEngine {
     final AtomicLong gpuChunks = new AtomicLong(), fallbackChunks = new AtomicLong(), bailChunks = new AtomicLong(),
             verifiedChunks = new AtomicLong(), verifyMismatches = new AtomicLong(), batches = new AtomicLong();
 
-    record LevelProgram(String dimension, FusedNoiseDevice.Program program, BlockState[] palette,
+    record LevelProgram(String dimension, FusedGpuBackend.Program program, BlockState[] palette,
                         FusedNoiseCompiler.Geometry geometry, WorldgenSnapshot snapshot) {}
 
     record Request(LevelProgram program, ChunkAccess chunk, NoiseBasedChunkGenerator generator, Blender blender,
                    RandomState randomState, StructureManager structures, int[] beard, int pieces, int junctions,
                    CompletableFuture<ChunkAccess> result, long enqueuedNanos) {}
 
-    private FastNoiseEngine(FusedNoiseDevice device) {
+    private FastNoiseEngine(FusedGpuBackend device) {
         this.device = device;
         this.worker = new Thread(this::loop, "worldgennext-fast-gpu");
         this.worker.setDaemon(true);
@@ -117,9 +117,9 @@ public final class FastNoiseEngine {
      */
     public static void start(MinecraftServer server) {
         if (!ENABLED || INSTANCE != null) return;
-        FusedNoiseDevice device;
+        FusedGpuBackend device;
         try {
-            device = FusedNoiseDevice.open();
+            device = GpuRuntimeLoader.open(server.getServerDirectory());
         } catch (Throwable failure) {
             LOG.warn("Fast GPU NOISE unavailable, using vanilla generation: {}", failure.toString());
             return;
@@ -167,7 +167,7 @@ public final class FastNoiseEngine {
         LOG.info("Fast GPU NOISE stopped: gpu={} fallback={} bail={} batches={} verified={} verifyMismatches={}",
                 engine.gpuChunks.get(), engine.fallbackChunks.get(), engine.bailChunks.get(), engine.batches.get(),
                 engine.verifiedChunks.get(), engine.verifyMismatches.get());
-        if (FusedNoiseDevice.PROFILE) LOG.info("Fast GPU NOISE kernel profile: {}", FusedNoiseDevice.profileSummary());
+        if (engine.device.profiling()) LOG.info("Fast GPU NOISE kernel profile: {}", engine.device.profileSummary());
         engine.device.close();
     }
 
@@ -220,11 +220,11 @@ public final class FastNoiseEngine {
         if (Boolean.getBoolean("worldgennext.fast.dumpSourceOnly")) {
             throw new IllegalStateException("source dumped; pipeline build skipped by worldgennext.fast.dumpSourceOnly");
         }
-        FusedNoiseDevice.Program program = device.load(compiled, BATCH, SLOTS);
+        FusedGpuBackend.Program program = device.load(compiled, BATCH, SLOTS);
         programs.put(randomState, new LevelProgram(dimension, program, palette, compiled.geometry(), snapshot));
         LOG.info("Fast GPU NOISE ready for {}: flat={} interp={} source={} chars, compile {} ms (pipelines {} ms)",
                 level.dimension().location(), compiled.flatChannels(), compiled.interpolatedChannels(), compiled.source().length(),
-                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), TimeUnit.NANOSECONDS.toMillis(program.compileNanos));
+                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), TimeUnit.NANOSECONDS.toMillis(program.compileNanos()));
     }
 
     private static void dumpSource(ServerLevel level, FusedNoiseCompiler.Compiled compiled) {
@@ -309,11 +309,11 @@ public final class FastNoiseEngine {
     }
 
     // ------------------------------------------------------------- GPU loop
-    private record InFlight(FusedNoiseDevice.Program.Slot slot, List<Request> requests) {}
+    private record InFlight(FusedGpuBackend.Slot slot, List<Request> requests) {}
 
     private void loop() {
         List<InFlight> inFlight = new ArrayList<>();
-        Map<FusedNoiseDevice.Program, Integer> nextSlot = new IdentityHashMap<>();
+        Map<FusedGpuBackend.Program, Integer> nextSlot = new IdentityHashMap<>();
         while (running || !inFlight.isEmpty()) {
             boolean progress = false;
             // Complete finished batches.
@@ -333,7 +333,7 @@ public final class FastNoiseEngine {
             List<Request> taken = takeBatch(inFlight.size());
             if (!taken.isEmpty()) {
                 LevelProgram program = taken.get(0).program();
-                FusedNoiseDevice.Program.Slot slot = freeSlot(program.program(), inFlight, nextSlot);
+                FusedGpuBackend.Slot slot = freeSlot(program.program(), inFlight, nextSlot);
                 if (slot == null) {
                     synchronized (queue) { for (int i = taken.size() - 1; i >= 0; i--) queue.addFirst(taken.get(i)); }
                 } else {
@@ -373,11 +373,11 @@ public final class FastNoiseEngine {
         }
     }
 
-    private FusedNoiseDevice.Program.Slot freeSlot(FusedNoiseDevice.Program program, List<InFlight> inFlight,
-                                                   Map<FusedNoiseDevice.Program, Integer> nextSlot) {
+    private FusedGpuBackend.Slot freeSlot(FusedGpuBackend.Program program, List<InFlight> inFlight,
+                                                   Map<FusedGpuBackend.Program, Integer> nextSlot) {
         for (int attempt = 0; attempt < program.slotCount(); attempt++) {
             int index = nextSlot.merge(program, 1, (a, b) -> (a + b) % program.slotCount());
-            FusedNoiseDevice.Program.Slot slot = program.slot(index);
+            FusedGpuBackend.Slot slot = program.slot(index);
             boolean busy = false;
             for (InFlight f : inFlight) if (f.slot() == slot) { busy = true; break; }
             if (!busy && !slot.pending()) return slot;
@@ -385,14 +385,14 @@ public final class FastNoiseEngine {
         return null;
     }
 
-    private void submit(FusedNoiseDevice.Program.Slot slot, List<Request> requests) {
+    private void submit(FusedGpuBackend.Slot slot, List<Request> requests) {
         ByteBuffer info = slot.chunkInfo();
         ByteBuffer beard = slot.beardData();
         int beardOffset = 0;
         for (int i = 0; i < requests.size(); i++) {
             Request r = requests.get(i);
             ChunkPos pos = r.chunk().getPos();
-            int base = i * FusedNoiseDevice.Program.Slot.CHUNK_INFO_INTS * 4;
+            int base = i * FusedGpuBackend.CHUNK_INFO_INTS * 4;
             info.putInt(base, pos.x);
             info.putInt(base + 4, pos.z);
             info.putInt(base + 8, beardOffset);
@@ -404,7 +404,7 @@ public final class FastNoiseEngine {
     }
 
     private void complete(InFlight batch) {
-        FusedNoiseDevice.Program.Slot slot = batch.slot();
+        FusedGpuBackend.Slot slot = batch.slot();
         LevelProgram program = batch.requests().get(0).program();
         var g = program.geometry();
         int blockBytes = g.blockCount();
@@ -422,8 +422,8 @@ public final class FastNoiseEngine {
             int[] h = new int[512];
             for (int k = 0; k < 512; k++) h[k] = heights.getInt((i * 512 + k) * 4);
             double[][] debug = null;
-            if (VERIFY && FusedNoiseDevice.DEBUG_BUFFERS) {
-                var compiled = program.program().compiled;
+            if (VERIFY && device.debugBuffers()) {
+                var compiled = program.program().compiled();
                 int perColumns = Math.max(1, compiled.flatChannels()) * g.columnCount();
                 int perCorners = Math.max(1, compiled.interpolatedChannels()) * g.cornerCount();
                 double[] columns = new double[perColumns];
@@ -465,7 +465,7 @@ public final class FastNoiseEngine {
 
     /** Compares GPU flat columns and interpolation corners with the CPU reference interpreter for one chunk. */
     private void debugCompare(Request r, double[][] debug, int mismatchY) {
-        var compiled = r.program().program().compiled;
+        var compiled = r.program().program().compiled();
         var g = r.program().geometry();
         var snapshot = r.program().snapshot();
         var reference = new dev.worldgennext.compiler.jvm.worldgen.DenseNoiseGenerator();
