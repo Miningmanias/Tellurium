@@ -1,0 +1,124 @@
+{
+  "status": "Illustrative assumptions, not measurements or confidence intervals",
+  "formula": "cps = 1000 * utilization / max(prep_effective_ms, gpu_service_ms, apply_effective_ms, admission_effective_ms)",
+  "cpu_note": "Effective CPU times already divide busy worker-ms/chunk by available workers. Do not divide by workers again or include queue wait as service. Max assumes pipeline overlap and adequately available work.",
+  "baselines": {
+    "vanilla_current": 1332.71,
+    "vanilla_best": 2007.83,
+    "combined_current": 390,
+    "combined_best": 597.95
+  },
+  "scenarios": [
+    {
+      "name": "Vanilla initial prototype",
+      "workload": "vanilla",
+      "prep_ms": 0.22,
+      "gpu_ms": 0.32,
+      "apply_ms": 0.14,
+      "feed_ms": 0.2,
+      "utilization": 0.8,
+      "cps": 2500,
+      "ratio_current": 1.8758769724846365,
+      "ratio_best": 1.2451253343161524
+    },
+    {
+      "name": "Vanilla design target",
+      "workload": "vanilla",
+      "prep_ms": 0.16,
+      "gpu_ms": 0.2,
+      "apply_ms": 0.12,
+      "feed_ms": 0.15,
+      "utilization": 0.8,
+      "cps": 4000,
+      "ratio_current": 3.0014031559754186,
+      "ratio_best": 1.9922005349058436
+    },
+    {
+      "name": "Vanilla stretch",
+      "workload": "vanilla",
+      "prep_ms": 0.11,
+      "gpu_ms": 0.14,
+      "apply_ms": 0.09,
+      "feed_ms": 0.1,
+      "utilization": 0.84,
+      "cps": 5999.999999999999,
+      "ratio_current": 4.502104733963127,
+      "ratio_best": 2.988300802358765
+    },
+    {
+      "name": "Combined initial prototype",
+      "workload": "combined",
+      "prep_ms": 0.85,
+      "gpu_ms": 1.0666666667,
+      "apply_ms": 0.22,
+      "feed_ms": 0.25,
+      "utilization": 0.8,
+      "cps": 749.9999999765625,
+      "ratio_current": 1.923076923016827,
+      "ratio_best": 1.2542854753349988
+    },
+    {
+      "name": "Combined design target",
+      "workload": "combined",
+      "prep_ms": 0.52,
+      "gpu_ms": 0.6666666667,
+      "apply_ms": 0.17,
+      "feed_ms": 0.2,
+      "utilization": 0.8,
+      "cps": 1199.99999994,
+      "ratio_current": 3.076923076769231,
+      "ratio_best": 2.006856760498369
+    },
+    {
+      "name": "Combined stretch",
+      "workload": "combined",
+      "prep_ms": 0.32,
+      "gpu_ms": 0.42,
+      "apply_ms": 0.14,
+      "feed_ms": 0.16,
+      "utilization": 0.84,
+      "cps": 2000,
+      "ratio_current": 5.128205128205129,
+      "ratio_best": 3.34476126766452
+    }
+  ],
+  "amdahl_examples": [
+    {
+      "noise_fraction": 0.3,
+      "noise_speedup": 2,
+      "other_speedup": 1,
+      "full_speedup": 1.1764705882352944
+    },
+    {
+      "noise_fraction": 0.3,
+      "noise_speedup": 3,
+      "other_speedup": 1,
+      "full_speedup": 1.25
+    },
+    {
+      "noise_fraction": 0.5,
+      "noise_speedup": 2,
+      "other_speedup": 1,
+      "full_speedup": 1.3333333333333333
+    },
+    {
+      "noise_fraction": 0.5,
+      "noise_speedup": 3,
+      "other_speedup": 1,
+      "full_speedup": 1.4999999999999998
+    },
+    {
+      "noise_fraction": 0.7,
+      "noise_speedup": 2,
+      "other_speedup": 1,
+      "full_speedup": 1.538461538461538
+    },
+    {
+      "noise_fraction": 0.7,
+      "noise_speedup": 3,
+      "other_speedup": 1,
+      "full_speedup": 1.8749999999999996
+    }
+  ],
+  "execution_mix": "GPU-served NOISE path: every measured chunk is successfully committed after GPU execution. Heterogeneous routing requires route-weighted demands and shared CPU accounting."
+}

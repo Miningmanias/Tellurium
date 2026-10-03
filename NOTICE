@@ -1,0 +1,14 @@
+WorldgenNext 0.1.0
+
+New implementation code: Copyright (c) 2026 WorldgenNext contributors, MIT.
+The project is independent of GPUWorldGen and does not import its implementation.
+
+Gradle wrapper scripts and JAR originate from Gradle, Apache License 2.0.
+The wrapper files were copied from the existing local development project,
+and the distribution is pinned to official Gradle 8.14.2 with SHA-256 verification.
+See third-party/gradle-LICENSE.txt and docs/ATTRIBUTION.md.
+
+Minecraft and NeoForge are development/runtime dependencies, not relicensed
+by this project's MIT license. No decompiled Minecraft sources are bundled.
+No C2ME, Moonrise, ScalableLux, Noisium, OpenCL acceleration module, or CUDA
+implementation is included in this initial milestone.

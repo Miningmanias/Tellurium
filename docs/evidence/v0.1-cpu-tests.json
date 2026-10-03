@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "scope": "CPU_JUNIT",
+  "status": "PASSED",
+  "counts": {
+    "tests": 107,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "modules": {
+    "chunk-engine": {
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "compiler-jvm": {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "compiler-vulkan": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "frontend-mc1211": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "material-codec": {
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "neoforge-1211": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "oracle-and-replay": {
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "runtime-vulkan": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "semantic-core": {
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "spatial-data": {
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "note": "Existing XML only. Run a clean validation first for a fresh milestone report; native/game gates are separate."
+}

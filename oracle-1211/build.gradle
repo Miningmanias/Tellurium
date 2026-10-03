@@ -1,0 +1,89 @@
+plugins { id 'net.neoforged.moddev' version '2.0.91' }
+
+base { archivesName = 'worldgennext-oracle-1.21.1' }
+
+neoForge {
+    version = '21.1.176'
+    mods {
+        worldgennext_oracle { sourceSet sourceSets.main }
+    }
+    runs {
+        server {
+            server()
+            loadedMods = [mods.worldgennext_oracle]
+            gameDirectory = project.file(System.getProperty('worldgennext.oracle.runDir', layout.buildDirectory.dir('run/server').get().asFile.absolutePath))
+            programArgument '--nogui'
+        }
+    }
+}
+
+tasks.register('prepareOracleRun') {
+    doLast {
+        def directory = project.file(System.getProperty('worldgennext.oracle.runDir', layout.buildDirectory.dir('run/server').get().asFile.absolutePath))
+        def seed = System.getProperty('worldgennext.oracle.seed', '0')
+        def output = System.getProperty('worldgennext.oracle.output', '').trim()
+        def caseFile = System.getProperty('worldgennext.oracle.caseFile', '').trim()
+        directory.mkdirs()
+        if (Boolean.parseBoolean(System.getProperty('worldgennext.oracle.capture', 'false')) && !output.isEmpty()) {
+            def stale = project.file(output)
+            if (stale.exists()) throw new GradleException("Refusing to overwrite existing oracle capture: ${stale}")
+        }
+        if (Boolean.parseBoolean(System.getProperty('worldgennext.oracle.capture', 'false')) && !caseFile.isEmpty()) {
+            def manifest = project.file(caseFile)
+            if (!manifest.isFile() || manifest.length() == 0L) throw new GradleException("Oracle case manifest is missing or empty: ${manifest}")
+        }
+        new File(directory, 'eula.txt').text = 'eula=true\n'
+        new File(directory, 'server.properties').text = "level-seed=${seed}\nlevel-name=oracle-world\nlevel-type=minecraft\\:normal\ngenerate-structures=true\nonline-mode=false\nspawn-protection=0\nmax-tick-time=-1\nenable-command-block=true\n"
+    }
+}
+
+tasks.matching { it.name == 'runServer' }.configureEach {
+    dependsOn tasks.named('prepareOracleRun')
+    systemProperty 'worldgennext.oracle.capture', System.getProperty('worldgennext.oracle.capture', 'false')
+    // runServer changes the JVM working directory to the game directory.
+    // Resolve the capture artifact at the Gradle boundary so a relative CLI
+    // path is checked in the project rather than under the disposable world.
+    def captureOutput = System.getProperty('worldgennext.oracle.output', '').trim()
+    systemProperty 'worldgennext.oracle.output', captureOutput.isEmpty() ? '' : project.file(captureOutput).absolutePath
+    def caseFile = System.getProperty('worldgennext.oracle.caseFile', '').trim()
+    systemProperty 'worldgennext.oracle.caseFile', caseFile.isEmpty() ? '' : project.file(caseFile).absolutePath
+    systemProperty 'worldgennext.oracle.chunkX', System.getProperty('worldgennext.oracle.chunkX', '0')
+    systemProperty 'worldgennext.oracle.chunkZ', System.getProperty('worldgennext.oracle.chunkZ', '0')
+    systemProperty 'worldgennext.oracle.endpoint', System.getProperty('worldgennext.oracle.endpoint', 'NOISE')
+    systemProperty 'worldgennext.oracle.dimension', System.getProperty('worldgennext.oracle.dimension', 'minecraft:overworld')
+    systemProperty 'worldgennext.oracle.seed', System.getProperty('worldgennext.oracle.seed', '0')
+    systemProperty 'worldgennext.oracle.source', System.getProperty('worldgennext.oracle.source', 'ORIGINAL')
+    systemProperty 'worldgennext.oracle.stack', System.getProperty('worldgennext.oracle.stack', 'minecraft-1.21.1-neoforge-21.1.176')
+}
+
+tasks.register('oracleSmoke') {
+    group = 'verification'
+    description = 'Run the independent original-only capture process when capture properties are supplied.'
+    dependsOn tasks.named('runServer')
+    doLast {
+        if (!Boolean.parseBoolean(System.getProperty('worldgennext.oracle.capture', 'false'))) return
+        def output = System.getProperty('worldgennext.oracle.output', '').trim()
+        def caseFile = System.getProperty('worldgennext.oracle.caseFile', '').trim()
+        if (output.isEmpty() && caseFile.isEmpty()) throw new GradleException('Capture mode requires -Dworldgennext.oracle.output=<path> or -Dworldgennext.oracle.caseFile=<path>')
+        if (!caseFile.isEmpty()) {
+            def manifest = project.file(caseFile)
+            manifest.readLines('UTF-8').findAll { !it.trim().isEmpty() }.eachWithIndex { line, index ->
+                def fields = line.split('\\t', -1)
+                if (fields.size() != 3) throw new GradleException("Malformed oracle case manifest line ${index + 1}")
+                def artifact = project.file(fields[2])
+                if (!artifact.isFile() || artifact.length() == 0L) throw new GradleException("Oracle server exited without capture artifact: ${artifact}")
+                def firstLine = artifact.withReader('UTF-8') { it.readLine() }
+                if (firstLine != 'WORLDGENNEXT-SNAPSHOT-1') throw new GradleException("Oracle capture has an invalid header: ${artifact}")
+            }
+        } else {
+            def artifact = project.file(output)
+            if (!artifact.isFile() || artifact.length() == 0L) {
+                throw new GradleException("Oracle server exited without a capture artifact: ${artifact}")
+            }
+            def firstLine = artifact.withReader('UTF-8') { it.readLine() }
+            if (firstLine != 'WORLDGENNEXT-SNAPSHOT-1') {
+                throw new GradleException("Oracle capture has an invalid header: ${artifact}")
+            }
+        }
+    }
+}

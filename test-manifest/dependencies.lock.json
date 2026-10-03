@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "status": "CHECKPOINT_INPUTS_LOCKED_NOT_RELEASE_QUALIFIED",
+  "java": {"version": "21", "distribution": "Eclipse Adoptium", "required": true},
+  "minecraft": {"version": "1.21.1", "sourceJarSha256": "011621087f999bd15c0efab500fa75d16b6f80eba99f1fd509461f21852bc71a"},
+  "neoforge": {"version": "21.1.176", "modDevGradle": "2.0.91"},
+  "vulkan": {"api": "1.2", "profile": "GPU_IEEE_BITS", "nativeQualification": "NOT_RUN"},
+  "terrainMods": [
+    {"id": "Terralith", "version": "2.6.2", "sha256": "D38BD304897731B42F6C013CDC07E082E74411E80C74AABCEE385251BEB3B546", "file": "Terralith_1.21.1_v2.6.2_Neoforge.jar", "status": "PINNED_BUILD_FIXTURE"},
+    {"id": "Tectonic", "version": "3.0.26", "sha256": "36AA9B4A8C399C9943460A7A58D91402B6D671C10AB11B099C2EE1D75AF232EA", "file": "tectonic-3.0.26-neoforge-21.1.jar", "status": "PINNED_BUILD_FIXTURE"},
+    {"id": "Lithostitched", "version": "1.8.0+beta6", "sha256": "DF6AD6F061435FD1795BFE3AF627E4CEBB25B977B7CBBC088BBAD0174109D571", "file": "lithostitched-1.8.0+beta6-neoforge-21.1.jar", "status": "PINNED_BUILD_FIXTURE"}
+  ],
+  "embeddedDependencies": [
+    {"id": "Apollib", "version": "1.2.0", "sha256": "D8CA42902CC4FE7C6C39917BDC2A9EC86C32C5BEE3E3C3A551513F601968498B", "embeddedIn": "lithostitched-1.8.0+beta6-neoforge-21.1.jar", "hashScope": "nested-jar-bytes", "status": "RESOLVED_COMBINED_STACK"},
+    {"id": "Apollib", "version": "1.1.5", "sha256": "0A775C516D80D31B494D2747A06A33F9A3E4BCDB72EDA8D95F34968F05DBF963", "embeddedIn": "tectonic-3.0.26-neoforge-21.1.jar", "hashScope": "nested-jar-bytes", "status": "PINNED_EMBEDDED_CONFLICTED_OUT"}
+  ],
+  "excluded": ["CUDA", "C2ME OpenCL implementation"],
+  "note": "Terrain jars and embedded dependency bytes are pinned build fixtures used by the bounded 2026-09-13 oracle/candidate slices. Generated worlds and copied jars remain build artifacts; this metadata does not satisfy G0/G12 or release qualification."
+}

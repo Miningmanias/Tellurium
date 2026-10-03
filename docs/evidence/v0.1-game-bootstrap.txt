@@ -1,0 +1,9 @@
+[15:03:56] [modloading-worker-0/INFO] [worldgennext/]: WorldgenNext 0.1.0 loaded: diagnostics only; Minecraft generation interception UNSUPPORTED; GPU runtime not loaded
+[15:03:56] [main/ERROR] [minecraft/Settings]: Failed to load properties from file: server.properties
+[15:03:58] [Server thread/INFO] [minecraft/GameTestServer]: 2 tests are now running at position -2351359, -59, -4669119!
+[15:03:58] [Server thread/INFO] [minecraft/GameTestServer]: ========= 2 GAME TESTS COMPLETE IN 209.4 ms ======================
+[15:03:58] [Server thread/INFO] [minecraft/GameTestServer]: All 2 required tests passed :)
+[15:03:58] [Server thread/INFO] [minecraft/MinecraftServer]: Stopping server
+[15:03:59] [Server thread/INFO] [minecraft/MinecraftServer]: ThreadedAnvilChunkStorage: All dimensions are saved
+[15:03:59] [Server thread/INFO] [minecraft/GameTestServer]: Game test server shutting down
+BUILD SUCCESSFUL in 15s

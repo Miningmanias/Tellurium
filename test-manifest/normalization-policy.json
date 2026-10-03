@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "status": "CONTRACT",
+  "fields": {
+    "registry": "canonical names and sorted properties",
+    "sets": "sort only when original order has no semantic effect",
+    "timestamps": "exclude only after original-vs-original evidence",
+    "entities": "compare semantic properties/location/count; UUID alone is never a blanket exclusion",
+    "lighting": "compare arrays and readiness flags",
+    "regionBytes": "never compare compressed bytes as logical parity"
+  }
+}

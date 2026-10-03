@@ -1,0 +1,6 @@
+pluginManagement { repositories { gradlePluginPortal(); maven { url = 'https://maven.neoforged.net/releases' } } }
+// Source distributions need these files. Gradle requires default-exclude changes in settings.
+org.apache.tools.ant.DirectoryScanner.removeDefaultExclude('**/.gitignore')
+org.apache.tools.ant.DirectoryScanner.removeDefaultExclude('**/.gitattributes')
+rootProject.name = 'worldgennext'
+include 'semantic-core', 'compiler-jvm', 'compiler-vulkan', 'material-codec', 'spatial-data', 'chunk-engine', 'frontend-mc1211', 'runtime-vulkan', 'oracle-and-replay', 'oracle-1211', 'neoforge-1211', 'fabric-1211'

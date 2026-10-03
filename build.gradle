@@ -1,0 +1,308 @@
+plugins { id 'base' }
+group = 'dev.worldgennext'
+version = '0.2.0'
+if (JavaVersion.current() != JavaVersion.VERSION_21) {
+    throw new GradleException('WorldgenNext builds require JDK 21. Set JAVA_HOME to a JDK 21 installation.')
+}
+def moduleDependencies = [
+    'compiler-jvm':['semantic-core'],
+    'compiler-vulkan':['semantic-core'],
+    'material-codec':['semantic-core'],
+    'spatial-data':['semantic-core'],
+    'chunk-engine':['semantic-core','material-codec','spatial-data'],
+    'frontend-mc1211':['semantic-core'],
+    'runtime-vulkan':['semantic-core','compiler-vulkan'],
+    'oracle-and-replay':['semantic-core','compiler-jvm','compiler-vulkan','material-codec','spatial-data','chunk-engine','frontend-mc1211','runtime-vulkan'],
+    'neoforge-1211':['semantic-core','compiler-jvm','material-codec','spatial-data','chunk-engine','frontend-mc1211','runtime-vulkan'],
+    'fabric-1211':['semantic-core','frontend-mc1211']
+]
+subprojects {
+    apply plugin: 'java-library'
+    group = rootProject.group
+    version = rootProject.version
+    repositories { mavenCentral() }
+    java { toolchain { languageVersion = JavaLanguageVersion.of(21) }; withSourcesJar() }
+    tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 21 }
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+        maxHeapSize = '768m'
+        maxParallelForks = 1
+        testLogging { events 'failed', 'skipped'; exceptionFormat = 'full' }
+        reports { junitXml.required = true; html.required = true }
+    }
+    tasks.withType(AbstractArchiveTask).configureEach { preserveFileTimestamps = false; reproducibleFileOrder = true }
+    tasks.withType(Jar).configureEach {
+        from(rootProject.file('LICENSE')) { into 'META-INF'; rename { 'worldgennext-LICENSE.txt' } }
+        from(rootProject.file('NOTICE')) { into 'META-INF'; rename { 'worldgennext-NOTICE.txt' } }
+        manifest { attributes('Implementation-Title': "WorldgenNext ${project.name}", 'Implementation-Version': project.version) }
+    }
+    dependencies {
+        testImplementation platform('org.junit:junit-bom:5.11.4')
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+        (moduleDependencies[project.name] ?: []).each { api project(":$it") }
+    }
+}
+tasks.register('test') { group='verification'; description='All CPU tests; no GPU or game launch.'; dependsOn subprojects.collect { it.tasks.named('test') } }
+tasks.register('testFast') { group='verification'; description='Alias for the deterministic CPU suite.'; dependsOn tasks.named('test') }
+tasks.named('check') { dependsOn tasks.named('test') }
+tasks.named('assemble') { dependsOn subprojects.collect { it.tasks.named('assemble') } }
+
+tasks.register('testReport', TestReport) {
+    group = 'verification'
+    description = 'Aggregate the actual CPU JUnit results.'
+    dependsOn tasks.named('test')
+    destinationDirectory = layout.buildDirectory.dir('reports/tests/all')
+    testResults.from(subprojects.collect { it.tasks.named('test').flatMap { test -> test.binaryResultsDirectory } })
+}
+
+tasks.register('verifyArchitecture') {
+    group = 'verification'
+    description = 'Enforce pure-module boundaries and reject CUDA dependencies.'
+    def pureModules = ['semantic-core','compiler-jvm','compiler-vulkan','material-codec','spatial-data','chunk-engine','frontend-mc1211']
+    def sourcesByModule = pureModules.collectEntries { moduleName -> [(moduleName): project(":$moduleName").fileTree('src/main/java') { include '**/*.java' }] }
+    def checkedProjects = subprojects.toList()
+    def repositoryPath = rootProject.projectDir.toPath()
+    inputs.files(sourcesByModule.values())
+    doLast {
+        def violations = []
+        sourcesByModule.each { moduleName, sourceFiles ->
+            sourceFiles.each { source ->
+                if (source.getText('UTF-8') =~ /(?m)^\s*import\s+(?:static\s+)?(?:net\.minecraft|net\.neoforged|org\.lwjgl)\./) {
+                    violations << "Native/game import in pure module: ${repositoryPath.relativize(source.toPath())}"
+                }
+            }
+        }
+        checkedProjects.each { module ->
+            module.configurations.each { configuration ->
+                configuration.allDependencies.each { dependency ->
+                    def coordinate = "${dependency.group}:${dependency.name}".toLowerCase(Locale.ROOT)
+                    if (coordinate.contains('jcuda') || coordinate.contains('cuda-platform') || coordinate.contains('cublas')) {
+                        violations << "CUDA dependency: $coordinate in ${module.name}"
+                    }
+                }
+            }
+        }
+        if (!violations.empty) throw new GradleException(violations.unique().join('\n'))
+        logger.lifecycle('Architecture boundary checks passed (source imports and declared dependencies).')
+    }
+}
+tasks.named('check') { dependsOn tasks.named('verifyArchitecture') }
+
+tasks.register('verifyV02Inputs') {
+    group = 'verification'
+    description = 'Verify the v0.2 contract, manifest and module-boundary inputs without claiming release qualification.'
+    inputs.files('docs/V0.2-PLAN.md', 'docs/v0.2/FILES.md', 'docs/v0.2/TESTS.md',
+            'test-manifest/v0.2-acceptance.json', 'test-manifest/dependencies.lock.json')
+    doLast {
+        def required = ['docs/V0.2-PLAN.md', 'docs/v0.2/FILES.md', 'docs/v0.2/TESTS.md', 'test-manifest/v0.2-acceptance.json']
+        required.each { path -> if (!rootProject.file(path).isFile()) throw new GradleException("Missing v0.2 input: $path") }
+        def dependencyLock = new groovy.json.JsonSlurper().parse(rootProject.file('test-manifest/dependencies.lock.json'))
+        def requiredTerrain = ['Terralith', 'Tectonic', 'Lithostitched']
+        def terrainEntries = (dependencyLock.terrainMods ?: []).collectEntries { [(it.id): it] }
+        requiredTerrain.each { id ->
+            def entry = terrainEntries[id]
+            if (entry == null || !entry.version || !entry.file
+                    || !(entry.sha256 ==~ /(?i)[0-9a-f]{64}/)
+                    || entry.status != 'PINNED_BUILD_FIXTURE') {
+                throw new GradleException("Terrain dependency lock is incomplete for $id")
+            }
+        }
+        if (!(dependencyLock.embeddedDependencies instanceof List) || dependencyLock.embeddedDependencies.isEmpty()) {
+            throw new GradleException('Terrain dependency lock is missing embedded dependency identities')
+        }
+        def sourceFiles = fileTree(rootProject.projectDir) { include '**/src/main/java/**/*.java'; exclude '**/build/**' }
+        def cuda = sourceFiles.findAll { it.getText('UTF-8') =~ /(?i)cuda|jcuda|cublas/ }
+        if (!cuda.isEmpty()) throw new GradleException("CUDA reference in source: ${cuda}")
+        logger.lifecycle('v0.2 inputs and CUDA-free source policy verified; release gates remain evidence-driven.')
+    }
+}
+
+tasks.register('verifyTerrainModLock') {
+    group = 'verification'
+    description = 'Verify a copied terrain-mod fixture against test-manifest/dependencies.lock.json.'
+    doLast {
+        def directoryValue = System.getProperty('worldgennext.terrainModDirectory', '').trim()
+        if (directoryValue.isEmpty()) {
+            throw new GradleException('Terrain fixture verification requires -Dworldgennext.terrainModDirectory=<fixture directory>')
+        }
+        def fixtureDirectory = rootProject.file(directoryValue).canonicalFile
+        if (!fixtureDirectory.isDirectory()) throw new GradleException("Terrain fixture directory is missing: $fixtureDirectory")
+        def lock = new groovy.json.JsonSlurper().parse(rootProject.file('test-manifest/dependencies.lock.json'))
+        def digestFile = { File file ->
+            def digest = java.security.MessageDigest.getInstance('SHA-256')
+            file.withInputStream { stream ->
+                byte[] buffer = new byte[1024 * 1024]
+                int count
+                while ((count = stream.read(buffer)) >= 0) {
+                    if (count > 0) digest.update(buffer, 0, count)
+                }
+            }
+            digest.digest().collect { String.format('%02X', it) }.join()
+        }
+        def lockedFiles = [:]
+        (lock.terrainMods ?: []).each { entry ->
+            def file = new File(fixtureDirectory, entry.file).canonicalFile
+            if (!file.path.startsWith(fixtureDirectory.path + File.separator)) {
+                throw new GradleException("Terrain lock file escapes fixture directory: ${entry.file}")
+            }
+            if (!file.isFile()) throw new GradleException("Terrain lock file is missing: $file")
+            def actual = digestFile(file)
+            if (!actual.equalsIgnoreCase(entry.sha256 as String)) {
+                throw new GradleException("Terrain lock hash mismatch for ${entry.id}: expected ${entry.sha256}, actual $actual")
+            }
+            lockedFiles[entry.file] = file
+        }
+        (lock.embeddedDependencies ?: []).each { entry ->
+            def container = lockedFiles[entry.embeddedIn]
+            if (container == null) throw new GradleException("Embedded dependency container is not terrain-locked: ${entry.embeddedIn}")
+            def found = false
+            new java.util.zip.ZipFile(container).withCloseable { zip ->
+                def entryPath = zip.entries().find { it.name.startsWith('META-INF/jarjar/')
+                        && it.name.endsWith(entry.id.toLowerCase(Locale.ROOT) + '-' + entry.version + '-neoforge-21.1.jar') }
+                if (entryPath == null) throw new GradleException("Embedded dependency is missing from ${container.name}: ${entry.id} ${entry.version}")
+                def digest = java.security.MessageDigest.getInstance('SHA-256')
+                zip.getInputStream(entryPath).withCloseable { stream ->
+                    byte[] buffer = new byte[1024 * 1024]
+                    int count
+                    while ((count = stream.read(buffer)) >= 0) {
+                        if (count > 0) digest.update(buffer, 0, count)
+                    }
+                }
+                def actual = digest.digest().collect { String.format('%02X', it) }.join()
+                if (!actual.equalsIgnoreCase(entry.sha256 as String)) {
+                    throw new GradleException("Embedded dependency hash mismatch for ${entry.id} ${entry.version}: expected ${entry.sha256}, actual $actual")
+                }
+                found = true
+            }
+            if (!found) throw new GradleException("Embedded dependency verification did not run for ${entry.id} ${entry.version}")
+        }
+        logger.lifecycle("Verified terrain fixture lock: ${fixtureDirectory}")
+    }
+}
+
+tasks.register('testWorldgenSemantics') {
+    group = 'verification'
+    description = 'Run typed semantic, frontend and CPU worldgen contract tests.'
+    dependsOn ':semantic-core:test', ':frontend-mc1211:test', ':compiler-jvm:test'
+}
+tasks.register('testIntegerIeee') {
+    group = 'verification'
+    description = 'Run driver-free integer-carrier shader and runtime contract tests.'
+    dependsOn ':semantic-core:test', ':compiler-vulkan:test', ':runtime-vulkan:test'
+}
+tasks.register('nativeIntegerIeee') {
+    group = 'verification'
+    description = 'Opt-in native shaderc/device validation; never folded into the ordinary CPU test task.'
+    dependsOn ':runtime-vulkan:nativeIntegerIeee'
+}
+tasks.register('testVulkanLifecycle') { group = 'verification'; description = 'Run injected persistent-runtime lifecycle tests without a native driver.'; dependsOn ':runtime-vulkan:test' }
+tasks.register('nativeVulkanLifecycle') { group = 'verification'; description = 'Opt-in native asynchronous persistent-executor lifecycle proof.'; dependsOn ':runtime-vulkan:nativeVulkanLifecycle' }
+tasks.register('testMinecraftOracle') { group = 'verification'; description = 'Run pure corpus/comparator/oracle contract tests.'; dependsOn ':oracle-and-replay:test' }
+tasks.register('testChunkResultContract') { group = 'verification'; description = 'Run complete result ABI, registry and metadata tests.'; dependsOn ':material-codec:test' }
+tasks.register('testWorldgenCoordinator') { group = 'verification'; description = 'Run coordinator, admission and spatial model tests.'; dependsOn ':chunk-engine:test', ':spatial-data:test' }
+
+tasks.register('replayMinecraftNoiseCpu') {
+    group = 'verification'
+    description = 'Capture and compare the owned CPU candidate against the independent Minecraft NOISE corpus; heavy and opt-in.'
+    doLast {
+        exec {
+            commandLine 'powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+                    rootProject.file('scripts/replay-minecraft-noise-cpu.ps1').absolutePath,
+                    '-ExpectedRoot', rootProject.file('build/oracle-captures/original').absolutePath
+        }
+    }
+}
+
+tasks.register('replayMinecraftNoiseGpu') {
+    group = 'verification'
+    description = 'Capture and compare the real GPU candidate against the independent Minecraft NOISE corpus; heavy, opt-in and fail-closed.'
+    doLast {
+        exec {
+            commandLine 'powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+                    rootProject.file('scripts/replay-minecraft-noise-gpu.ps1').absolutePath,
+                    '-ExpectedRoot', rootProject.file('build/oracle-captures/original').absolutePath
+            def batch = System.getProperty('worldgennext.gpuCandidate.batchElements', '').trim()
+            if (!batch.isEmpty()) args '-BatchElements', batch
+        }
+    }
+}
+
+tasks.register('verifyReleaseJar') {
+    group = 'verification'
+    description = 'Verify the WorldgenNext NeoForge jar contains the qualified-core/runtime classes without bundling game/test dependencies.'
+    def modJar = project(':neoforge-1211').tasks.named('jar').flatMap { it.archiveFile }
+    dependsOn ':neoforge-1211:jar'
+    doLast {
+        def artifact = modJar.get().asFile
+        def required = [
+            'META-INF/neoforge.mods.toml',
+        'dev/worldgennext/semantic/WorldgenIdentity.class',
+        'dev/worldgennext/compiler/jvm/CpuCompiler.class',
+        'dev/worldgennext/compiler/vulkan/worldgen/WorldgenShaderCompiler.class',
+        'dev/worldgennext/material/SectionCodec.class',
+            'dev/worldgennext/neoforge/config/WorldgenNextConfig.class',
+            'dev/worldgennext/runtime/vulkan/production/VulkanGenerationService.class'
+        ]
+        new java.util.zip.ZipFile(artifact).withCloseable { zip ->
+            required.each { name -> if (zip.getEntry(name) == null) throw new GradleException("Missing packaged entry: $name") }
+            def metadata = zip.getInputStream(zip.getEntry(required[0])).getText('UTF-8')
+            if (!metadata.contains('worldgennext') || !metadata.contains('0.2.0')) throw new GradleException('Incorrect or unexpanded mod metadata')
+            def names = zip.entries().collect { it.name }
+            if (!names.any { it.startsWith('dev/worldgennext/neoforge/') && it.endsWith('.class') }) throw new GradleException('Missing NeoForge entrypoint classes')
+            def forbidden = names.findAll { name -> ['net/minecraft/', 'net/neoforged/', 'org/junit/', 'dev/gpuworldgen/', 'org/lwjgl/'].any { name.startsWith(it) } }
+            if (!forbidden.empty) throw new GradleException("Unexpected bundled implementation/dependency: ${forbidden.take(10)}")
+        }
+        logger.lifecycle("Verified WorldgenNext jar: ${artifact.name}")
+    }
+}
+tasks.named('check') { dependsOn tasks.named('verifyReleaseJar') }
+
+tasks.register('checkReleaseJar') { group = 'verification'; description = 'Alias for the installed-jar packaging contract.'; dependsOn tasks.named('verifyReleaseJar') }
+
+tasks.register('testInstalledMod') {
+    group = 'verification'
+    description = 'Run the installed NeoForge jar in fresh disposable server directories; requires -Dworldgennext.installed.serverDir.'
+    dependsOn tasks.named('checkReleaseJar')
+    doLast {
+        def serverDirectory = System.getProperty('worldgennext.installed.serverDir', '').trim()
+        if (serverDirectory.isEmpty()) {
+            throw new GradleException('Installed-mod smoke is opt-in and requires -Dworldgennext.installed.serverDir=<empty NeoForge server template>')
+        }
+        def serverJar = System.getProperty('worldgennext.installed.serverJar', '').trim()
+        def runRoot = System.getProperty('worldgennext.installed.runRoot', '').trim()
+        def javaHome = System.getProperty('worldgennext.installed.javaHome', '').trim()
+        def arguments = ['powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+                         rootProject.file('scripts/test-installed-mod.ps1').absolutePath,
+                         '-ServerDirectory', serverDirectory,
+                         '-ModJar', project(':neoforge-1211').tasks.named('jar').get().archiveFile.get().asFile.absolutePath]
+        if (!serverJar.isEmpty()) arguments += ['-ServerJar', serverJar]
+        if (!runRoot.isEmpty()) arguments += ['-RunRoot', runRoot]
+        if (!javaHome.isEmpty()) arguments += ['-JavaHome', javaHome]
+        exec { commandLine arguments }
+    }
+}
+
+tasks.register('qualifyV02') {
+    group = 'verification'
+    description = 'Run the declared v0.2 qualification prerequisites and fail closed until executed release evidence exists.'
+    dependsOn tasks.named('verifyV02Inputs'), tasks.named('testWorldgenSemantics'), tasks.named('testIntegerIeee'), tasks.named('testMinecraftOracle'), tasks.named('testChunkResultContract'), tasks.named('testWorldgenCoordinator'), tasks.named('checkReleaseJar')
+    doLast {
+        def manifest = new groovy.json.JsonSlurper().parse(rootProject.file('test-manifest/v0.2-acceptance.json'))
+        if (manifest.executionStatus != 'PASS') throw new GradleException("v0.2 qualification is fail-closed: executionStatus=${manifest.executionStatus}; real Minecraft/GPU/FULL/SAVED evidence is not present")
+    }
+}
+
+tasks.register('sourceBundle', Zip) {
+    group = 'distribution'
+    description = 'Create a source-only WorldgenNext archive, excluding worlds, caches, generated binaries and Git state.'
+    archiveFileName = "worldgennext-${project.version}-sources.zip"
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+    from(rootProject.projectDir) {
+        exclude '.git/**', '**/.gradle/**', '**/build/**', '**/run/**', '**/runs/**', '.idea/**', '**/__pycache__/**', '**/*.pyc', '**/*.log', 'hs_err_pid*'
+        into "worldgennext-${project.version}"
+    }
+}
+tasks.named('assemble') { dependsOn tasks.named('sourceBundle') }

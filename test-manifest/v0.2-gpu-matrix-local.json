@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "contexts": [
+    {
+      "id": "vanilla-overworld",
+      "independentExpectedRoot": "../build/oracle-captures/v02-vanilla-core/vanilla-overworld"
+    },
+    {
+      "id": "vanilla-nether",
+      "independentExpectedRoot": "../build/oracle-captures/v02-vanilla-core/vanilla-nether"
+    },
+    {
+      "id": "vanilla-end",
+      "independentExpectedRoot": "../build/oracle-captures/v02-vanilla-core/vanilla-end"
+    },
+    {
+      "id": "terralith-overworld",
+      "independentExpectedRoot": "../build/oracle-captures/v02-terralith-250-20260913",
+      "modDirectory": "../build/terrain-mods/terralith-2.6.2-lithostitched-1.8.0b6-20260913"
+    },
+    {
+      "id": "tectonic-overworld",
+      "independentExpectedRoot": "../build/oracle-captures/v02-tectonic-250-20260913",
+      "modDirectory": "../build/terrain-mods/tectonic-3.0.26-lithostitched-1.8.0b6-20260913"
+    },
+    {
+      "id": "combined-overworld",
+      "independentExpectedRoot": "../build/oracle-captures/v02-combined-250-retry-20260913",
+      "modDirectory": "../build/terrain-mods/combined-terralith-tectonic-lithostitched-20260913"
+    }
+  ]
+}

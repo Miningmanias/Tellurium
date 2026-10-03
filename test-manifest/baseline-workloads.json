@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "status": "PLANNED",
+  "coldLaunches": 3,
+  "warmRuns": 3,
+  "endpoints": ["NOISE", "FULL", "SAVED"],
+  "controls": ["ORIGINAL_SAME_STACK", "CPU_OWNED", "GPU_IEEE_BITS"],
+  "freshEquivalentWorldsRequired": true,
+  "minimumChunksPerSecond": null,
+  "speedupRequired": false
+}

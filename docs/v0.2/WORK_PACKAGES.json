@@ -1,0 +1,455 @@
+{
+  "schemaVersion": 1,
+  "kind": "implementation_plan",
+  "executionStatus": "IN_PROGRESS_CHECKPOINT",
+  "updated": "2026-09-13",
+  "currentRuntimeVersion": "0.2.0-checkpoint",
+  "targetVersion": "0.2.0",
+  "authority": "../V0.2-PLAN.md",
+  "scope": {
+    "minecraft": "1.21.1",
+    "neoforge": "21.1.176",
+    "java": 21,
+    "primaryPlatform": "Windows x64",
+    "primaryGpu": "RTX 5070 Ti",
+    "backend": "Headless Vulkan compute",
+    "cudaAllowed": false,
+    "fabric": "DEFERRED",
+    "optimization": "DEFERRED_TO_V0.3",
+    "minimumChunksPerSecond": null
+  },
+  "dependencySemantics": "dependsOn requires completed packages before acceptance work proceeds. contractPrerequisites allow implementation overlap only after the named interface/specification is pinned; they do not waive prerequisite gate evidence. Every gate closes only with the inputs it actually uses qualified.",
+  "workPackages": [
+    {
+      "id": "P00",
+      "title": "Freeze baseline, contracts, dependencies and licenses",
+      "status": "CHECKPOINT_PARTIAL",
+      "dependsOn": [],
+      "contractPrerequisites": [],
+      "effortEngineerDays": {
+        "minimum": 2,
+        "maximum": 3,
+        "confidence": "LOW_TO_MEDIUM_NOT_A_DELIVERY_PROMISE"
+      },
+      "owners": [
+        "semantic-core",
+        "frontend-mc1211",
+        "root"
+      ],
+      "deliverables": [
+        "Locked Minecraft/mod/native artifacts and source identities",
+        "Node/status/operator inventory and API/ABI contracts",
+        "Versioned resource/deadline and corpus-freeze policies"
+      ],
+      "exitGate": "G0",
+      "plannedTasks": [
+        "verifyV02Inputs"
+      ],
+      "acceptance": "TESTS.md",
+      "filePlan": "FILES.md"
+    },
+    {
+      "id": "P01",
+      "title": "Independent Minecraft oracle and comparator",
+      "status": "CHECKPOINT_PARTIAL",
+      "dependsOn": [
+        "P00"
+      ],
+      "contractPrerequisites": [],
+      "effortEngineerDays": {
+        "minimum": 6,
+        "maximum": 10,
+        "confidence": "LOW_TO_MEDIUM_NOT_A_DELIVERY_PROMISE"
+      },
+      "owners": [
+        "oracle-and-replay",
+        "neoforge-1211"
+      ],
+      "deliverables": [
+        "Separate corpus API and original capture artifact",
+        "Original-vs-original deterministic captures",
+        "Mutation-tested comparator and failure bundles"
+      ],
+      "exitGate": "G1",
+      "plannedTasks": [
+        "testMinecraftOracle"
+      ],
+      "acceptance": "TESTS.md",
+      "filePlan": "FILES.md"
+    },
+    {
+      "id": "P02",
+      "title": "Typed frontend and complete CPU semantic evaluators",
+      "status": "CHECKPOINT_PARTIAL",
+      "dependsOn": [
+        "P00"
+      ],
+      "contractPrerequisites": [
+        {
+          "package": "P01",
+          "contract": "Capture schema and independent primitive/root oracle"
+        }
+      ],
+      "effortEngineerDays": {
+        "minimum": 7,
+        "maximum": 12,
+        "confidence": "LOW_TO_MEDIUM_NOT_A_DELIVERY_PROMISE"
+      },
+      "owners": [
+        "semantic-core",
+        "frontend-mc1211",
+        "compiler-jvm",
+        "neoforge-1211"
+      ],
+      "deliverables": [
+        "All required router/node/marker/RNG semantics",
+        "Immutable registry, dynamic and context snapshots",
+        "Explicit supported and rejected capability inventory"
+      ],
+      "exitGate": "G2",
+      "plannedTasks": [
+        "testWorldgenSemantics"
+      ],
+      "acceptance": "TESTS.md",
+      "filePlan": "FILES.md"
+    },
+    {
+      "id": "P03",
+      "title": "Exact GPU arithmetic and ABI",
+      "status": "CHECKPOINT_PARTIAL",
+      "dependsOn": [
+        "P00"
+      ],
+      "contractPrerequisites": [
+        {
+          "package": "P02",
+          "contract": "Typed numerical operator closure and rounding semantics"
+        }
+      ],
+      "effortEngineerDays": {
+        "minimum": 10,
+        "maximum": 20,
+        "confidence": "LOW_TO_MEDIUM_NOT_A_DELIVERY_PROMISE"
+      },
+      "owners": [
+        "semantic-core",
+        "compiler-vulkan",
+        "runtime-vulkan"
+      ],
+      "deliverables": [
+        "Integer IEEE helpers and raw-bit ABI",
+        "Compiled SPIR-V numeric inspection",
+        "Actual-device arithmetic conformance"
+      ],
+      "exitGate": "G3",
+      "plannedTasks": [
+        "testIntegerIeee",
+        "nativeIntegerIeee"
+      ],
+      "acceptance": "TESTS.md",
+      "filePlan": "FILES.md"
+    },
+    {
+      "id": "P04",
+      "title": "Complete CPU dense NOISE generation",
+      "status": "CHECKPOINT_PARTIAL",
+      "dependsOn": [
+        "P01",
+        "P02"
+      ],
+      "contractPrerequisites": [],
+      "effortEngineerDays": {
+        "minimum": 6,
+        "maximum": 10,
+        "confidence": "LOW_TO_MEDIUM_NOT_A_DELIVERY_PROMISE"
+      },
+      "owners": [
+        "compiler-jvm",
+        "oracle-and-replay"
+      ],
+      "deliverables": [
+        "Exact density, aquifer, ore and final states",
+        "Full geometry and metadata output",
+        "1500 mandatory core CPU NOISE comparisons plus scene fixtures"
+      ],
+      "exitGate": "G4",
+      "plannedTasks": [
+        "replayMinecraftNoiseCpu"
+      ],
+      "acceptance": "TESTS.md",
+      "filePlan": "FILES.md"
+    },
+    {
+      "id": "P05",
+      "title": "Persistent Vulkan runtime",
+      "status": "CHECKPOINT_PARTIAL",
+      "dependsOn": [
+        "P00"
+      ],
+      "contractPrerequisites": [
+        {
+          "package": "P03",
+          "contract": "Qualified integer carrier ABI and bounded conformance dispatch"
+        }
+      ],
+      "effortEngineerDays": {
+        "minimum": 6,
+        "maximum": 10,
+        "confidence": "LOW_TO_MEDIUM_NOT_A_DELIVERY_PROMISE"
+      },
+      "owners": [
+        "runtime-vulkan"
+      ],
+      "deliverables": [
+        "Persistent device, fixed-capacity buffers and synchronized queue owner",
+        "Asynchronous completion with separate leases",
+        "Bounded failure, disabled/lost and quarantine states"
+      ],
+      "exitGate": "G5",
+      "plannedTasks": [
+        "testVulkanLifecycle",
+        "nativeVulkanLifecycle"
+      ],
+      "acceptance": "TESTS.md",
+      "filePlan": "FILES.md"
+    },
+    {
+      "id": "P06",
+      "title": "Real GPU dense NOISE generation",
+      "status": "CHECKPOINT_PARTIAL",
+      "dependsOn": [
+        "P03",
+        "P04",
+        "P05"
+      ],
+      "contractPrerequisites": [],
+      "effortEngineerDays": {
+        "minimum": 8,
+        "maximum": 14,
+        "confidence": "LOW_TO_MEDIUM_NOT_A_DELIVERY_PROMISE"
+      },
+      "owners": [
+        "compiler-vulkan",
+        "runtime-vulkan",
+        "oracle-and-replay"
+      ],
+      "deliverables": [
+        "GPU density, aquifer and ore evaluation",
+        "Checked bounded dense output and metadata",
+        "1500 mandatory core GPU replay comparisons plus scene fixtures"
+      ],
+      "exitGate": "G6",
+      "plannedTasks": [
+        "replayMinecraftNoiseGpu"
+      ],
+      "acceptance": "TESTS.md",
+      "filePlan": "FILES.md"
+    },
+    {
+      "id": "P07",
+      "title": "Registry-aware results and material representations",
+      "status": "CHECKPOINT_PARTIAL",
+      "dependsOn": [
+        "P02",
+        "P04"
+      ],
+      "contractPrerequisites": [],
+      "effortEngineerDays": {
+        "minimum": 4,
+        "maximum": 7,
+        "confidence": "LOW_TO_MEDIUM_NOT_A_DELIVERY_PROMISE"
+      },
+      "owners": [
+        "material-codec",
+        "semantic-core"
+      ],
+      "deliverables": [
+        "Canonical registry mapping and complete result ABI",
+        "Dense, palette and uniform final-state equivalence",
+        "Malformed-input and metadata validation"
+      ],
+      "exitGate": "G7",
+      "plannedTasks": [
+        "testChunkResultContract"
+      ],
+      "acceptance": "TESTS.md",
+      "filePlan": "FILES.md"
+    },
+    {
+      "id": "P08",
+      "title": "Coordinator and real spatial producers",
+      "status": "CHECKPOINT_PARTIAL",
+      "dependsOn": [
+        "P02",
+        "P05"
+      ],
+      "contractPrerequisites": [
+        {
+          "package": "P07",
+          "contract": "Validated result, metadata and application-resource contract"
+        }
+      ],
+      "effortEngineerDays": {
+        "minimum": 6,
+        "maximum": 10,
+        "confidence": "LOW_TO_MEDIUM_NOT_A_DELIVERY_PROMISE"
+      },
+      "owners": [
+        "chunk-engine",
+        "spatial-data"
+      ],
+      "deliverables": [
+        "Subscriptions, atomic admission and finite terminal retention",
+        "Real typed column/lattice/aquifer producers and consumers",
+        "Single-worker and tiny-budget progress with receipts/counters"
+      ],
+      "exitGate": "G8",
+      "plannedTasks": [
+        "testWorldgenCoordinator"
+      ],
+      "acceptance": "TESTS.md",
+      "filePlan": "FILES.md"
+    },
+    {
+      "id": "P09",
+      "title": "Live NOISE integration and commit",
+      "status": "CHECKPOINT_PARTIAL",
+      "dependsOn": [
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P08"
+      ],
+      "contractPrerequisites": [],
+      "effortEngineerDays": {
+        "minimum": 7,
+        "maximum": 12,
+        "confidence": "LOW_TO_MEDIUM_NOT_A_DELIVERY_PROMISE"
+      },
+      "owners": [
+        "neoforge-1211",
+        "chunk-engine"
+      ],
+      "deliverables": [
+        "Qualified hook and CPU/Vulkan composition",
+        "Complete mutation journal and exclusive publication",
+        "1500 live core NOISE comparisons per backend and fault/reload tests"
+      ],
+      "exitGate": "G9",
+      "plannedTasks": [
+        "testLiveNoise"
+      ],
+      "acceptance": "TESTS.md",
+      "filePlan": "FILES.md"
+    },
+    {
+      "id": "P10",
+      "title": "FULL and saved-world completion",
+      "status": "CHECKPOINT_PARTIAL",
+      "dependsOn": [
+        "P09"
+      ],
+      "contractPrerequisites": [],
+      "effortEngineerDays": {
+        "minimum": 6,
+        "maximum": 10,
+        "confidence": "LOW_TO_MEDIUM_NOT_A_DELIVERY_PROMISE"
+      },
+      "owners": [
+        "neoforge-1211",
+        "oracle-and-replay",
+        "chunk-engine"
+      ],
+      "deliverables": [
+        "Original downstream stage/lifecycle integration",
+        "Logical save and independent reopen verifier",
+        "216 core comparisons per backend per FULL and SAVED endpoint"
+      ],
+      "exitGate": "G10",
+      "plannedTasks": [
+        "testFullAndSavedWorlds"
+      ],
+      "acceptance": "TESTS.md",
+      "filePlan": "FILES.md"
+    },
+    {
+      "id": "P11",
+      "title": "Configuration, compatibility and installed product",
+      "status": "CHECKPOINT_PARTIAL",
+      "dependsOn": [
+        "P08"
+      ],
+      "contractPrerequisites": [
+        {
+          "package": "P09",
+          "contract": "Runtime composition, hook eligibility and lifecycle configuration"
+        }
+      ],
+      "effortEngineerDays": {
+        "minimum": 3,
+        "maximum": 5,
+        "confidence": "LOW_TO_MEDIUM_NOT_A_DELIVERY_PROMISE"
+      },
+      "owners": [
+        "neoforge-1211",
+        "root"
+      ],
+      "deliverables": [
+        "CPU_ONLY, GPU_REQUIRED and AUTO_SUPPORTED modes",
+        "Lazy native strategy, dependency and release-jar checks",
+        "Installed dedicated/integrated checks and operator documentation"
+      ],
+      "exitGate": "G11",
+      "plannedTasks": [
+        "checkReleaseJar",
+        "testInstalledMod"
+      ],
+      "acceptance": "TESTS.md",
+      "filePlan": "FILES.md"
+    },
+    {
+      "id": "P12",
+      "title": "Qualification, stability and baseline freeze",
+      "status": "NOT_STARTED",
+      "dependsOn": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P08",
+        "P09",
+        "P10",
+        "P11"
+      ],
+      "contractPrerequisites": [],
+      "effortEngineerDays": {
+        "minimum": 6,
+        "maximum": 10,
+        "confidence": "LOW_TO_MEDIUM_NOT_A_DELIVERY_PROMISE"
+      },
+      "owners": [
+        "all-supported-modules"
+      ],
+      "deliverables": [
+        "All required contexts and gates on the frozen release",
+        "30-minute campaigns and five busy cycles per backend",
+        "Endpoint-specific baseline, raw evidence and source/binary archives"
+      ],
+      "exitGate": "G12",
+      "plannedTasks": [
+        "qualifyV02"
+      ],
+      "acceptance": "TESTS.md",
+      "filePlan": "FILES.md"
+    }
+  ],
+  "effortTotalEngineerDays": {
+    "minimum": 77,
+    "maximum": 133
+  },
+  "releaseRule": "Every required gate must have actual passing evidence on the frozen release snapshot. CPU-only checkpoints do not complete the GPU release."
+}

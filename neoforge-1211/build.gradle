@@ -1,0 +1,351 @@
+plugins { id 'net.neoforged.moddev' version '2.0.91' }
+
+base { archivesName = 'worldgennext-neoforge-1.21.1' }
+
+def pureModules = ['semantic-core', 'compiler-jvm', 'compiler-vulkan', 'material-codec', 'spatial-data', 'chunk-engine', 'frontend-mc1211', 'runtime-vulkan']
+
+sourceSets {
+    gameTest {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+configurations {
+    gameTestImplementation.extendsFrom implementation
+    gameTestRuntimeOnly.extendsFrom runtimeOnly
+}
+dependencies { pureModules.each { gameTestImplementation project(":$it") } }
+
+neoForge {
+    version = '21.1.176'
+    addModdingDependenciesTo(sourceSets.gameTest)
+    mods {
+        worldgennext {
+            sourceSet sourceSets.main
+            pureModules.each { sourceSet project(":$it").sourceSets.main }
+        }
+        worldgennext_test { sourceSet sourceSets.gameTest }
+    }
+    runs {
+        server {
+            server()
+            loadedMods = [mods.worldgennext]
+            gameDirectory = project.file(System.getProperty('worldgennext.candidate.runDir', layout.buildDirectory.dir('run/server').get().asFile.absolutePath))
+            // The mod source set intentionally keeps Vulkan implementation
+            // dependencies out of the production jar.  Inject only the
+            // launch-time LWJGL artifacts so diagnostic GPU candidate runs
+            // can resolve the executor without exposing bundled project
+            // modules a second time through ModLauncher's module path.
+            additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl:3.3.3')
+            additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl-vulkan:3.3.3')
+            additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl-shaderc:3.3.3')
+            additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl:3.3.3:natives-windows')
+            additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl-shaderc:3.3.3:natives-windows')
+            def lwjglStackSize = System.getProperty('worldgennext.lwjgl.stackSize', '16384').trim()
+            if (!(lwjglStackSize ==~ /[1-9][0-9]*/)) {
+                throw new GradleException('worldgennext.lwjgl.stackSize must be a positive decimal stack-size value')
+            }
+            jvmArgument "-Dorg.lwjgl.system.stackSize=${lwjglStackSize}"
+            programArgument '--nogui'
+        }
+        gameTestServer {
+            type = 'gameTestServer'
+            sourceSet = sourceSets.gameTest
+            loadedMods = [mods.worldgennext, mods.worldgennext_test]
+            gameDirectory = layout.buildDirectory.dir('run/gametest')
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'worldgennext_test'
+            systemProperty 'neoforge.gameTestServer', 'true'
+            programArguments.addAll '--world', 'worldgennext-diagnostics'
+        }
+    }
+}
+
+tasks.named('jar', Jar) {
+    pureModules.each { from project(":$it").sourceSets.main.output }
+    duplicatesStrategy = DuplicatesStrategy.FAIL
+    manifest { attributes('Implementation-Title': 'WorldgenNext diagnostics', 'Implementation-Version': project.version) }
+}
+tasks.named('sourcesJar', Jar) {
+    pureModules.each { from project(":$it").sourceSets.main.allSource }
+    duplicatesStrategy = DuplicatesStrategy.FAIL
+}
+tasks.register('gameSmoke') {
+    group = 'verification'
+    description = 'Opt-in real NeoForge bootstrap, mapped capture and direct-density diagnostic GameTests; no chunk/GPU parity claim.'
+    dependsOn tasks.named('runGameTestServer')
+}
+
+tasks.register('prepareCandidateRun') {
+    doLast {
+        def directory = project.file(System.getProperty('worldgennext.candidate.runDir', layout.buildDirectory.dir('run/candidate').get().asFile.absolutePath))
+        def seed = System.getProperty('worldgennext.candidate.seed', '0')
+        if (Boolean.parseBoolean(System.getProperty('worldgennext.prototype.resume', 'false'))) {
+            if (!new File(directory, 'server.properties').isFile() || !new File(directory, 'candidate-world/level.dat').isFile()) {
+                throw new GradleException('Prototype resume requires an existing candidate-world and server.properties')
+            }
+            return
+        }
+        directory.mkdirs()
+        new File(directory, 'eula.txt').text = 'eula=true\n'
+        def port = Integer.parseInt(System.getProperty('worldgennext.prototype.port', '25565'))
+        if (port < 1 || port > 65535) throw new GradleException('Prototype port must be between 1 and 65535')
+        new File(directory, 'server.properties').text = "level-seed=${seed}\nlevel-name=candidate-world\nlevel-type=minecraft\\:normal\ngenerate-structures=${System.getProperty('worldgennext.run.generateStructures', 'true')}\nonline-mode=false\nserver-ip=127.0.0.1\nserver-port=${port}\nspawn-protection=0\nmax-tick-time=-1\nenable-command-block=true\n"
+    }
+}
+
+tasks.matching { it.name == 'runServer' }.configureEach {
+    dependsOn tasks.named('prepareCandidateRun')
+    if (Boolean.parseBoolean(System.getProperty('worldgennext.prototype.cpuLive', 'false'))) {
+        standardInput = System.in
+    }
+    // Throughput benchmark settings are forwarded verbatim (output resolved at the Gradle boundary).
+    System.properties.each { key, value ->
+        if (['worldgennext.bench.', 'worldgennext.parallel', 'worldgennext.fast.'].any { key.toString().startsWith(it) }) {
+            def forwarded = key == 'worldgennext.bench.output' && !value.toString().trim().isEmpty()
+                    ? project.file(value.toString().trim()).absolutePath : value.toString()
+            systemProperty key.toString(), forwarded
+        }
+    }
+    def maxHeap = System.getProperty('worldgennext.run.maxHeap', '').trim()
+    if (!maxHeap.isEmpty()) jvmArgs "-Xmx${maxHeap}"
+    def jfr = System.getProperty('worldgennext.run.jfr', '').trim()
+    if (!jfr.isEmpty()) { def jfrFile = rootProject.file(jfr); jfrFile.parentFile.mkdirs(); jvmArgs "-XX:StartFlightRecording=filename=${jfrFile.absolutePath},settings=profile,dumponexit=true" }
+    systemProperty 'worldgennext.candidate.capture', System.getProperty('worldgennext.candidate.capture', 'false')
+    def candidateOutput = System.getProperty('worldgennext.candidate.output', '').trim()
+    // runServer changes the JVM working directory to the game directory.
+    // Resolve the artifact at the Gradle boundary so a relative CLI path
+    // cannot silently become <runDir>/build/... inside the server process.
+    systemProperty 'worldgennext.candidate.output', candidateOutput.isEmpty() ? '' : project.file(candidateOutput).absolutePath
+    def candidateCaseFile = System.getProperty('worldgennext.candidate.caseFile', '').trim()
+    systemProperty 'worldgennext.candidate.caseFile', candidateCaseFile.isEmpty() ? '' : project.file(candidateCaseFile).absolutePath
+    systemProperty 'worldgennext.candidate.chunkX', System.getProperty('worldgennext.candidate.chunkX', '0')
+    systemProperty 'worldgennext.candidate.chunkZ', System.getProperty('worldgennext.candidate.chunkZ', '0')
+    systemProperty 'worldgennext.candidate.dimension', System.getProperty('worldgennext.candidate.dimension', 'minecraft:overworld')
+    systemProperty 'worldgennext.candidate.endpoint', System.getProperty('worldgennext.candidate.endpoint', 'NOISE')
+    systemProperty 'worldgennext.candidate.live', System.getProperty('worldgennext.candidate.live', 'false')
+    def logicalBackend = System.getProperty('worldgennext.candidate.logicalBackend', 'CPU_OWNED')
+    if (!(logicalBackend in ['CPU_OWNED', 'GPU_IEEE_BITS'])) {
+        throw new GradleException('candidate.logicalBackend must be CPU_OWNED or GPU_IEEE_BITS')
+    }
+    systemProperty 'worldgennext.candidate.logicalBackend', logicalBackend
+    systemProperty 'worldgennext.prototype.cpuLive', System.getProperty('worldgennext.prototype.cpuLive', 'false')
+    systemProperty 'worldgennext.prototype.cpuWorkers', System.getProperty('worldgennext.prototype.cpuWorkers', '2')
+    systemProperty 'worldgennext.prototype.cpuLiveTimeoutMillis', System.getProperty('worldgennext.prototype.cpuLiveTimeoutMillis', '120000')
+    systemProperty 'worldgennext.candidate.requireLiveNoise', System.getProperty('worldgennext.candidate.requireLiveNoise', 'true')
+    systemProperty 'worldgennext.candidate.timeoutMillis', System.getProperty('worldgennext.candidate.timeoutMillis', '180000')
+    systemProperty 'worldgennext.candidate.liveNoiseResultDir', System.getProperty('worldgennext.candidate.liveNoiseResultDir', '')
+    systemProperty 'worldgennext.candidate.cpuWorkers', System.getProperty('worldgennext.candidate.cpuWorkers', '2')
+      systemProperty 'worldgennext.gpuCandidate.capture', System.getProperty('worldgennext.gpuCandidate.capture', 'false')
+    systemProperty 'worldgennext.gpuCandidate.batchElements', System.getProperty('worldgennext.gpuCandidate.batchElements', '128')
+    systemProperty 'worldgennext.gpuCandidate.nativeDraft', System.getProperty('worldgennext.gpuCandidate.nativeDraft', 'false')
+    def stagedOreInputs = System.getProperty('worldgennext.gpuCandidate.stagedOreInputs')
+    if (stagedOreInputs != null) {
+        if (!(stagedOreInputs in ['true', 'false'])) throw new GradleException('stagedOreInputs must be true or false')
+        systemProperty 'worldgennext.gpuCandidate.stagedOreInputs', stagedOreInputs
+    }
+    systemProperty 'worldgennext.gpuCandidate.deviceOnly', System.getProperty('worldgennext.gpuCandidate.deviceOnly', 'false')
+    systemProperty 'worldgennext.gpuCandidate.nativeDraftArithmetic', System.getProperty('worldgennext.gpuCandidate.nativeDraftArithmetic', 'both')
+    systemProperty 'worldgennext.shaderc.dontInline', System.getProperty('worldgennext.shaderc.dontInline', 'false')
+    systemProperty 'worldgennext.gpuCandidate.stagedShaderDir', System.getProperty('worldgennext.gpuCandidate.stagedShaderDir', '')
+    systemProperty 'worldgennext.gpuCandidate.stopAfterShaderDiagnostics', System.getProperty('worldgennext.gpuCandidate.stopAfterShaderDiagnostics', 'false')
+    systemProperty 'worldgennext.gpuCandidate.stopAfterDensityStage', System.getProperty('worldgennext.gpuCandidate.stopAfterDensityStage', '-1')
+    systemProperty 'worldgennext.gpuCandidate.stopAfterDirectDensityStage', System.getProperty('worldgennext.gpuCandidate.stopAfterDirectDensityStage', '-1')
+    systemProperty 'worldgennext.gpuCandidate.directStageProbeElements', System.getProperty('worldgennext.gpuCandidate.directStageProbeElements', '-1')
+    systemProperty 'worldgennext.gpuCandidate.maxDensityStages', System.getProperty('worldgennext.gpuCandidate.maxDensityStages', '2048')
+    systemProperty 'worldgennext.gpuCandidate.aggressiveDensityStaging', System.getProperty('worldgennext.gpuCandidate.aggressiveDensityStaging', '')
+    systemProperty 'worldgennext.gpuCandidate.interpolationAggressiveDensityStaging', System.getProperty('worldgennext.gpuCandidate.interpolationAggressiveDensityStaging', '')
+    systemProperty 'worldgennext.gpuCandidate.densityStageBundleMaxSourceChars', System.getProperty('worldgennext.gpuCandidate.densityStageBundleMaxSourceChars', '')
+    systemProperty 'worldgennext.gpuCandidate.stageProbeElements', System.getProperty('worldgennext.gpuCandidate.stageProbeElements', '-1')
+    systemProperty 'worldgennext.gpuCandidate.recreateDeviceInterval', System.getProperty('worldgennext.gpuCandidate.recreateDeviceInterval', '-1')
+    systemProperty 'worldgennext.gpuCandidate.enablePipelineOptimization', System.getProperty('worldgennext.gpuCandidate.enablePipelineOptimization', 'false')
+    systemProperty 'worldgennext.gpuCandidate.splitNormalNoise', System.getProperty('worldgennext.gpuCandidate.splitNormalNoise', '')
+    systemProperty 'worldgennext.gpuCandidate.normalNoiseDontInlinePrefix', System.getProperty('worldgennext.gpuCandidate.normalNoiseDontInlinePrefix', '')
+    def normalNoisePerlinGroupSize = System.getProperty('worldgennext.gpuCandidate.normalNoisePerlinGroupSize', '').trim()
+    if (!normalNoisePerlinGroupSize.isEmpty()) {
+        systemProperty 'worldgennext.gpuCandidate.normalNoisePerlinGroupSize', normalNoisePerlinGroupSize
+    }
+    def normalNoisePairShader = System.getProperty('worldgennext.gpuCandidate.normalNoisePairShader', '').trim()
+    if (!normalNoisePairShader.isEmpty()) {
+        systemProperty 'worldgennext.gpuCandidate.normalNoisePairShader', normalNoisePairShader
+    }
+    systemProperty 'worldgennext.gpuCandidate.recreateDeviceBetweenNormalNoiseHalves', System.getProperty('worldgennext.gpuCandidate.recreateDeviceBetweenNormalNoiseHalves', 'false')
+    // The static captured-Perlin experiment is opt-in. The correctness-first
+    // default remains the bounded host-staged GPU route until the target
+    // driver's large single-shader compile envelope is qualified.
+    systemProperty 'worldgennext.gpuCandidate.normalNoiseSharedShader', System.getProperty('worldgennext.gpuCandidate.normalNoiseSharedShader', 'false')
+    systemProperty 'worldgennext.gpuCandidate.sharedNormalNoiseResidentChain', System.getProperty('worldgennext.gpuCandidate.sharedNormalNoiseResidentChain', 'false')
+    systemProperty 'worldgennext.gpuCandidate.residentNormalNoiseSamplerDontInlinePrefix', System.getProperty('worldgennext.gpuCandidate.residentNormalNoiseSamplerDontInlinePrefix', 'wg_shared_')
+    systemProperty 'worldgennext.gpuCandidate.residentNormalNoiseMode', System.getProperty('worldgennext.gpuCandidate.residentNormalNoiseMode', 'halves')
+    systemProperty 'worldgennext.gpuCandidate.normalNoiseSharedGenericShader', System.getProperty('worldgennext.gpuCandidate.normalNoiseSharedGenericShader', 'true')
+    systemProperty 'worldgennext.gpuCandidate.sharedSplineShader', System.getProperty('worldgennext.gpuCandidate.sharedSplineShader', 'false')
+    systemProperty 'worldgennext.gpuCandidate.endIslandSharedShader', System.getProperty('worldgennext.gpuCandidate.endIslandSharedShader', 'false')
+    systemProperty 'worldgennext.gpuCandidate.normalNoiseDeviceResidentChain', System.getProperty('worldgennext.gpuCandidate.normalNoiseDeviceResidentChain', 'false')
+    systemProperty 'worldgennext.gpuCandidate.densityDontInlinePrefix', System.getProperty('worldgennext.gpuCandidate.densityDontInlinePrefix', '')
+    systemProperty 'worldgennext.gpuCandidate.residentDensityDontInlinePrefix', System.getProperty('worldgennext.gpuCandidate.residentDensityDontInlinePrefix', '')
+    systemProperty 'worldgennext.gpuCandidate.materialDontInlinePrefix', System.getProperty('worldgennext.gpuCandidate.materialDontInlinePrefix', '')
+    systemProperty 'worldgennext.gpuCandidate.deviceResidentMaterial', System.getProperty('worldgennext.gpuCandidate.deviceResidentMaterial', 'false')
+    systemProperty 'worldgennext.gpuCandidate.exactAquiferStage', System.getProperty('worldgennext.gpuCandidate.exactAquiferStage', 'false')
+    systemProperty 'worldgennext.gpuCandidate.exactAquiferBarrierInput', System.getProperty('worldgennext.gpuCandidate.exactAquiferBarrierInput', 'false')
+    systemProperty 'worldgennext.gpuCandidate.maxShaderSourceChars', System.getProperty('worldgennext.gpuCandidate.maxShaderSourceChars', '900000')
+    systemProperty 'worldgennext.gpuCandidate.cpuDensityMaterialFallback', System.getProperty('worldgennext.gpuCandidate.cpuDensityMaterialFallback', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugMaterialProbeCpuDensity', System.getProperty('worldgennext.gpuCandidate.debugMaterialProbeCpuDensity', 'false')
+    systemProperty 'worldgennext.gpuCandidate.deviceResidentFp64DivisionChain', System.getProperty('worldgennext.gpuCandidate.deviceResidentFp64DivisionChain', 'false')
+    systemProperty 'worldgennext.gpuCandidate.deviceResidentDensityScratch', System.getProperty('worldgennext.gpuCandidate.deviceResidentDensityScratch', 'false')
+    systemProperty 'worldgennext.gpuCandidate.deviceResidentDensityMaxStages', System.getProperty('worldgennext.gpuCandidate.deviceResidentDensityMaxStages', '16')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityParity', System.getProperty('worldgennext.gpuCandidate.debugDensityParity', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityBranchOnly', System.getProperty('worldgennext.gpuCandidate.debugDensityBranchOnly', 'false')
+    systemProperty 'worldgennext.gpuCandidate.directBranchProbeElements', System.getProperty('worldgennext.gpuCandidate.directBranchProbeElements', '-1')
+    systemProperty 'worldgennext.gpuCandidate.directBranchDontInlinePrefix', System.getProperty('worldgennext.gpuCandidate.directBranchDontInlinePrefix', '')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityComponents', System.getProperty('worldgennext.gpuCandidate.debugDensityComponents', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityMaterialInternals', System.getProperty('worldgennext.gpuCandidate.debugDensityMaterialInternals', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityFirstBranchOnly', System.getProperty('worldgennext.gpuCandidate.debugDensityFirstBranchOnly', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityCpuPaths', System.getProperty('worldgennext.gpuCandidate.debugDensityCpuPaths', '')
+    systemProperty 'worldgennext.gpuCandidate.debugDensitySemanticNodes', System.getProperty('worldgennext.gpuCandidate.debugDensitySemanticNodes', '')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityNode45Monolithic', System.getProperty('worldgennext.gpuCandidate.debugDensityNode45Monolithic', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityNode', System.getProperty('worldgennext.gpuCandidate.debugDensityNode', '')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityNodeExact', System.getProperty('worldgennext.gpuCandidate.debugDensityNodeExact', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityStageRoot', System.getProperty('worldgennext.gpuCandidate.debugDensityStageRoot', '')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityStageCpuOracle', System.getProperty('worldgennext.gpuCandidate.debugDensityStageCpuOracle', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityStageCpuOracleStop', System.getProperty('worldgennext.gpuCandidate.debugDensityStageCpuOracleStop', 'true')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityStageCpuOracleTolerance', System.getProperty('worldgennext.gpuCandidate.debugDensityStageCpuOracleTolerance', '0.0')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityStageRootChildValues', System.getProperty('worldgennext.gpuCandidate.debugDensityStageRootChildValues', '')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityStageRootSeedCpu', System.getProperty('worldgennext.gpuCandidate.debugDensityStageRootSeedCpu', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityStageRootGpuChildren', System.getProperty('worldgennext.gpuCandidate.debugDensityStageRootGpuChildren', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenMaxStages', System.getProperty('worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenMaxStages', '4096')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenReclaimEvery', System.getProperty('worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenReclaimEvery', '1')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenRecreateDeviceEvery', System.getProperty('worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenRecreateDeviceEvery', '0')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenMaxMillis', System.getProperty('worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenMaxMillis', '600000')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenNativeNoise', System.getProperty('worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenNativeNoise', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenSemanticLeaves', System.getProperty('worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenSemanticLeaves', 'true')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenNativeCarrier', System.getProperty('worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenNativeCarrier', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityInterpolationRoot', System.getProperty('worldgennext.gpuCandidate.debugDensityInterpolationRoot', '')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityInterpolationComponents', System.getProperty('worldgennext.gpuCandidate.debugDensityInterpolationComponents', 'false')
+    systemProperty 'worldgennext.gpuCandidate.nativeDraftExactInterpolation', System.getProperty('worldgennext.gpuCandidate.nativeDraftExactInterpolation', 'false')
+    systemProperty 'worldgennext.gpuCandidate.nativeDraftExactInterpolationRoots', System.getProperty('worldgennext.gpuCandidate.nativeDraftExactInterpolationRoots', '')
+    systemProperty 'worldgennext.gpuCandidate.nativeDraftExactInterpolationDontInline', System.getProperty('worldgennext.gpuCandidate.nativeDraftExactInterpolationDontInline', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityNormalNoiseRoot', System.getProperty('worldgennext.gpuCandidate.debugDensityNormalNoiseRoot', '')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityEmbeddedNormalNoiseRoot', System.getProperty('worldgennext.gpuCandidate.debugDensityEmbeddedNormalNoiseRoot', '')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityBlendedNoiseOnly', System.getProperty('worldgennext.gpuCandidate.debugDensityBlendedNoiseOnly', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityBlendedNoiseRoot', System.getProperty('worldgennext.gpuCandidate.debugDensityBlendedNoiseRoot', '')
+    systemProperty 'worldgennext.gpuCandidate.blendedNoiseDontInlinePrefix', System.getProperty('worldgennext.gpuCandidate.blendedNoiseDontInlinePrefix', 'NONE')
+    systemProperty 'worldgennext.gpuCandidate.blendedNoiseSharedShader', System.getProperty('worldgennext.gpuCandidate.blendedNoiseSharedShader', 'false')
+    def blendedNoiseStaticGroupSize = System.getProperty('worldgennext.gpuCandidate.blendedNoiseStaticGroupSize', '').trim()
+    if (!blendedNoiseStaticGroupSize.isEmpty()) {
+        systemProperty 'worldgennext.gpuCandidate.blendedNoiseStaticGroupSize', blendedNoiseStaticGroupSize
+    }
+    systemProperty 'worldgennext.gpuCandidate.blendedNoisePipelineReclaimInterval', System.getProperty('worldgennext.gpuCandidate.blendedNoisePipelineReclaimInterval', '2')
+    systemProperty 'worldgennext.gpuCandidate.blendedNoiseDeviceRecreateInterval', System.getProperty('worldgennext.gpuCandidate.blendedNoiseDeviceRecreateInterval', '-1')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityBlendedNoiseSampleLimit', System.getProperty('worldgennext.gpuCandidate.debugDensityBlendedNoiseSampleLimit', '-1')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityBlendedNoiseGroupLimit', System.getProperty('worldgennext.gpuCandidate.debugDensityBlendedNoiseGroupLimit', '-1')
+    systemProperty 'worldgennext.gpuCandidate.rewriteCapturedNoiseSampler', System.getProperty('worldgennext.gpuCandidate.rewriteCapturedNoiseSampler', 'true')
+    systemProperty 'worldgennext.gpuCandidate.rewriteFp64DivisionLoop', System.getProperty('worldgennext.gpuCandidate.rewriteFp64DivisionLoop', 'true')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityProbePoint', System.getProperty('worldgennext.gpuCandidate.debugDensityProbePoint', '')
+    systemProperty 'worldgennext.gpuCandidate.cpuDensityOnly', System.getProperty('worldgennext.gpuCandidate.cpuDensityOnly', 'false')
+    systemProperty 'worldgennext.gpuCandidate.useInlineFp64Division', System.getProperty('worldgennext.gpuCandidate.useInlineFp64Division', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityBranchComponents', System.getProperty('worldgennext.gpuCandidate.debugDensityBranchComponents', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugDensityCornerRows', System.getProperty('worldgennext.gpuCandidate.debugDensityCornerRows', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugStages', System.getProperty('worldgennext.gpuCandidate.debugStages', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugAquiferTrace', System.getProperty('worldgennext.gpuCandidate.debugAquiferTrace', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugAquiferMultiply', System.getProperty('worldgennext.gpuCandidate.debugAquiferMultiply', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugAquiferRationalComparator', System.getProperty('worldgennext.gpuCandidate.debugAquiferRationalComparator', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugAquiferCpuDensity', System.getProperty('worldgennext.gpuCandidate.debugAquiferCpuDensity', 'false')
+    systemProperty 'worldgennext.gpuCandidate.debugAquiferThresholdSweep', System.getProperty('worldgennext.gpuCandidate.debugAquiferThresholdSweep', 'false')
+    systemProperty 'worldgennext.gpuCandidate.exactAquiferStageNative', System.getProperty('worldgennext.gpuCandidate.exactAquiferStageNative', 'false')
+    def gpuStageDebugFile = System.getProperty('worldgennext.gpuCandidate.debugStagesFile', '').trim()
+    systemProperty 'worldgennext.gpuCandidate.debugStagesFile', gpuStageDebugFile.isEmpty() ? '' : project.file(gpuStageDebugFile).absolutePath
+    def gpuShaderOutput = System.getProperty('worldgennext.gpuCandidate.shaderOutput', '').trim()
+    systemProperty 'worldgennext.gpuCandidate.shaderOutput', gpuShaderOutput.isEmpty() ? '' : project.file(gpuShaderOutput).absolutePath
+}
+
+tasks.register('candidateSmoke') {
+    group = 'verification'
+    description = 'Run the opt-in real-server CPU candidate capture into the versioned chunk-result ABI.'
+    dependsOn tasks.named('runServer')
+    doLast {
+        if (!Boolean.parseBoolean(System.getProperty('worldgennext.candidate.capture', 'false'))) return
+        def output = System.getProperty('worldgennext.candidate.output', '').trim()
+        def caseFile = System.getProperty('worldgennext.candidate.caseFile', '').trim()
+        if (output.isEmpty() && caseFile.isEmpty()) throw new GradleException('Candidate capture requires -Dworldgennext.candidate.output=<path> or -Dworldgennext.candidate.caseFile=<path>')
+        if (!caseFile.isEmpty()) {
+            def manifest = project.file(caseFile)
+            if (!manifest.isFile() || manifest.length() == 0L) throw new GradleException("Candidate case manifest is missing or empty: ${manifest}")
+            manifest.readLines('UTF-8').findAll { !it.trim().isEmpty() }.eachWithIndex { line, index ->
+                def fields = line.split('\\t', -1)
+                if (fields.size() != 3) throw new GradleException("Malformed candidate case manifest line ${index + 1}")
+                def artifact = project.file(fields[2])
+                if (!artifact.isFile() || artifact.length() == 0L) throw new GradleException("Candidate server exited without a result artifact: ${artifact}")
+            }
+        } else {
+            def artifact = project.file(output)
+            if (!artifact.isFile() || artifact.length() == 0L) throw new GradleException("Candidate server exited without a result artifact: ${artifact}")
+        }
+    }
+}
+
+tasks.register('candidateLogicalSmoke') {
+    group = 'verification'
+     description = 'Run the opt-in real-server candidate through the NOISE, FULL, or SAVED logical endpoint.'
+    dependsOn tasks.named('runServer')
+    doLast {
+        if (!Boolean.parseBoolean(System.getProperty('worldgennext.candidate.capture', 'false'))) return
+        def endpoint = System.getProperty('worldgennext.candidate.endpoint', '').trim().toUpperCase(Locale.ROOT)
+        if (!(endpoint in ['NOISE', 'SURFACE', 'CARVERS', 'FEATURES', 'INITIALIZE_LIGHT', 'LIGHT', 'SPAWN', 'FULL', 'SAVED'])) throw new GradleException("Candidate logical smoke requires a supported logical endpoint, got ${endpoint}")
+        def output = System.getProperty('worldgennext.candidate.output', '').trim()
+        def caseFile = System.getProperty('worldgennext.candidate.caseFile', '').trim()
+        if (output.isEmpty() && caseFile.isEmpty()) throw new GradleException('Candidate logical smoke requires -Dworldgennext.candidate.output=<path> or -Dworldgennext.candidate.caseFile=<path>')
+        def artifacts = []
+        if (!caseFile.isEmpty()) {
+            def manifest = project.file(caseFile)
+            if (!manifest.isFile() || manifest.length() == 0L) throw new GradleException("Candidate case manifest is missing or empty: ${manifest}")
+            manifest.readLines('UTF-8').findAll { !it.trim().isEmpty() }.eachWithIndex { line, index ->
+                def fields = line.split('\\t', -1)
+                if (fields.size() != 3 || fields[2].trim().isEmpty()) throw new GradleException("Malformed candidate case manifest line ${index + 1}")
+                artifacts << project.file(fields[2])
+            }
+        } else {
+            artifacts << project.file(output)
+        }
+        artifacts.each { artifact ->
+            if (!artifact.isFile() || artifact.length() == 0L) throw new GradleException("Candidate ${endpoint} server exited without a snapshot artifact: ${artifact}")
+            if (artifact.withReader('UTF-8') { it.readLine() } != 'WORLDGENNEXT-SNAPSHOT-1') throw new GradleException("Candidate ${endpoint} artifact has an invalid header: ${artifact}")
+            def status = project.file(artifact.absolutePath + '.candidate-status')
+            if (!status.isFile() || status.withReader('UTF-8') { it.readLine() } != 'PASS') {
+                throw new GradleException("Candidate ${endpoint} did not produce a PASS endpoint status: ${status}")
+            }
+        }
+    }
+}
+
+tasks.register('gpuCandidateSmoke') {
+    group = 'verification'
+    description = 'Run the opt-in isolated real-device GPU NOISE replay; it never installs a live hook.'
+    dependsOn tasks.named('runServer')
+    doLast {
+        def expectedStatus = Boolean.parseBoolean(System.getProperty('worldgennext.gpuCandidate.deviceOnly', 'false')) ? 'DEVICE_EXECUTION_ONLY' : 'PASS'
+        if (!Boolean.parseBoolean(System.getProperty('worldgennext.gpuCandidate.capture', 'false'))) {
+            throw new GradleException('GPU candidate smoke requires -Dworldgennext.gpuCandidate.capture=true')
+        }
+        def output = System.getProperty('worldgennext.candidate.output', '').trim()
+        def caseFile = System.getProperty('worldgennext.candidate.caseFile', '').trim()
+        if (output.isEmpty() && caseFile.isEmpty()) throw new GradleException('GPU candidate smoke requires -Dworldgennext.candidate.output=<path> or -Dworldgennext.candidate.caseFile=<path>')
+        if (!caseFile.isEmpty()) {
+            def manifest = project.file(caseFile)
+            if (!manifest.isFile() || manifest.length() == 0L) throw new GradleException("GPU candidate case manifest is missing or empty: ${manifest}")
+            manifest.readLines('UTF-8').findAll { !it.trim().isEmpty() }.eachWithIndex { line, index ->
+                def fields = line.split('\\t', -1)
+                if (fields.size() != 3) throw new GradleException("Malformed GPU candidate case manifest line ${index + 1}")
+                def artifact = project.file(fields[2])
+                if (!artifact.isFile() || artifact.length() == 0L) throw new GradleException("GPU candidate server exited without a result artifact: ${artifact}")
+                def receipt = project.file(fields[2] + '.gpu-receipt.json')
+                if (!receipt.isFile() || receipt.length() == 0L) throw new GradleException("GPU candidate server exited without a receipt: ${receipt}")
+                def status = project.file(fields[2] + '.candidate-status')
+                if (!status.isFile() || status.withReader('UTF-8') { it.readLine() } != expectedStatus) throw new GradleException("GPU candidate did not produce ${expectedStatus}: ${status}")
+            }
+        } else {
+            def artifact = project.file(output)
+            if (!artifact.isFile() || artifact.length() == 0L) throw new GradleException("GPU candidate server exited without a result artifact: ${artifact}")
+            def status = project.file(output + '.candidate-status')
+            if (!status.isFile() || status.withReader('UTF-8') { it.readLine() } != expectedStatus) throw new GradleException("GPU candidate did not produce ${expectedStatus}: ${status}")
+        }
+    }
+}

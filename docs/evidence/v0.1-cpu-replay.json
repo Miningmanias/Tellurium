@@ -1,0 +1,28 @@
+{
+  "schema": "worldgennext-replay-v1",
+  "corpus": "worldgennext-synthetic-v1",
+  "scope": "SYNTHETIC_DENSITY_ONLY",
+  "backend": "CPU",
+  "verdict": "PASS",
+  "minecraftParity": "NOT_IMPLEMENTED",
+  "chunkThroughput": "NOT_MEASURED",
+  "fullFp64Qualification": "NOT_PASSED",
+  "floatControlQualification": "Finite fixture raw-bit comparisons only; explicit SPIR-V float-control modes and cross-vendor qualification pending",
+  "expectedFixtures": 8,
+  "reportedFixtures": 8,
+  "expectedSamples": 1048,
+  "comparedSamples": 1048,
+  "gpuComparedSamples": 0,
+  "mismatches": 0,
+  "failedFixtures": 0,
+  "fixtures": [
+    {"name": "affine", "expectedSamples": 131, "comparedSamples": 131, "mismatches": 0, "passed": true, "error": "", "evidence": {"actualValuesSha256": "1fe269eec0e34127beb962690d43b57af517ae3da8384ed18ee3c62dd6bc8952", "expectedValuesSha256": "1fe269eec0e34127beb962690d43b57af517ae3da8384ed18ee3c62dd6bc8952", "expressionSha256": "1daf3b66c9ef1b5ddf3f10296abc78830e711898503b15a828fcf78d4b3a2692", "pointsSha256": "2544e06651e7e5a55be2b9ed924c00dfb4648084de9fd53f068f67cdd9a4fe99"}},
+    {"name": "lazy-overflow", "expectedSamples": 131, "comparedSamples": 131, "mismatches": 0, "passed": true, "error": "", "evidence": {"actualValuesSha256": "1fe269eec0e34127beb962690d43b57af517ae3da8384ed18ee3c62dd6bc8952", "expectedValuesSha256": "1fe269eec0e34127beb962690d43b57af517ae3da8384ed18ee3c62dd6bc8952", "expressionSha256": "2f2cc290d66dfd1fa31a9f6c65c554c65f10b255a425b7a887c1a2b01f454c4d", "pointsSha256": "2544e06651e7e5a55be2b9ed924c00dfb4648084de9fd53f068f67cdd9a4fe99"}},
+    {"name": "range-boundaries", "expectedSamples": 131, "comparedSamples": 131, "mismatches": 0, "passed": true, "error": "", "evidence": {"actualValuesSha256": "8c3031e682be852b77c4d853f57ee522a9d920e7101e396ea2a4e9edb888665a", "expectedValuesSha256": "8c3031e682be852b77c4d853f57ee522a9d920e7101e396ea2a4e9edb888665a", "expressionSha256": "b79ef2e8f43968de8b06eafc5e556d976d9206cd4a2dc54db2c07a7bbd813be0", "pointsSha256": "2544e06651e7e5a55be2b9ed924c00dfb4648084de9fd53f068f67cdd9a4fe99"}},
+    {"name": "interpolation-4x8", "expectedSamples": 131, "comparedSamples": 131, "mismatches": 0, "passed": true, "error": "", "evidence": {"actualValuesSha256": "077dcefb80aa321481f46b92ab5dad2b4ad5bbbaa184e3c962fb5bebe4d88460", "expectedValuesSha256": "077dcefb80aa321481f46b92ab5dad2b4ad5bbbaa184e3c962fb5bebe4d88460", "expressionSha256": "fe8577814dc4fb24ea945f5a80b7991bc661b71abd5153b694bd04d25ab5e3ce", "pointsSha256": "2544e06651e7e5a55be2b9ed924c00dfb4648084de9fd53f068f67cdd9a4fe99"}},
+    {"name": "semantic-boundary", "expectedSamples": 131, "comparedSamples": 131, "mismatches": 0, "passed": true, "error": "", "evidence": {"actualValuesSha256": "4a844d2656b54d8d056191bbbd67f9c7c8ee2316ada6af40030a82ce6117e09e", "expectedValuesSha256": "4a844d2656b54d8d056191bbbd67f9c7c8ee2316ada6af40030a82ce6117e09e", "expressionSha256": "6b9f0d1f1e7eb592de495279ff3fd308216aa30a313fba3afd435d72a29211c5", "pointsSha256": "2544e06651e7e5a55be2b9ed924c00dfb4648084de9fd53f068f67cdd9a4fe99"}},
+    {"name": "interpolation-8x4", "expectedSamples": 131, "comparedSamples": 131, "mismatches": 0, "passed": true, "error": "", "evidence": {"actualValuesSha256": "eac1a099f76c33b2daed84779a12a0c602e97a1c0f1635e8f9900a6638a29e4a", "expectedValuesSha256": "eac1a099f76c33b2daed84779a12a0c602e97a1c0f1635e8f9900a6638a29e4a", "expressionSha256": "9df933196759423174751b4a068aef6d1bd676cd0e3a12e6cccfd9801433e6da", "pointsSha256": "2544e06651e7e5a55be2b9ed924c00dfb4648084de9fd53f068f67cdd9a4fe99"}},
+    {"name": "negative-zero", "expectedSamples": 131, "comparedSamples": 131, "mismatches": 0, "passed": true, "error": "", "evidence": {"actualValuesSha256": "b3bdb542580fecc68f61fe2b341cb7c24243ea0d778f7db20bc4f5bc5c565cdd", "expectedValuesSha256": "b3bdb542580fecc68f61fe2b341cb7c24243ea0d778f7db20bc4f5bc5c565cdd", "expressionSha256": "ea21a1d1fb1b72e9cb3158fcb37c0a690276cf3457ac9403d3ab5e4218d39bbd", "pointsSha256": "2544e06651e7e5a55be2b9ed924c00dfb4648084de9fd53f068f67cdd9a4fe99"}},
+    {"name": "subnormal-addition", "expectedSamples": 131, "comparedSamples": 131, "mismatches": 0, "passed": true, "error": "", "evidence": {"actualValuesSha256": "b83ad656e04b0db4f782e2c6fb1c3d576f8e4d9703557f4395a06d9df89d4de0", "expectedValuesSha256": "b83ad656e04b0db4f782e2c6fb1c3d576f8e4d9703557f4395a06d9df89d4de0", "expressionSha256": "aadca3b099e1a383774d771235a477bfbabb34d59453c4036f38352c2720fca2", "pointsSha256": "2544e06651e7e5a55be2b9ed924c00dfb4648084de9fd53f068f67cdd9a4fe99"}}
+  ]
+}

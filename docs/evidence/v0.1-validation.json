@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "milestone": "0.1.0-development-foundation",
+  "date": "2026-09-09",
+  "host": {
+    "os": "Windows 11 x64",
+    "cpu": "Intel Core Ultra 7 270K Plus",
+    "logicalProcessors": 24,
+    "physicalMemoryBytes": 33675702272,
+    "gpu": "NVIDIA GeForce RTX 5070 Ti",
+    "windowsGpuDriver": "32.0.16.1088",
+    "jdk": "Temurin 21.0.12.1+1-LTS",
+    "gradle": "8.14.2",
+    "neoforge": "21.1.176",
+    "minecraft": "1.21.1",
+    "lwjgl": "3.3.3"
+  },
+  "cpuTests": {
+    "tests": 107,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "cpuReplay": {
+    "status": "PASS",
+    "fixtures": 8,
+    "expectedSamples": 1048,
+    "comparedSamples": 1048,
+    "mismatches": 0
+  },
+  "gpuNormalRangeDiagnostic": {
+    "status": "PASS",
+    "fixtures": 7,
+    "expectedSamples": 917,
+    "comparedSamples": 917,
+    "mismatches": 0,
+    "fullFp64Qualification": false
+  },
+  "gpuStrict": {
+    "status": "FAILED_UNSUPPORTED_CAPABILITY",
+    "expectedSamples": 1048,
+    "comparedSamples": 0,
+    "reason": "RTX 5070 Ti driver does not advertise FP64 subnormal preservation; integrated GPU lacks shaderFloat64"
+  },
+  "gameBootstrap": {
+    "status": "PASS",
+    "requiredTests": 2,
+    "passed": 2,
+    "cleanShutdown": true,
+    "scope": "Development GameTest server and pure diagnostics; no terrain oracle",
+    "nonfatalStartupMessage": "Fresh run had no server.properties; vanilla logged that fact and used defaults"
+  },
+  "packaging": {
+    "status": "PASS",
+    "jar": "neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-0.1.0.jar",
+    "bytes": 72830,
+    "sha256": "aecfc878457671a07f88167f9dac965d422b9064e671adc8a633562cf4c5011c",
+    "standaloneReplayLauncher": "PASS_CPU_AND_NORMAL_RANGE_GPU_STRICT_FAILURE_REPORTED"
+  },
+  "openGates": [
+    "SPIR-V float-control qualification",
+    "Minecraft same-stack oracle and generation interception",
+    "NOISE/FULL/saved throughput",
+    "External installed-jar launcher smoke",
+    "Linux/AMD/Intel GPU and macOS execution",
+    "Fabric packaging",
+    "Remote CI execution"
+  ],
+  "originalProject": {
+    "path": "D:/Projects/GPUWorldGen",
+    "modifiedByThisWork": false
+  }
+}

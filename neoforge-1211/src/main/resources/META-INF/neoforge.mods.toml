@@ -1,0 +1,26 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+
+[[mods]]
+modId="worldgennext"
+version="0.2.0"
+displayName="WorldgenNext"
+description='''CUDA-free correctness-first worldgen runtime checkpoint. CPU/GPU contracts, complete result ABI, lifecycle services and oracle tooling are included; live generation remains disabled until same-stack Minecraft qualification.'''
+
+[[mixins]]
+config="worldgennext.mixins.json"
+
+[[dependencies.worldgennext]]
+modId="neoforge"
+type="required"
+versionRange="[21.1.176,21.2)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.worldgennext]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1,1.21.2)"
+ordering="NONE"
+side="BOTH"

@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "status": "NOT_IMPLEMENTED",
+  "scope": "MINECRAFT_SAME_STACK_ORACLE",
+  "note": "Future executable corpus specification. This file is not a test result. No runner or v0.1 test may infer parity from its existence.",
+  "minecraft": "1.21.1",
+  "loader": "NeoForge 21.1.176",
+  "referenceRule": {
+    "vanilla": "Literal unaccelerated vanilla",
+    "modded": "Original unaccelerated generator with identical pinned mods, datapacks, settings and hooks"
+  },
+  "seedStrings": [
+    "12345",
+    "0",
+    "-1",
+    "9223372036854775807",
+    "-9223372036854775808"
+  ],
+  "contexts": [
+    "vanilla-overworld",
+    "vanilla-nether",
+    "vanilla-end",
+    "terralith",
+    "tectonic-lithostitched",
+    "terralith-tectonic-lithostitched"
+  ],
+  "coordinateThemes": [
+    "negative-cell-boundary",
+    "negative-chunk-boundary",
+    "region-boundary",
+    "world-min-y",
+    "world-max-y-minus-one",
+    "distant-large-coordinates",
+    "fresh-chunks",
+    "blended-upgraded-border"
+  ],
+  "requiredMaterialFixtures": [
+    "copper-veins",
+    "iron-veins",
+    "raw-ore-blocks",
+    "granite-tuff-vein-filler",
+    "aquifer-barrier",
+    "ocean-water",
+    "deep-lava",
+    "beardifier-structure",
+    "fluid-post-processing"
+  ],
+  "comparisonFieldsByEndpoint": {
+    "NOISE": [
+      "block-states",
+      "biome-palettes",
+      "worldgen-heightmaps",
+      "section-counts",
+      "postprocessing-positions",
+      "fluid-markers",
+      "completion-status"
+    ],
+    "FULL": [
+      "NOISE-fields",
+      "structures",
+      "block-entities",
+      "scheduled-ticks",
+      "light-arrays",
+      "completion-status"
+    ],
+    "SAVED_REOPEN": [
+      "FULL-fields",
+      "persisted-metadata",
+      "region-reopen",
+      "declared-durability-policy"
+    ]
+  },
+  "orderingCases": [
+    "single-request",
+    "partial-batch",
+    "shuffled-batch",
+    "concurrent-adjacent",
+    "cancel-before-submit",
+    "cancel-before-commit",
+    "reload-during-compute",
+    "unload-during-compute",
+    "shutdown-busy"
+  ],
+  "verdictRules": {
+    "requireComparedCountGreaterThanZero": true,
+    "requireExpectedCountEqualsComparedCount": true,
+    "requireMismatchesZero": true,
+    "requireNoFailures": true,
+    "noMissingFixturesAsPass": true
+  },
+  "performanceProtocol": {
+    "status": "NOT_IMPLEMENTED",
+    "separateFromParity": true,
+    "endpoints": [
+      "NOISE_COMMITTED",
+      "FULL_READY",
+      "SAVED_VERIFIED"
+    ],
+    "rawWallTimeAfterReadiness": true,
+    "noCompileDurationSubtraction": true,
+    "minPairedRuns": 5
+  }
+}

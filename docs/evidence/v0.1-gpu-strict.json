@@ -1,0 +1,21 @@
+{
+  "schema": "worldgennext-replay-v1",
+  "corpus": "worldgennext-synthetic-v1",
+  "scope": "SYNTHETIC_DENSITY_ONLY",
+  "backend": "VULKAN",
+  "verdict": "FAILED",
+  "minecraftParity": "NOT_IMPLEMENTED",
+  "chunkThroughput": "NOT_MEASURED",
+  "fullFp64Qualification": "NOT_PASSED",
+  "floatControlQualification": "Finite fixture raw-bit comparisons only; explicit SPIR-V float-control modes and cross-vendor qualification pending",
+  "expectedFixtures": 8,
+  "reportedFixtures": 1,
+  "expectedSamples": 1048,
+  "comparedSamples": 0,
+  "gpuComparedSamples": 0,
+  "mismatches": 0,
+  "failedFixtures": 1,
+  "fixtures": [
+    {"name": "affine", "expectedSamples": 131, "comparedSamples": 0, "mismatches": 0, "passed": false, "error": "IllegalStateException: No qualified Vulkan device: [DeviceCapabilities[name=NVIDIA GeForce RTX 5070 Ti, apiVersion=4211029, driverVersion=-1735000064, deviceType=2, computeQueueFamily=0, float64=true, preserveSignedZeroInfNan64=true, preserveDenorm64=false, roundingRte64=true], DeviceCapabilities[name=Intel(R) Graphics, apiVersion=4206887, driverVersion=1660913, deviceType=1, computeQueueFamily=0, float64=false, preserveSignedZeroInfNan64=true, preserveDenorm64=true, roundingRte64=true]]", "evidence": {"expectedValuesSha256": "1fe269eec0e34127beb962690d43b57af517ae3da8384ed18ee3c62dd6bc8952", "expressionSha256": "1daf3b66c9ef1b5ddf3f10296abc78830e711898503b15a828fcf78d4b3a2692", "pointsSha256": "2544e06651e7e5a55be2b9ed924c00dfb4648084de9fd53f068f67cdd9a4fe99"}}
+  ]
+}

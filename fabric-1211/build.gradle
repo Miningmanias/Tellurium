@@ -1,0 +1,3 @@
+// Fabric adapter is a deferred design frame, not a loadable v0.1 mod.
+tasks.named('jar') { enabled = false }
+tasks.named('sourcesJar') { enabled = false }

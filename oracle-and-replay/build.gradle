@@ -1,0 +1,52 @@
+plugins { id 'application' }
+
+// The original-capture interchange is deliberately a separate pure artifact. It has no
+// dependency on the candidate compiler/runtime classpath.
+sourceSets {
+    corpusApi {
+        java.srcDir 'src/corpusApi/java'
+        resources.srcDir 'src/corpusApi/resources'
+    }
+}
+
+tasks.register('corpusApiJar', Jar) {
+    group = 'build'
+    description = 'Package the pure original/candidate corpus interchange API.'
+    archiveBaseName = 'worldgennext-corpus-api'
+    from sourceSets.corpusApi.output
+    dependsOn tasks.named('corpusApiClasses')
+}
+
+application {
+    mainClass = 'dev.worldgennext.oracle.ReplayCli'
+    // Modern drivers can enumerate enough extension structs to exceed LWJGL's 64 KiB default.
+    applicationDefaultJvmArgs = ['-Dorg.lwjgl.system.stackSize=2048']
+}
+
+tasks.register('gpuSmoke', JavaExec) {
+    group = 'verification'
+    description = 'Opt-in real bounded Vulkan compute; no CPU fallback and no Minecraft parity claim.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = application.mainClass
+    jvmArgs application.applicationDefaultJvmArgs
+    args 'gpu-smoke', "--output=${layout.buildDirectory.file('replay/gpu-smoke.json').get().asFile.absolutePath}"
+}
+
+tasks.register('replay', JavaExec) {
+    group = 'verification'
+    description = 'Run the deterministic synthetic CPU differential corpus and write a counted JSON report.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = application.mainClass
+    jvmArgs application.applicationDefaultJvmArgs
+    args 'replay', "--output=${layout.buildDirectory.file('replay/cpu-replay.json').get().asFile.absolutePath}"
+}
+
+tasks.register('gpuSmokeNormal', JavaExec) {
+    group = 'verification'
+    description = 'Opt-in normal-range Vulkan diagnostic; does not satisfy strict FP64 qualification.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = application.mainClass
+    jvmArgs application.applicationDefaultJvmArgs
+    args 'gpu-smoke-normal', "--output=${layout.buildDirectory.file('replay/gpu-normal-range.json').get().asFile.absolutePath}"
+}
+tasks.named('check') { dependsOn tasks.named('corpusApiJar') }

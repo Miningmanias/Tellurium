@@ -1,0 +1,444 @@
+{
+  "schemaVersion": 1,
+  "kind": "acceptance_plan",
+  "implementationStatus": "IN_PROGRESS_CHECKPOINT",
+  "executionStatus": "NOT_RUN",
+  "targetVersion": "0.2.0",
+  "updated": "2026-09-13",
+  "authority": "../docs/V0.2-PLAN.md",
+  "testDetails": "../docs/v0.2/TESTS.md",
+  "isExecutionReport": false,
+  "taskNamesAreProposed": true,
+  "dependencyPinStatus": "REQUIRED_IN_P00",
+  "contexts": [
+    {
+      "id": "vanilla-overworld",
+      "dimension": "minecraft:overworld",
+      "terrainMods": [],
+      "requiredCpu": true,
+      "requiredGpuNoise": true,
+      "artifactLock": {"manifest": "dependencies.lock.json", "entries": ["minecraft", "neoforge"]}
+    },
+    {
+      "id": "vanilla-nether",
+      "dimension": "minecraft:the_nether",
+      "terrainMods": [],
+      "requiredCpu": true,
+      "requiredGpuNoise": true,
+      "artifactLock": {"manifest": "dependencies.lock.json", "entries": ["minecraft", "neoforge"]}
+    },
+    {
+      "id": "vanilla-end",
+      "dimension": "minecraft:the_end",
+      "terrainMods": [],
+      "requiredCpu": true,
+      "requiredGpuNoise": true,
+      "artifactLock": {"manifest": "dependencies.lock.json", "entries": ["minecraft", "neoforge"]}
+    },
+    {
+      "id": "terralith-overworld",
+      "dimension": "minecraft:overworld",
+      "terrainMods": [
+        "Terralith",
+        "Lithostitched"
+      ],
+      "requiredCpu": true,
+      "requiredGpuNoise": true,
+      "artifactLock": {"manifest": "dependencies.lock.json", "entries": ["Terralith", "Lithostitched"]}
+    },
+    {
+      "id": "tectonic-overworld",
+      "dimension": "minecraft:overworld",
+      "terrainMods": [
+        "Tectonic",
+        "Lithostitched"
+      ],
+      "requiredCpu": true,
+      "requiredGpuNoise": true,
+      "artifactLock": {"manifest": "dependencies.lock.json", "entries": ["Tectonic", "Lithostitched"]}
+    },
+    {
+      "id": "combined-overworld",
+      "dimension": "minecraft:overworld",
+      "terrainMods": [
+        "Terralith",
+        "Tectonic",
+        "Lithostitched"
+      ],
+      "requiredCpu": true,
+      "requiredGpuNoise": true,
+      "artifactLock": {"manifest": "dependencies.lock.json", "entries": ["Terralith", "Tectonic", "Lithostitched"]}
+    }
+  ],
+  "candidateBackends": [
+    "CPU_OWNED",
+    "GPU_IEEE_BITS"
+  ],
+  "corpora": {
+    "noise": {
+      "seeds": [
+        "0",
+        "12345",
+        "-1",
+        "9223372036854775807",
+        "-9223372036854775808"
+      ],
+      "coreSquareSideChunks": 5,
+      "regionCenters": [
+        {
+          "chunkX": -32,
+          "chunkZ": -32
+        },
+        {
+          "chunkX": 32,
+          "chunkZ": 32
+        }
+      ],
+      "expectedCoreChunksPerBackend": 1500,
+      "requiredPhases": [
+        "CAPTURED_REPLAY",
+        "LIVE_COMMIT"
+      ],
+      "prerequisitePolicy": "Pinned game neighborhood/status rules; record halo separately and do not count it as compared core"
+    },
+    "fullAndSaved": {
+      "seeds": [
+        "0",
+        "12345"
+      ],
+      "coreSquareSideChunks": 3,
+      "regionCenters": [
+        {
+          "chunkX": -32,
+          "chunkZ": -32
+        },
+        {
+          "chunkX": 32,
+          "chunkZ": 32
+        }
+      ],
+      "expectedCoreChunksPerBackendPerEndpoint": 216,
+      "requiredEndpoints": [
+        "FULL",
+        "SAVED_REOPENED"
+      ]
+    },
+    "additionalSceneStatus": "DISCOVER_AND_FREEZE_IN_P00_P01",
+    "additionalSceneRequirements": [
+      "copper-iron-raw-block-filler",
+      "aquifer-water-lava-postprocessing",
+      "dry-caves",
+      "eroded-badlands",
+      "frozen-ocean",
+      "cross-chunk-structure-feature",
+      "scheduled-ticks-block-entities",
+      "old-new-chunk-blending",
+      "structure-beardifier",
+      "custom-height-sea-level",
+      "nether-end-geometry",
+      "negative-extreme-valid-coordinates",
+      "end-integer-overflow",
+      "reload-identity-change",
+      "unknown-node-rejection",
+      "unsupported-generator-route",
+      "populated-target-policy",
+      "conflicting-hook-policy"
+    ],
+    "sceneWitnessRequired": true
+  },
+  "numerics": {
+    "profile": "GPU_IEEE_BITS",
+    "operatorInventory": "TO_BE_PINNED_IN_P02",
+    "curatedBoundaryVectorsRequired": true,
+    "stratifiedTuplesPerOperationTypeMinimum": 100000,
+    "additionalReleaseGpuTuplesPerOperationTypeMinimum": 1000000,
+    "finiteAndSignedZero": "RAW_BITS",
+    "nan": "CLASSIFICATION_COMPARISON_AND_DOWNSTREAM_JAVA_BEHAVIOR",
+    "compiledSpirvInspectionRequired": true,
+    "nativeFloatArithmeticInSoftwareProfileAllowed": false,
+    "independentArithmeticOracleRequired": true,
+    "normalRangeSmokeQualifies": false
+  },
+  "strictSuccessCriteria": {
+    "maximumMismatches": 0,
+    "maximumMissingCases": 0,
+    "maximumDuplicateCases": 0,
+    "maximumMissingRequiredFields": 0,
+    "maximumRequiredNoiseOriginalRoutes": 0,
+    "maximumRecoveryAttempts": 0,
+    "maximumSilentFailures": 0,
+    "maximumHardFailures": 0,
+    "maximumStaleCommits": 0,
+    "maximumDuplicateCommits": 0,
+    "minimumComparedCases": 1,
+    "gpuIssuedReceiptsRequired": true,
+    "cpuOriginalDownstreamStagesPermitted": true,
+    "faultInjectionRuns": "Separate expected-failure assertions; never mixed into healthy success counts"
+  },
+  "lifecycle": {
+    "modelRequestsPerSeedMinimum": 100000,
+    "modelSeedsMinimum": 5,
+    "continuousGenerationMinutesPerBackend": 30,
+    "busyStartupGenerationShutdownCyclesPerBackend": 5,
+    "singleWorkerAndSingleSlotRequired": true,
+    "healthyDisposalLiveOwnedNativeAllocations": 0,
+    "healthyDrainUnaccountedReservations": 0,
+    "quarantineCountsAsHealthyPass": false,
+    "deadlinePolicy": "Freeze after bounded slices and representative CPU/GPU replay calibration, before final qualification"
+  },
+  "platforms": {
+    "required": [
+      {
+        "id": "windows-x64-java21-dedicated",
+        "gpu": "RTX 5070 Ti",
+        "modes": [
+          "CPU_ONLY",
+          "GPU_REQUIRED",
+          "AUTO_SUPPORTED"
+        ]
+      },
+      {
+        "id": "windows-x64-java21-integrated",
+        "gpu": "RTX 5070 Ti",
+        "modes": [
+          "CPU_ONLY",
+          "GPU_REQUIRED",
+          "AUTO_SUPPORTED"
+        ]
+      },
+      {
+        "id": "windows-cpu-without-vulkan-shaderc",
+        "nativeInitializationAllowed": false
+      },
+      {
+        "id": "linux-cpu-ci-native-packaging",
+        "gpuExecutionRequired": false
+      }
+    ],
+    "requiresSeparateQualification": [
+      "Linux real GPU",
+      "AMD GPU",
+      "Intel GPU",
+      "Additional driver/platform combinations"
+    ],
+    "fabric": "DEFERRED"
+  },
+  "baseline": {
+    "coldLaunchesPerDeclaredWorkloadMinimum": 3,
+    "warmMeasuredRepetitionsPerDeclaredWorkloadMinimum": 3,
+    "endpoints": [
+      "NOISE",
+      "FULL",
+      "SAVED"
+    ],
+    "controls": [
+      "ORIGINAL_SAME_STACK",
+      "CPU_OWNED",
+      "GPU_IEEE_BITS"
+    ],
+    "freshEquivalentMeasuredChunksRequired": true,
+    "minimumChunksPerSecond": null,
+    "speedupRequired": false,
+    "configurationSweepsAllowed": false
+  },
+  "gates": [
+    {
+      "id": "G0",
+      "package": "P00",
+      "required": true,
+      "status": "NOT_RUN",
+      "plannedTasks": [
+        "verifyV02Inputs"
+      ],
+      "evidence": [],
+      "criteria": [
+        "Locked Minecraft/mod/native artifacts and source identities",
+        "Node/status/operator inventory and API/ABI contracts",
+        "Versioned resource/deadline and corpus-freeze policies"
+      ]
+    },
+    {
+      "id": "G1",
+      "package": "P01",
+      "required": true,
+      "status": "NOT_RUN",
+      "plannedTasks": [
+        "testMinecraftOracle"
+      ],
+      "evidence": [],
+      "criteria": [
+        "Separate corpus API and original capture artifact",
+        "Original-vs-original deterministic captures",
+        "Mutation-tested comparator and failure bundles"
+      ]
+    },
+    {
+      "id": "G2",
+      "package": "P02",
+      "required": true,
+      "status": "NOT_RUN",
+      "plannedTasks": [
+        "testWorldgenSemantics"
+      ],
+      "evidence": [],
+      "criteria": [
+        "All required router/node/marker/RNG semantics",
+        "Immutable registry, dynamic and context snapshots",
+        "Explicit supported and rejected capability inventory"
+      ]
+    },
+    {
+      "id": "G3",
+      "package": "P03",
+      "required": true,
+      "status": "NOT_RUN",
+      "plannedTasks": [
+        "testIntegerIeee",
+        "nativeIntegerIeee"
+      ],
+      "evidence": [],
+      "criteria": [
+        "Integer IEEE helpers and raw-bit ABI",
+        "Compiled SPIR-V numeric inspection",
+        "Actual-device arithmetic conformance"
+      ]
+    },
+    {
+      "id": "G4",
+      "package": "P04",
+      "required": true,
+      "status": "NOT_RUN",
+      "plannedTasks": [
+        "replayMinecraftNoiseCpu"
+      ],
+      "evidence": [],
+      "criteria": [
+        "Exact density, aquifer, ore and final states",
+        "Full geometry and metadata output",
+        "1500 mandatory core CPU NOISE comparisons plus scene fixtures"
+      ]
+    },
+    {
+      "id": "G5",
+      "package": "P05",
+      "required": true,
+      "status": "NOT_RUN",
+      "plannedTasks": [
+        "testVulkanLifecycle",
+        "nativeVulkanLifecycle"
+      ],
+      "evidence": [],
+      "criteria": [
+        "Persistent device, fixed-capacity buffers and synchronized queue owner",
+        "Asynchronous completion with separate leases",
+        "Bounded failure, disabled/lost and quarantine states"
+      ]
+    },
+    {
+      "id": "G6",
+      "package": "P06",
+      "required": true,
+      "status": "NOT_RUN",
+      "plannedTasks": [
+        "replayMinecraftNoiseGpu"
+      ],
+      "evidence": [],
+      "criteria": [
+        "GPU density, aquifer and ore evaluation",
+        "Checked bounded dense output and metadata",
+        "1500 mandatory core GPU replay comparisons plus scene fixtures"
+      ]
+    },
+    {
+      "id": "G7",
+      "package": "P07",
+      "required": true,
+      "status": "NOT_RUN",
+      "plannedTasks": [
+        "testChunkResultContract"
+      ],
+      "evidence": [],
+      "criteria": [
+        "Canonical registry mapping and complete result ABI",
+        "Dense, palette and uniform final-state equivalence",
+        "Malformed-input and metadata validation"
+      ]
+    },
+    {
+      "id": "G8",
+      "package": "P08",
+      "required": true,
+      "status": "NOT_RUN",
+      "plannedTasks": [
+        "testWorldgenCoordinator"
+      ],
+      "evidence": [],
+      "criteria": [
+        "Subscriptions, atomic admission and finite terminal retention",
+        "Real typed column/lattice/aquifer producers and consumers",
+        "Single-worker and tiny-budget progress with receipts/counters"
+      ]
+    },
+    {
+      "id": "G9",
+      "package": "P09",
+      "required": true,
+      "status": "NOT_RUN",
+      "plannedTasks": [
+        "testLiveNoise"
+      ],
+      "evidence": [],
+      "criteria": [
+        "Qualified hook and CPU/Vulkan composition",
+        "Complete mutation journal and exclusive publication",
+        "1500 live core NOISE comparisons per backend and fault/reload tests"
+      ]
+    },
+    {
+      "id": "G10",
+      "package": "P10",
+      "required": true,
+      "status": "NOT_RUN",
+      "plannedTasks": [
+        "testFullAndSavedWorlds"
+      ],
+      "evidence": [],
+      "criteria": [
+        "Original downstream stage/lifecycle integration",
+        "Logical save and independent reopen verifier",
+        "216 core comparisons per backend per FULL and SAVED endpoint"
+      ]
+    },
+    {
+      "id": "G11",
+      "package": "P11",
+      "required": true,
+      "status": "NOT_RUN",
+      "plannedTasks": [
+        "checkReleaseJar",
+        "testInstalledMod"
+      ],
+      "evidence": [],
+      "criteria": [
+        "CPU_ONLY, GPU_REQUIRED and AUTO_SUPPORTED modes",
+        "Lazy native strategy, dependency and release-jar checks",
+        "Installed dedicated/integrated checks and operator documentation"
+      ]
+    },
+    {
+      "id": "G12",
+      "package": "P12",
+      "required": true,
+      "status": "NOT_RUN",
+      "plannedTasks": [
+        "qualifyV02"
+      ],
+      "evidence": [],
+      "criteria": [
+        "All required contexts and gates on the frozen release",
+        "30-minute campaigns and five busy cycles per backend",
+        "Endpoint-specific baseline, raw evidence and source/binary archives"
+      ]
+    }
+  ]
+}

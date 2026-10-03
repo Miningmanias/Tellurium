@@ -1,0 +1,129 @@
+dependencies {
+    api platform('org.lwjgl:lwjgl-bom:3.3.3')
+    implementation 'org.lwjgl:lwjgl'
+    implementation 'org.lwjgl:lwjgl-vulkan'
+    implementation 'org.lwjgl:lwjgl-shaderc'
+    runtimeOnly 'org.lwjgl:lwjgl::natives-windows'
+    runtimeOnly 'org.lwjgl:lwjgl-shaderc::natives-windows'
+    runtimeOnly 'org.lwjgl:lwjgl::natives-linux'
+    runtimeOnly 'org.lwjgl:lwjgl-shaderc::natives-linux'
+}
+
+tasks.register('nativeIntegerIeeeCompile', JavaExec) {
+    group = 'verification'
+    description = 'Opt-in shaderc compilation of emitted FP32 and FP64 integer-carrier worldgen shaders.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
+    mainClass = 'dev.worldgennext.runtime.vulkan.NativeIntegerIeeeCompile'
+}
+
+tasks.register('nativeIntegerIeee', JavaExec) {
+    group = 'verification'
+    description = 'Opt-in real-device integer-carrier arithmetic conformance; fails when no suitable Vulkan device exists.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
+    mainClass = 'dev.worldgennext.runtime.vulkan.NativeIntegerIeeeRunner'
+    args "--output=${layout.buildDirectory.file('reports/native-integer-ieee.json').get().asFile.absolutePath}"
+    if (providers.gradleProperty('worldgennext.ieeeRelease').map { it == 'true' }.orElse(false).get()) args '--release'
+    if (providers.gradleProperty('worldgennext.ieeeArithmeticOnly').map { it == 'true' }.orElse(false).get()) args '--arithmetic-only'
+}
+
+tasks.register('nativeWorldgenSmoke', JavaExec) {
+    group = 'verification'
+    description = 'Opt-in real-device dispatch through the persistent production worldgen executor.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
+    mainClass = 'dev.worldgennext.runtime.vulkan.NativeWorldgenSmoke'
+}
+
+tasks.register('nativeRangeChoiceSmoke', JavaExec) {
+    group = 'verification'
+    description = 'Opt-in staged FP64 range-parent regression on a physical device; not Minecraft qualification.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
+    mainClass = 'dev.worldgennext.runtime.vulkan.NativeRangeChoiceSmoke'
+    if (providers.gradleProperty('worldgennext.rangeDraftControl').map { it == 'true' }.orElse(false).get()) args '--native-draft'
+}
+
+tasks.register('nativeVulkanLifecycle', JavaExec) {
+    group = 'verification'
+    description = 'Opt-in native asynchronous persistent-executor lifecycle proof; fails when no suitable Vulkan device exists.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
+    mainClass = 'dev.worldgennext.runtime.vulkan.NativeVulkanLifecycleRunner'
+}
+
+tasks.register('nativeRawChainSuffixSmoke', JavaExec) {
+    group = 'verification'
+    description = 'Opt-in physical-device resident-chain suffix/visibility/budget regression; not worldgen qualification.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
+    mainClass = 'dev.worldgennext.runtime.vulkan.NativeRawChainSuffixSmoke'
+}
+
+tasks.register('nativeSingleKnotSplineSmoke', JavaExec) {
+    group = 'verification'
+    description = 'Opt-in physical-device one-knot FP32 spline regression; not Minecraft/release qualification.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
+    mainClass = 'dev.worldgennext.runtime.vulkan.NativeSingleKnotSplineSmoke'
+}
+
+tasks.register('nativeSharedFp64DivisionSmoke', JavaExec) {
+    group = 'verification'
+    description = 'Opt-in exact host-mediated FP64 divider/carrier regression on a physical device; not release/Minecraft qualification.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
+    mainClass = 'dev.worldgennext.runtime.vulkan.NativeSharedFp64DivisionSmoke'
+}
+
+tasks.register('nativeBeardifierSmoke', JavaExec) {
+    group = 'verification'
+    description = 'Opt-in actual-device nonempty structure Beardifier/row regression; not Minecraft/release qualification.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
+    mainClass = 'dev.worldgennext.runtime.vulkan.NativeBeardifierSmoke'
+    if (providers.gradleProperty('worldgennext.beardifierInlineHelpers').map { it == 'true' }.orElse(false).get()) args '--inline-helpers'
+    if (providers.gradleProperty('worldgennext.beardifierTerralithPiece').map { it == 'true' }.orElse(false).get()) args '--terralith-piece'
+    if (providers.gradleProperty('worldgennext.beardifierInputKernel').map { it == 'true' }.orElse(false).get()) args '--input-kernel'
+}
+
+tasks.register('nativeBlendedReductionSmoke', JavaExec) {
+    group = 'verification'
+    description = 'Opt-in physical integer-carrier octave reduction/division/lazy-branch regression; not Minecraft qualification.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
+    mainClass = 'dev.worldgennext.runtime.vulkan.NativeBlendedReductionSmoke'
+}
+
+tasks.register('nativeIntegerFloorSmoke', JavaExec) {
+    group = 'verification'
+    description = 'Opt-in physical-device signed Java floorDiv/floorMod regression; not Minecraft qualification.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
+    mainClass = 'dev.worldgennext.runtime.vulkan.NativeIntegerFloorSmoke'
+}
+
+tasks.register('fusedCompileProbe', JavaExec) {
+    group = 'verification'
+    description = 'Developer probe: compiles one fused NOISE kernel from a dumped source and reports driver time.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'dev.worldgennext.runtime.vulkan.fused.FusedCompileProbe'
+    jvmArgs '-Dorg.lwjgl.system.stackSize=16384'
+    args((System.getProperty('worldgennext.probe.args', '') ?: '').split(' ').findAll { !it.isEmpty() })
+}
+
+tasks.register('printProbeClasspath') {
+    doLast { println sourceSets.main.runtimeClasspath.asPath }
+}

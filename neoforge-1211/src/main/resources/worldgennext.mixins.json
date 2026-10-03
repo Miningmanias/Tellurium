@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "dev.worldgennext.neoforge.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [],
+  "client": [],
+  "server": [
+    "ChunkStatusTasksMixin",
+    "ChunkStatusTasksStructureMixin",
+    "NoiseBasedChunkGeneratorFastMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

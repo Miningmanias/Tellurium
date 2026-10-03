@@ -1,0 +1,8 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+[[mods]]
+modId="worldgennext_test"
+version="0.2.0"
+displayName="WorldgenNext contract GameTests"
+description="Development-only bootstrap and synthetic core tests; excluded from release jar."

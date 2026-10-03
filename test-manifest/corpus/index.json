@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "status": "PARTIAL_ORIGINAL_VANILLA_NOISE_PREFLIGHT",
+  "requiredContexts": ["vanilla-overworld", "vanilla-nether", "vanilla-end", "terralith-overworld", "tectonic-overworld", "combined-overworld"],
+  "requiredEndpoints": ["NOISE", "FULL", "SAVED_REOPENED"],
+  "captureArtifact": "worldgennext-corpus-api",
+  "expectedCoreCounts": {"noisePerBackend": 1500, "fullPerBackend": 216, "savedReopenedPerBackend": 216},
+  "sceneWitnesses": [],
+  "executedPreflight": {
+    "status": "PASS",
+    "contexts": ["vanilla-overworld"],
+    "endpoint": "NOISE",
+    "casesPerCleanCorpus": 10,
+    "fieldsPerCase": 10,
+    "seedSet": ["0", "12345", "-1", "9223372036854775807", "-9223372036854775808"],
+    "centers": [[-32, -32], [32, 32]],
+    "originalVsOriginal": "PASS",
+    "candidateCompared": false,
+    "evidence": "../../docs/evidence/v0.2-original-oracle.md"
+  },
+  "note": "No expected terrain output is generated from the candidate. The executed preflight is only a partial original control; P01 still must freeze the complete six-context corpus and candidate isolation before this index can qualify."
+}

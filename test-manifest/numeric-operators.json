@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "profile": "GPU_IEEE_BITS",
+  "carrier": "raw integer bits",
+  "operators": [
+    {"name": "fp32.add", "type": "FP32", "required": true},
+    {"name": "fp32.subtract", "type": "FP32", "required": true},
+    {"name": "fp32.multiply", "type": "FP32", "required": true},
+    {"name": "fp32.divide", "type": "FP32", "required": true},
+    {"name": "fp64.add", "type": "FP64", "required": true},
+    {"name": "fp64.multiply", "type": "FP64", "required": true},
+    {"name": "floor", "type": "FP32_FP64", "required": true},
+    {"name": "sqrt", "type": "FP32_FP64", "required": true},
+    {"name": "integer.wrap", "type": "INT32_INT64", "required": true},
+    {"name": "rng.xoroshiro", "type": "INT64", "required": true}
+  ],
+  "minimumCuratedVectorsPerOperation": 1,
+  "minimumRandomTuplesPerOperation": 100000,
+  "releaseGpuTuplesPerOperation": 1000000,
+  "status": "DEVICE_PRIMITIVE_PASS_GRAPH_REPLAY_REQUIRED",
+  "qualificationEvidence": "docs/evidence/v0.2-integer-ieee.md"
+}
