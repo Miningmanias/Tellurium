@@ -81,6 +81,8 @@ public final class ClimateColumnCache {
     }
 
     public static void stop() {
+        LOG.info("Biome index: lookups={} fast={} verifyMismatches={}", ColumnBiomeIndex.lookups.get(),
+                ColumnBiomeIndex.fastLookups.get(), ColumnBiomeIndex.mismatches.get());
         COLUMN_ONLY.clear();
         UNWRAPPED.clear();
     }

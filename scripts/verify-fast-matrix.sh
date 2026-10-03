@@ -34,7 +34,7 @@ pair() { # name, mods subdirectory, extra script args, extra properties
     # shellcheck disable=SC2086
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bench-cps.ps1 -Status "$STATUS" -Label "mv-$name" -RadiusChunks "$RADIUS" \
         -ModsDir "$MODS/$mods" $args \
-        -Properties "$D;worldgennext.fast.gpu=off;worldgennext.parallelStructureSteps=false;worldgennext.parallelSurfaceCarvers=false;worldgennext.parallelFeatures=false;worldgennext.asyncChunkSave=false;worldgennext.asyncChunkCompress=false;worldgennext.biomeColumnCache=false;worldgennext.unloadTypeCache=false;worldgennext.fast.rtreeStoreSkip=false;$props" >/dev/null 2>&1
+        -Properties "$D;worldgennext.fast.gpu=off;worldgennext.parallelStructureSteps=false;worldgennext.parallelSurfaceCarvers=false;worldgennext.parallelFeatures=false;worldgennext.asyncChunkSave=false;worldgennext.asyncChunkCompress=false;worldgennext.biomeColumnCache=false;worldgennext.unloadTypeCache=false;worldgennext.fast.rtreeStoreSkip=false;worldgennext.fast.biomeIndex=false;worldgennext.fast.freshRegionShortcut=false;worldgennext.fast.shapeCache=false;worldgennext.unloadPacing=false;worldgennext.promptTaskRelease=false;worldgennext.bench.productionThreadNames=false;$props" >/dev/null 2>&1
     # shellcheck disable=SC2086
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bench-cps.ps1 -Status "$STATUS" -Label "mg-$name" -RadiusChunks "$RADIUS" \
         -ModsDir "$MODS/$mods" $args \

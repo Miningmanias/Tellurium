@@ -35,7 +35,7 @@ public abstract class ChunkStorageAsyncMixin implements PendingChunkSaves {
     @Override
     public void worldgenNext$track(ChunkPos pos, CompletableFuture<Void> save,
                                    dev.worldgennext.neoforge.threading.AsyncSectionEncoding.Task encoding) {
-        long key = pos.toLong();
+        long key = worldgenNext$key(pos);
         worldgenNext$pendingSaves.put(key, save);
         worldgenNext$pendingEncodings.put(key, encoding);
         save.whenComplete((ignored, error) -> {
@@ -47,6 +47,12 @@ public abstract class ChunkStorageAsyncMixin implements PendingChunkSaves {
     @Unique
     private final ConcurrentHashMap<Long, dev.worldgennext.neoforge.threading.AsyncSectionEncoding.Task> worldgenNext$pendingEncodings =
             new ConcurrentHashMap<>();
+
+    /** Long.hashCode of a packed chunk position is x ^ z, which piles neighbouring chunks into few buckets. */
+    @Unique
+    private static long worldgenNext$key(ChunkPos pos) {
+        return it.unimi.dsi.fastutil.HashCommon.mix(pos.toLong());
+    }
 
     @Override
     public void worldgenNext$awaitAll() {
@@ -61,9 +67,9 @@ public abstract class ChunkStorageAsyncMixin implements PendingChunkSaves {
 
     @Inject(method = "read", at = @At("HEAD"), cancellable = true)
     private void worldgenNext$readAfterPendingSave(ChunkPos pos, CallbackInfoReturnable<CompletableFuture<Optional<CompoundTag>>> callback) {
-        CompletableFuture<Void> pending = worldgenNext$pendingSaves.get(pos.toLong());
+        CompletableFuture<Void> pending = worldgenNext$pendingSaves.get(worldgenNext$key(pos));
         if (pending != null && !pending.isDone()) {
-            var encoding = worldgenNext$pendingEncodings.get(pos.toLong());
+            var encoding = worldgenNext$pendingEncodings.get(worldgenNext$key(pos));
             CompletableFuture<Void> ready = pending;
             if (encoding != null) {
                 encoding.expedite();

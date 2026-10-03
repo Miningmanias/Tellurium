@@ -31,7 +31,10 @@ import java.util.function.Supplier;
 public final class AsyncSectionEncoding {
     public static final boolean ENABLED =
             Boolean.parseBoolean(System.getProperty("worldgennext.asyncChunkSave", "true"));
-    private static final ThreadLocal<Deferred> COLLECTOR = new ThreadLocal<>();
+    // The collector is only ever active on the server thread (ChunkMap.save); a plain field with an owner
+    // check replaces a ThreadLocal that ChunkSerializer.write would query some fifty times per chunk.
+    private static volatile Thread collectorOwner;
+    private static Deferred activeCollector;
 
     /**
      * Encoding and compression run on their own small pool rather than the worldgen pool: unloads arrive
@@ -56,6 +59,11 @@ public final class AsyncSectionEncoding {
     }
 
     private static final java.util.concurrent.atomic.AtomicLong SEQUENCE = new java.util.concurrent.atomic.AtomicLong();
+
+    public static String status() {
+        return "savePool{queued=" + SAVE_POOL.getQueue().size() + ", active=" + SAVE_POOL.getActiveCount()
+                + ", completed=" + SAVE_POOL.getCompletedTaskCount() + "}";
+    }
 
     /** One deferred chunk encoding.  Runs once; a chunk that is requested again is moved to the front. */
     public static final class Task implements Runnable, Comparable<Task> {
@@ -119,21 +127,30 @@ public final class AsyncSectionEncoding {
     public static final class Deferred {
         private final List<Tag> placeholders = new ArrayList<>(48);
         private final List<Supplier<Tag>> encoders = new ArrayList<>(48);
-        public boolean isEmpty() { return placeholders.isEmpty(); }
+        /** Deferred values stored directly in the chunk tag (ticks, post-processing lists, structures). */
+        private final List<Tag> topPlaceholders = new ArrayList<>(4);
+        private final List<Supplier<Tag>> topEncoders = new ArrayList<>(4);
+        public boolean isEmpty() { return placeholders.isEmpty() && topPlaceholders.isEmpty(); }
     }
 
     private AsyncSectionEncoding() {}
 
     public static Deferred begin() {
         Deferred collector = new Deferred();
-        COLLECTOR.set(collector);
+        activeCollector = collector;
+        collectorOwner = Thread.currentThread();
         return collector;
     }
 
-    public static void end() { COLLECTOR.remove(); }
+    public static void end() {
+        collectorOwner = null;
+        activeCollector = null;
+    }
 
-    /** Non-null only between begin() and end() on this thread. */
-    public static Deferred collector() { return COLLECTOR.get(); }
+    /** Non-null only between begin() and end() on the thread that called begin(). */
+    public static Deferred collector() {
+        return collectorOwner == Thread.currentThread() ? activeCollector : null;
+    }
 
     /** Registers a deferred encoding and returns the placeholder that stands in for it. */
     public static Tag defer(Deferred collector, Supplier<Tag> encoder) {
@@ -143,8 +160,35 @@ public final class AsyncSectionEncoding {
         return placeholder;
     }
 
-    /** Replaces every placeholder in the chunk tag's sections; throws if any encoding fails or is not located. */
+    /**
+     * Registers a deferred top-level value of the chunk tag.  Only for data that nothing touches once the
+     * chunk has left the world: the unload path this is used on has already detached the chunk.
+     */
+    public static <T extends Tag> T deferTop(Deferred collector, T placeholder, Supplier<Tag> encoder) {
+        collector.topPlaceholders.add(placeholder);
+        collector.topEncoders.add(encoder);
+        return placeholder;
+    }
+
+    /** Replaces every placeholder in the chunk tag and its sections; throws if any encoding fails or is not located. */
     public static void resolve(CompoundTag chunkTag, Deferred collector) {
+        int top = collector.topPlaceholders.size();
+        if (top > 0) {
+            int found = 0;
+            for (String key : new ArrayList<>(chunkTag.getAllKeys())) {
+                Tag current = chunkTag.get(key);
+                for (int i = 0; i < top; i++) {
+                    if (collector.topPlaceholders.get(i) == current) {
+                        chunkTag.put(key, collector.topEncoders.get(i).get());
+                        found++;
+                        break;
+                    }
+                }
+            }
+            if (found != top) {
+                throw new IllegalStateException("Deferred chunk values were not all located in the chunk tag: " + found + " of " + top);
+            }
+        }
         ListTag sections = chunkTag.getList("sections", Tag.TAG_COMPOUND);
         int total = collector.placeholders.size();
         boolean[] done = new boolean[total];

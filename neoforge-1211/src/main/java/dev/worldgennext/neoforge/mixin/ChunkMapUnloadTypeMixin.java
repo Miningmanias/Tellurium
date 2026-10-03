@@ -28,7 +28,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * original read.</p>
  */
 @Mixin(ChunkMap.class)
-public abstract class ChunkMapUnloadTypeMixin {
+public abstract class ChunkMapUnloadTypeMixin implements dev.worldgennext.neoforge.threading.IdleUnloads {
+    /** Runs one queued unload (the save of one chunk that already left the holder map); false when none is queued. */
+    @Override
+    public boolean worldgenNext$runIdleUnload() {
+        if (!worldgenNext$STEADY_UNLOADS) return false;
+        Runnable unload = unloadQueue.poll();
+        if (unload == null) return false;
+        unload.run();
+        return true;
+    }
+
     @Unique private static final boolean worldgenNext$ENABLED =
             Boolean.parseBoolean(System.getProperty("worldgennext.unloadTypeCache", "true"));
     @Unique private static final int worldgenNext$LIMIT = 1 << 21;
@@ -43,6 +53,46 @@ public abstract class ChunkMapUnloadTypeMixin {
         if (!worldgenNext$ENABLED) return;
         if (worldgenNext$knownTypes.size() >= worldgenNext$LIMIT) worldgenNext$knownTypes.clear(); // unknown positions read storage
         worldgenNext$knownTypes.put(pos, type);
+    }
+
+    // Unload pacing.  Vanilla saves the whole unload queue in one tick whenever the tick has time left or
+    // more than 2,000 chunks are waiting.  During generation this feeds on itself: while the server thread
+    // saves a burst, finished chunks cannot be promoted, so every generation task in flight piles up one
+    // step short of FULL; when the burst ends they are promoted together, release their neighbourhoods
+    // together, and thousands of chunks become unloadable in the same tick: the next burst.  Each cycle
+    // empties the pipeline.  During the regular tick this saves a quarter of the queue (at least 128
+    // chunks) instead; which chunks unload and what is saved is unchanged, and the shutdown and save-all
+    // paths, which call processUnloads outside the tick, still drain everything.
+    @Unique private static final boolean worldgenNext$STEADY_UNLOADS =
+            Boolean.parseBoolean(System.getProperty("worldgennext.unloadPacing", "true"));
+    @Unique private boolean worldgenNext$inTick;
+    @Unique private int worldgenNext$unloadBudget;
+
+    @Shadow @Final private java.util.Queue<Runnable> unloadQueue;
+
+    @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V", at = @At("HEAD"))
+    private void worldgenNext$enterTick(java.util.function.BooleanSupplier hasTime, CallbackInfo callback) {
+        worldgenNext$inTick = worldgenNext$STEADY_UNLOADS;
+        worldgenNext$unloadBudget = -1;
+    }
+
+    @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V", at = @At("RETURN"))
+    private void worldgenNext$leaveTick(java.util.function.BooleanSupplier hasTime, CallbackInfo callback) {
+        worldgenNext$inTick = false;
+    }
+
+    @org.spongepowered.asm.mixin.injection.Redirect(method = "processUnloads", at = @At(value = "INVOKE",
+            target = "Ljava/util/function/BooleanSupplier;getAsBoolean()Z", ordinal = 1))
+    private boolean worldgenNext$pacedUnloads(java.util.function.BooleanSupplier hasTime) {
+        if (!worldgenNext$inTick) return hasTime.getAsBoolean();
+        if (worldgenNext$unloadBudget < 0) worldgenNext$unloadBudget = Math.max(128, unloadQueue.size() / 4);
+        return worldgenNext$unloadBudget-- > 0;
+    }
+
+    @org.spongepowered.asm.mixin.injection.ModifyConstant(method = "processUnloads",
+            constant = @org.spongepowered.asm.mixin.injection.Constant(intValue = 2000, ordinal = 1))
+    private int worldgenNext$unloadQueueAllowance(int vanilla) {
+        return worldgenNext$inTick ? Integer.MAX_VALUE : vanilla;
     }
 
     @Inject(method = "markPositionReplaceable", at = @At("HEAD"))

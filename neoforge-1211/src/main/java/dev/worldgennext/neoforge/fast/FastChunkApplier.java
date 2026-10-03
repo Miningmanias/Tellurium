@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.fast;
 
+import dev.worldgennext.neoforge.mixin.LevelChunkSectionAccessor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.util.BitStorage;
@@ -9,67 +10,138 @@ import net.minecraft.util.SimpleBitStorage;
 import net.minecraft.util.ZeroBitStorage;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.PalettedContainer;
 import net.minecraft.world.level.chunk.PalettedContainerRO;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.material.FluidState;
 
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Writes one fused-kernel chunk result into a fresh NOISE ProtoChunk with the
- * same observable state as NoiseBasedChunkGenerator.doFill: section block
- * states and counts, the two worldgen heightmaps, and post-processing marks
- * in doFill's iteration order.
+ * same observable state as NoiseBasedChunkGenerator.doFill (and, when the
+ * surface stage ran, SurfaceSystem.buildSurface): section block states and
+ * counts, the two worldgen heightmaps, and post-processing marks in the
+ * original iteration order.
  */
 public final class FastChunkApplier {
     private FastChunkApplier() {}
+
+    /** Per-level palette facts, computed once. */
+    public static final class PaletteInfo {
+        final BlockState[] palette;
+        /** Palette index -> index of the first palette entry holding the same state. */
+        final int[] canonical;
+        final boolean[] air;
+        final boolean[] surfaceFluid;
+        // LevelChunkSection.recalcBlockCounts contributions of one block of each state.
+        final int[] nonEmpty, tickingBlock, tickingFluid;
+
+        public PaletteInfo(BlockState[] palette, int basePaletteSize) {
+            this.palette = palette;
+            int n = palette.length;
+            canonical = new int[n];
+            air = new boolean[128];
+            surfaceFluid = new boolean[128];
+            nonEmpty = new int[n];
+            tickingBlock = new int[n];
+            tickingFluid = new int[n];
+            for (int i = 0; i < n; i++) {
+                BlockState state = palette[i];
+                canonical[i] = i;
+                for (int k = 0; k < i; k++) if (palette[k] == state) { canonical[i] = k; break; }
+                air[i] = state.isAir();
+                FluidState fluid = state.getFluidState();
+                surfaceFluid[i] = i >= basePaletteSize && !fluid.isEmpty();
+                if (!state.isEmpty()) {
+                    nonEmpty[i]++;
+                    if (state.isRandomlyTicking()) tickingBlock[i]++;
+                }
+                if (!fluid.isEmpty()) {
+                    nonEmpty[i]++;
+                    if (fluid.isRandomlyTicking()) tickingFluid[i]++;
+                }
+            }
+        }
+    }
 
     /**
      * @param data one byte per storage block (palette index | 0x80 mark), section-major,
      *             index = (localY * 16 + z) * 16 + x relative to the storage bottom
      */
-    public static void apply(ChunkAccess chunk, byte[] data, int[] heights, BlockState[] palette, int basePaletteSize,
+    public static void apply(ChunkAccess chunk, byte[] data, int[] heights, PaletteInfo info,
                              int minY, int genHeight, int cellWidth, int cellHeight) {
         LevelChunkSection[] sections = chunk.getSections();
-        boolean[] air = new boolean[128];
-        boolean[] surfaceFluid = new boolean[128];
-        for (int i = 0; i < palette.length; i++) {
-            air[i] = palette[i].isAir();
-            surfaceFluid[i] = i >= basePaletteSize && !palette[i].getFluidState().isEmpty();
-        }
+        boolean[] marked = new boolean[sections.length];
+        boolean anyMark = false;
+        int[] local = new int[info.palette.length];
+        int[] counts = new int[info.palette.length];
+        byte[] indices = new byte[4096];
         for (int s = 0; s < sections.length; s++) {
             int offset = s * 4096;
             if (offset + 4096 > data.length) break;
-            if (allAir(data, offset, air)) continue; // doFill never touches an all-air section
-            LevelChunkSection old = sections[s];
-            sections[s] = buildSection(data, offset, palette, old.getBiomes());
+            java.util.Arrays.fill(local, -1);
+            int distinct = 0, marks = 0;
+            boolean onlyAir = true;
+            for (int i = 0; i < 4096; i++) {
+                int raw = data[offset + i];
+                marks |= raw;
+                int index = info.canonical[raw & 0x7F];
+                int slot = local[index];
+                if (slot < 0) {
+                    slot = distinct++;
+                    local[index] = slot;
+                    counts[slot] = 0;
+                    onlyAir &= info.air[index];
+                }
+                counts[slot]++;
+                indices[i] = (byte) slot;
+            }
+            if ((marks & 0x80) != 0) {
+                marked[s] = true;
+                anyMark = true;
+            }
+            if (onlyAir) continue; // doFill never touches an all-air section
+            sections[s] = buildSection(indices, local, counts, distinct, info, sections[s].getBiomes());
         }
         // Worldgen heightmaps: doFill creates both and updates them for every placed block.
         int bits = Mth.ceillog2(chunk.getHeight() + 1);
         setHeightmap(chunk, Heightmap.Types.OCEAN_FLOOR_WG, heights, 0, bits, minY);
         setHeightmap(chunk, Heightmap.Types.WORLD_SURFACE_WG, heights, 256, bits, minY);
+        if (!anyMark) return;
         // Post-processing marks in doFill order: cellX, cellZ, y descending, x in cell, z in cell.
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         int baseX = chunk.getPos().getMinBlockX(), baseZ = chunk.getPos().getMinBlockZ();
+        int bottom = chunk.getMinBuildHeight();
+        boolean[] surfaceFluid = info.surfaceFluid;
+        boolean surfaceMarks = false;
         int cells = 16 / cellWidth;
         for (int cx = 0; cx < cells; cx++) {
             for (int cz = 0; cz < cells; cz++) {
                 for (int y = minY + genHeight - 1; y >= minY; y--) {
-                    int rowBase = (y - chunk.getMinBuildHeight()) * 256;
+                    int ly = y - bottom;
+                    if (!marked[ly >> 4]) {
+                        y -= (ly & 15); // skip the rest of this unmarked section
+                        continue;
+                    }
+                    int rowBase = ly * 256;
                     for (int ix = 0; ix < cellWidth; ix++) {
                         int x = cx * cellWidth + ix;
                         for (int iz = 0; iz < cellWidth; iz++) {
                             int z = cz * cellWidth + iz;
                             int raw = data[rowBase + z * 16 + x];
-                            if ((raw & 0x80) != 0 && !surfaceFluid[raw & 0x7F]) {
-                                pos.set(baseX + x, y, baseZ + z);
-                                chunk.markPosForPostprocessing(pos);
+                            if ((raw & 0x80) != 0) {
+                                if (surfaceFluid[raw & 0x7F]) {
+                                    surfaceMarks = true;
+                                } else {
+                                    pos.set(baseX + x, y, baseZ + z);
+                                    chunk.markPosForPostprocessing(pos);
+                                }
                             }
                         }
                     }
@@ -79,14 +151,18 @@ public final class FastChunkApplier {
         // Surface marks follow in buildSurface order: x, z, y descending.  A marked fluid with a
         // surface-palette index was placed by a surface rule; a marked non-fluid surface state (ice
         // over aquifer water) inherited the mark doFill gave the fluid it replaced.
-        if (palette.length > basePaletteSize) {
+        if (surfaceMarks) {
             int storageHeight = data.length / 256;
             for (int x = 0; x < 16; x++) {
                 for (int z = 0; z < 16; z++) {
                     for (int ly = storageHeight - 1; ly >= 0; ly--) {
+                        if (!marked[ly >> 4]) {
+                            ly -= (ly & 15);
+                            continue;
+                        }
                         int raw = data[ly * 256 + z * 16 + x];
                         if ((raw & 0x80) != 0 && surfaceFluid[raw & 0x7F]) {
-                            pos.set(baseX + x, chunk.getMinBuildHeight() + ly, baseZ + z);
+                            pos.set(baseX + x, bottom + ly, baseZ + z);
                             chunk.markPosForPostprocessing(pos);
                         }
                     }
@@ -95,35 +171,21 @@ public final class FastChunkApplier {
         }
     }
 
-
-
-    private static boolean allAir(byte[] data, int offset, boolean[] air) {
-        for (int i = 0; i < 4096; i++) {
-            if (!air[data[offset + i] & 0x7F]) return false;
-        }
-        return true;
-    }
-
-    private static LevelChunkSection buildSection(byte[] data, int offset, BlockState[] palette,
+    private static LevelChunkSection buildSection(byte[] indices, int[] local, int[] counts, int distinct, PaletteInfo info,
                                                   PalettedContainerRO<Holder<Biome>> biomes) {
-        int[] local = new int[palette.length];
-        java.util.Arrays.fill(local, -1);
-        List<BlockState> values = new ArrayList<>(4);
-        Map<BlockState, Integer> byState = new IdentityHashMap<>();
-        for (int i = 0; i < 4096; i++) {
-            int index = data[offset + i] & 0x7F;
-            if (local[index] < 0) {
-                BlockState state = palette[index];
-                Integer existing = byState.get(state);
-                if (existing == null) {
-                    existing = values.size();
-                    values.add(state);
-                    byState.put(state, existing);
-                }
-                local[index] = existing;
-            }
+        BlockState[] ordered = new BlockState[distinct];
+        int nonEmpty = 0, tickingBlock = 0, tickingFluid = 0;
+        for (int index = 0; index < local.length; index++) {
+            int slot = local[index];
+            if (slot < 0) continue;
+            ordered[slot] = info.palette[index];
+            nonEmpty += info.nonEmpty[index] * counts[slot];
+            tickingBlock += info.tickingBlock[index] * counts[slot];
+            tickingFluid += info.tickingFluid[index] * counts[slot];
         }
-        int requested = Mth.ceillog2(values.size());
+        List<BlockState> values = new ArrayList<>(distinct);
+        for (BlockState state : ordered) values.add(state);
+        int requested = Mth.ceillog2(distinct);
         int storageBits = requested == 0 ? 0 : requested <= 4 ? 4 : requested;
         BitStorage storage;
         if (storageBits == 0) {
@@ -131,9 +193,12 @@ public final class FastChunkApplier {
         } else {
             int perLong = 64 / storageBits;
             long[] raw = new long[(4096 + perLong - 1) / perLong];
-            for (int i = 0; i < 4096; i++) {
-                long value = local[data[offset + i] & 0x7F];
-                raw[i / perLong] |= value << ((i % perLong) * storageBits);
+            int at = 0;
+            for (int word = 0; word < raw.length; word++) {
+                long packed = 0;
+                int end = Math.min(4096, at + perLong);
+                for (int shift = 0; at < end; at++, shift += storageBits) packed |= (long) indices[at] << shift;
+                raw[word] = packed;
             }
             storage = new SimpleBitStorage(storageBits, 4096, raw);
         }
@@ -141,7 +206,16 @@ public final class FastChunkApplier {
                 PalettedContainer.Strategy.SECTION_STATES,
                 PalettedContainer.Strategy.SECTION_STATES.getConfiguration(Block.BLOCK_STATE_REGISTRY, requested),
                 storage, values);
-        return new LevelChunkSection(states, biomes);
+        // The section constructor recounts all 4096 entries; build it around a one-state container
+        // (counted in constant time), then install the real container with the counts taken above.
+        LevelChunkSection section = new LevelChunkSection(new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY,
+                Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES), biomes);
+        LevelChunkSectionAccessor access = (LevelChunkSectionAccessor) section;
+        access.worldgenNext$setStates(states);
+        access.worldgenNext$setNonEmptyBlockCount((short) nonEmpty);
+        access.worldgenNext$setTickingBlockCount((short) tickingBlock);
+        access.worldgenNext$setTickingFluidCount((short) tickingFluid);
+        return section;
     }
 
     private static void setHeightmap(ChunkAccess chunk, Heightmap.Types type, int[] heights, int offset, int bits, int minY) {

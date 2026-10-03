@@ -16,7 +16,15 @@
     "ChunkMapUnloadTypeMixin",
     "RegionFileAccessor",
     "RegionFileStorageCompressMixin",
-    "ClimateRTreeMixin"
+    "ClimateRTreeMixin",
+    "ClimateParameterListMixin",
+    "LevelChunkSectionAccessor",
+    "RegionFileStorageAccessor",
+    "IOWorkerOldChunkMixin",
+    "BlockShapeCacheMixin",
+    "BlockableEventLoopAccessor",
+    "MinecraftServerIdleUnloadMixin",
+    "ChunkTaskPriorityQueueMixin"
   ],
   "injectors": {
     "defaultRequire": 1
