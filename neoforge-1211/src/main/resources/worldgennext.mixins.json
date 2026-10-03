@@ -31,7 +31,7 @@
     "NoiseChunkLazyWrapMixin",
     "LevelChunkSectionUniformBiomeMixin",
     "BiomeManagerUniformMixin",
-    "ProcessorMailboxIoBatchMixin"
+    "ProcessorMailboxDispatchMixin"
   ],
   "injectors": {
     "defaultRequire": 1
