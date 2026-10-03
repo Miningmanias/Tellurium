@@ -445,7 +445,7 @@ float sDer(int N, int i) { return uintBitsToFloat(perm[N + 3 + i * 4]); }
 uint sKind(int N, int i) { return perm[N + 4 + i * 4]; }
 uint sPayload(int N, int i) { return perm[N + 5 + i * 4]; }
 
-precise float splineEval(int root, float cs[8]) {
+precise float splineEval(int root, float cs[SPLINE_COORDS]) {
     int sN[SPLINE_STACK];
     int sState[SPLINE_STACK];
     int sIv[SPLINE_STACK];
@@ -462,8 +462,16 @@ precise float splineEval(int root, float cs[8]) {
         int st = sState[sp];
         bool ready = false;
         if (st == 0) {
-            int iv = -1;
-            for (int i = 0; i < n; i++) if (!(c < sLoc(N, i))) iv = i;
+            // Mth.binarySearch(0, n, i -> c < locations[i]) - 1, probe for probe:
+            // datapack splines are not required to be sorted.
+            int lo = 0;
+            int remaining = n;
+            while (remaining > 0) {
+                int step = remaining / 2;
+                int k = lo + step;
+                if (c < sLoc(N, k)) { remaining = step; } else { lo = k + 1; remaining -= step + 1; }
+            }
+            int iv = lo - 1;
             sIv[sp] = iv;
             int first = iv < 0 ? 0 : iv;
             sState[sp] = 1;

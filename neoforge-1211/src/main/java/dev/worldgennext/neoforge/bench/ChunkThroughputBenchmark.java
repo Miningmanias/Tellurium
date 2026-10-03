@@ -105,7 +105,14 @@ public final class ChunkThroughputBenchmark {
             server.execute(() -> server.halt(false));
             return;
         }
-        ServerLevel level = server.overworld();
+        String dimension = System.getProperty("worldgennext.bench.dimension", "minecraft:overworld").trim();
+        ServerLevel level = server.getLevel(net.minecraft.resources.ResourceKey.create(
+                net.minecraft.core.registries.Registries.DIMENSION, net.minecraft.resources.ResourceLocation.parse(dimension)));
+        if (level == null) {
+            LOG.error("Unknown benchmark dimension {}", dimension);
+            server.execute(() -> server.halt(false));
+            return;
+        }
         Thread driver = new Thread(() -> {
             try {
                 new ChunkThroughputBenchmark(server, level, settings).run(routeDescription);

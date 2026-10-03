@@ -9,6 +9,8 @@ param(
     [string]$Label = 'vanilla',
     [string]$MaxHeap = '16G',
     [string]$Jfr = '',
+    # Directory of terrain-mod jars copied into the fresh run's mods folder
+    [string]$ModsDir = '',
     # Semicolon-separated extra -D properties, e.g. 'a=1;b=2'
     [string]$Properties = ''
 )
@@ -22,6 +24,11 @@ $runDir = Join-Path $repoRoot "build\run\bench-$Label-$($Status.ToLower())-$stam
 $report = Join-Path $repoRoot "build\bench\$Label-$($Status.ToLower())-$stamp.json"
 if (Test-Path -LiteralPath $runDir) { throw "Refusing to reuse $runDir" }
 $env:JAVA_HOME = $JavaHome
+if ($ModsDir) {
+    $mods = Join-Path $runDir 'mods'
+    New-Item -ItemType Directory -Force -Path $mods | Out-Null
+    Get-ChildItem -LiteralPath (Join-Path $repoRoot $ModsDir) -Filter '*.jar' | Copy-Item -Destination $mods
+}
 
 $gradleArgs = @(':neoforge-1211:runServer', '--no-daemon', '--console=plain',
     "-Dworldgennext.candidate.runDir=$runDir",

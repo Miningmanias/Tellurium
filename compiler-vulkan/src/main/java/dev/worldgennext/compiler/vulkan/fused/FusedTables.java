@@ -103,7 +103,8 @@ final class FusedTables {
      * Children are encoded first; returns the record offset.
      */
     int spline(dev.worldgennext.semantic.program.ProgramNode.SplineMultipoint node,
-               List<dev.worldgennext.semantic.program.ProgramNode> coordinates) {
+               List<dev.worldgennext.semantic.program.ProgramNode> coordinates,
+               Map<dev.worldgennext.semantic.program.ProgramNode, Integer> indexOf) {
         var byCoordinates = splineRecords.computeIfAbsent(node, k -> new java.util.HashMap<>());
         List<Object> key = new ArrayList<>(coordinates);
         Integer existing = byCoordinates.get(key);
@@ -118,12 +119,11 @@ final class FusedTables {
                 payloads[i] = Float.floatToRawIntBits(constant.value());
             } else {
                 kinds[i] = 1;
-                payloads[i] = spline((dev.worldgennext.semantic.program.ProgramNode.SplineMultipoint) value, coordinates);
+                payloads[i] = spline((dev.worldgennext.semantic.program.ProgramNode.SplineMultipoint) value, coordinates, indexOf);
             }
         }
-        int coordinateIndex = -1;
-        for (int i = 0; i < coordinates.size(); i++) if (coordinates.get(i) == node.coordinate()) coordinateIndex = i;
-        if (coordinateIndex < 0) throw new IllegalStateException("Spline coordinate missing from argument list");
+        Integer coordinateIndex = indexOf.get(node.coordinate());
+        if (coordinateIndex == null) throw new IllegalStateException("Spline coordinate missing from argument list");
         int offset = perm.size();
         perm.add(n);
         perm.add(coordinateIndex);

@@ -40,7 +40,7 @@ import java.util.Objects;
 public final class FusedNoiseCompiler {
     public static final String VERSION = "worldgennext-fused-noise-v1";
 
-    public enum Mode { COLUMN, CORNER, CELL, VALUE, POINT }
+    public enum Mode { COLUMN, CORNER, CELL, VALUE, POINT, POINT_IN, POINT_OUT }
 
     /** Palette indices of the states the material rule can produce, plus fluid predicates. */
     public record MaterialPalette(int air, int defaultBlock, int defaultFluid, int lava,
@@ -83,7 +83,8 @@ public final class FusedNoiseCompiler {
     }
 
     public record Compiled(String source, double[] doubleTable, int[] permTable, int flatChannels,
-                           int interpolatedChannels, Geometry geometry, String fingerprint) {}
+                           int interpolatedChannels, Geometry geometry, String fingerprint,
+                           List<ProgramNode> flatChildren, List<ProgramNode> interpolatedChildren) {}
 
     public static final class UnsupportedFusedProgramException extends RuntimeException {
         public UnsupportedFusedProgramException(String message) { super(message); }
@@ -185,17 +186,22 @@ public final class FusedNoiseCompiler {
             }
 
             String source = header() + FusedNoiseCompiler.library() + "\n" + accessors()
-                    + FusedKernels.prelude(geometry, request, beardKernelIndex) + splineSource + functions
+                    + FusedKernels.prelude(geometry, request, beardKernelIndex) + functions
                     + FusedKernels.kernels(flats.size(), interps.size());
             String fingerprint = sha256(source);
+            List<ProgramNode> flatChildren = new ArrayList<>();
+            for (ProgramNode.Marker flat : flats) flatChildren.add(flat.child());
+            List<ProgramNode> interpChildren = new ArrayList<>();
+            for (ProgramNode.Interpolated interp : interps) interpChildren.add(interp.child());
             return new Compiled(source, tables.doubleTable(), tables.permTable(), flats.size(), interps.size(),
-                    geometry, fingerprint);
+                    geometry, fingerprint, List.copyOf(flatChildren), List.copyOf(interpChildren));
         }
 
         private String header() {
             return "#version 460\n"
                     + "#extension GL_ARB_gpu_shader_int64 : require\n"
                     + "// " + VERSION + "\n"
+                    + "#define SPLINE_COORDS " + maxSplineCoordinates + "\n"
                     + "layout(local_size_x = 64) in;\n"
                     + "struct ChunkInfo { int chunkX; int chunkZ; int beardOffset; int pieceCount; int junctionCount; int pad0; int pad1; int pad2; };\n"
                     + "layout(std430, binding = 0) readonly buffer Chunks { ChunkInfo chunks[]; };\n"
@@ -271,17 +277,28 @@ public final class FusedNoiseCompiler {
         }
 
         private void emitFunction(String name, ProgramNode root, Mode mode) {
-            Block body = new Block(null, "    ");
-            String result = value(root, body, mode);
             String guard = switch (mode) {
                 case COLUMN -> "defined(K_COLUMN)";
                 case CORNER -> "defined(K_CORNER)";
                 case CELL, VALUE -> "defined(K_BLOCK)";
-                case POINT -> "defined(K_AQUIFER)";
+                case POINT, POINT_IN, POINT_OUT -> "defined(K_AQUIFER)";
             };
             functions.append("#if ").append(guard).append("\n");
-            functions.append("precise double ").append(name).append("(ivec3 p) {\n")
-                    .append(body.code).append("    return ").append(result).append(";\n}\n");
+            functions.append("precise double ").append(name).append("(ivec3 p) {\n");
+            if (mode == Mode.POINT) {
+                // Whether p lies in the chunk's FlatCache range is the same for every
+                // FlatCache node, so decide once and share subexpressions per variant.
+                Block in = new Block(null, "        ");
+                String inResult = value(root, in, Mode.POINT_IN);
+                Block out = new Block(null, "        ");
+                String outResult = value(root, out, Mode.POINT_OUT);
+                functions.append("    if (flatInBounds(p)) {\n").append(in.code).append("        return ").append(inResult)
+                        .append(";\n    } else {\n").append(out.code).append("        return ").append(outResult).append(";\n    }\n}\n");
+            } else {
+                Block body = new Block(null, "    ");
+                String result = value(root, body, mode);
+                functions.append(body.code).append("    return ").append(result).append(";\n}\n");
+            }
             functions.append("#endif\n");
         }
 
@@ -335,22 +352,30 @@ public final class FusedNoiseCompiler {
          * changes cost only.
          */
         private void emitPrelimScan(ProgramNode root) {
-            Block outer = new Block(null, "    ");
-            Block loop = new Block(outer, "        ");
+            functions.append("#if defined(K_AQUIFER)\n");
+            functions.append("int prelim_scan(int sx, int sz) {\n    ivec3 p = ivec3(sx, 0, sz);\n");
+            functions.append("    if (flatInBounds(p)) {\n");
+            emitPrelimVariant(root, Mode.POINT_IN);
+            functions.append("    } else {\n");
+            emitPrelimVariant(root, Mode.POINT_OUT);
+            functions.append("    }\n    return 2147483647;\n}\n#endif\n");
+        }
+
+        private void emitPrelimVariant(ProgramNode root, Mode mode) {
+            Block outer = new Block(null, "        ");
+            Block loop = new Block(outer, "            ");
             hoistBlock = outer;
             loopBlock = loop;
             String result;
             try {
-                result = value(root, loop, Mode.POINT);
+                result = value(root, loop, mode);
             } finally {
                 hoistBlock = null;
                 loopBlock = null;
             }
-            functions.append("#if defined(K_AQUIFER)\n");
-            functions.append("int prelim_scan(int sx, int sz) {\n    ivec3 p = ivec3(sx, 0, sz);\n").append(outer.code);
-            functions.append("    for (int y = MIN_Y + GEN_HEIGHT; y >= MIN_Y; y -= CELL_H) {\n        p.y = y;\n").append(loop.code);
-            functions.append("        if (").append(result).append(" > 0.390625lf) return y;\n    }\n    return 2147483647;\n}\n");
-            functions.append("#endif\n");
+            functions.append(outer.code);
+            functions.append("        for (int y = MIN_Y + GEN_HEIGHT; y >= MIN_Y; y -= CELL_H) {\n            p.y = y;\n").append(loop.code);
+            functions.append("            if (").append(result).append(" > 0.390625lf) return y;\n        }\n");
         }
 
         private String value(ProgramNode node, Block block, Mode mode) {
@@ -514,7 +539,8 @@ public final class FusedNoiseCompiler {
             return switch (mode) {
                 case CELL -> fresh(block, "interpCell(" + interpId(node) + ", p)");
                 case VALUE -> fresh(block, "interpValue(" + interpId(node) + ", p)");
-                case POINT, COLUMN -> value(node.child(), block, mode);
+                case POINT_IN, POINT_OUT, COLUMN -> value(node.child(), block, mode);
+                case POINT -> throw new AssertionError("POINT is split before emission");
                 case CORNER -> throw new UnsupportedFusedProgramException("Nested interpolation is not supported");
             };
         }
@@ -532,21 +558,9 @@ public final class FusedNoiseCompiler {
                 return value(marker.child(), block, mode);
             }
             return switch (mode) {
-                case COLUMN -> value(marker.child(), block, mode);
-                case CORNER, CELL, VALUE -> fresh(block, "colv(" + flatId(marker) + ", p)");
-                case POINT -> {
-                    String name = "v" + (counter++);
-                    block.line("precise double " + name + ";");
-                    block.line("if (flatInBounds(p)) {");
-                    block.line("    " + name + " = colv(" + flatId(marker) + ", p);");
-                    block.line("} else {");
-                    Block other = block.child();
-                    String direct = value(marker.child(), other, mode);
-                    other.line(name + " = " + direct + ";");
-                    block.code.append(other.code);
-                    block.line("}");
-                    yield name;
-                }
+                case COLUMN, POINT_OUT -> value(marker.child(), block, mode);
+                case CORNER, CELL, VALUE, POINT_IN -> fresh(block, "colv(" + flatId(marker) + ", p)");
+                case POINT -> throw new AssertionError("POINT is split before emission");
             };
         }
 
@@ -556,94 +570,44 @@ public final class FusedNoiseCompiler {
          * caller, then narrowed to float exactly like Spline.Coordinate) as
          * arguments.  Only the selected interval's children are evaluated.
          */
+        private int maxSplineCoordinates = 1;
+
         private String splineCall(ProgramNode.Spline spline, Block block, Mode mode) {
             if (spline.spline() instanceof ProgramNode.SplineConstant constant) {
                 return fresh(block, "double(" + flit(constant.value()) + ")");
             }
+            // Distinct coordinates by semantic identity: equal subgraphs yield equal values.
             List<ProgramNode> coordinates = new ArrayList<>();
-            collectCoordinates(spline.spline(), coordinates);
-            if (coordinates.size() > 8) throw new UnsupportedFusedProgramException("Spline has more than 8 coordinates");
-            StringBuilder args = new StringBuilder("float[8](");
-            for (int i = 0; i < 8; i++) {
-                String f;
-                if (i < coordinates.size()) {
-                    String v = value(coordinates.get(i), block, mode);
-                    f = "s" + (counter++);
-                    block.line("precise float " + f + " = float(" + v + ");");
-                } else {
-                    f = "0.0";
-                }
-                args.append(i == 0 ? "" : ", ").append(f);
-            }
-            args.append(")");
-            int record = tables.spline((ProgramNode.SplineMultipoint) spline.spline(), coordinates);
-            return fresh(block, "double(splineEval(" + record + ", " + args + "))");
-        }
-
-        private void collectCoordinates(ProgramNode.SplineNode node, List<ProgramNode> out) {
-            if (node instanceof ProgramNode.SplineMultipoint mp) {
-                boolean seen = false;
-                for (ProgramNode existing : out) if (existing == mp.coordinate()) { seen = true; break; }
-                if (!seen) out.add(mp.coordinate());
-                for (ProgramNode.SplineNode child : mp.values()) collectCoordinates(child, out);
-            }
-        }
-
-        private final Map<ProgramNode.SplineNode, Map<List<ProgramNode>, String>> splineFunctions = new IdentityHashMap<>();
-        private final StringBuilder splineSource = new StringBuilder();
-
-        private String splineFunction(ProgramNode.SplineNode node, List<ProgramNode> coordinates) {
-            var byCoordinates = splineFunctions.computeIfAbsent(node, k -> new java.util.HashMap<>());
-            String existing = byCoordinates.get(coordinates);
-            if (existing != null) return existing;
-            String name = "wgs_" + (counter++);
-            byCoordinates.put(coordinates, name);
-            var mp = (ProgramNode.SplineMultipoint) node;
-            int coordinateIndex = -1;
-            for (int i = 0; i < coordinates.size(); i++) if (coordinates.get(i) == mp.coordinate()) coordinateIndex = i;
-            StringBuilder params = new StringBuilder();
-            StringBuilder args = new StringBuilder();
+            Map<String, Integer> byFingerprint = new java.util.HashMap<>();
+            Map<ProgramNode, Integer> indexOf = new IdentityHashMap<>();
+            collectCoordinates(spline.spline(), coordinates, byFingerprint, indexOf);
+            if (coordinates.size() > 64) throw new UnsupportedFusedProgramException("Spline has more than 64 coordinates");
+            maxSplineCoordinates = Math.max(maxSplineCoordinates, coordinates.size());
+            String array = "cs" + (counter++);
+            block.line("float " + array + "[SPLINE_COORDS];");
             for (int i = 0; i < coordinates.size(); i++) {
-                params.append(i == 0 ? "" : ", ").append("float c").append(i);
-                args.append(i == 0 ? "" : ", ").append("c").append(i);
+                String v = value(coordinates.get(i), block, mode);
+                block.line(array + "[" + i + "] = float(" + v + ");");
             }
-            StringBuilder body = new StringBuilder();
-            String c = "c" + coordinateIndex;
-            List<Float> locations = mp.locations();
-            int n = locations.size();
-            body.append("    int iv = -1;\n");
-            for (int i = 0; i < n; i++) {
-                body.append("    if (!(").append(c).append(" < ").append(flit(locations.get(i))).append(")) iv = ").append(i).append(";\n");
-            }
-            for (int i = -1; i < n; i++) {
-                body.append(i == -1 ? "    if" : "    } else if").append(" (iv == ").append(i).append(") {\n");
-                if (i == -1 || i == n - 1) {
-                    int at = i == -1 ? 0 : n - 1;
-                    String v = splineValue(mp.values().get(at), coordinates, args.toString());
-                    float derivative = mp.derivatives().get(at);
-                    if (derivative == 0.0f) body.append("        return ").append(v).append(";\n");
-                    else body.append("        precise float v = ").append(v).append(";\n        return v + ")
-                            .append(flit(derivative)).append(" * (").append(c).append(" - ").append(flit(locations.get(at))).append(");\n");
-                } else {
-                    float l0 = locations.get(i), l1 = locations.get(i + 1);
-                    body.append("        precise float span = ").append(flit(l1)).append(" - ").append(flit(l0)).append(";\n");
-                    body.append("        precise float t = jdivf(").append(c).append(" - ").append(flit(l0)).append(", span);\n");
-                    body.append("        precise float v0 = ").append(splineValue(mp.values().get(i), coordinates, args.toString())).append(";\n");
-                    body.append("        precise float v1 = ").append(splineValue(mp.values().get(i + 1), coordinates, args.toString())).append(";\n");
-                    body.append("        precise float delta = v1 - v0;\n");
-                    body.append("        precise float a = ").append(flit(mp.derivatives().get(i))).append(" * span - delta;\n");
-                    body.append("        precise float b = -").append(flit(mp.derivatives().get(i + 1))).append(" * span + delta;\n");
-                    body.append("        return lerpf(t, v0, v1) + t * (1.0 - t) * lerpf(t, a, b);\n");
-                }
-            }
-            body.append("    }\n    return 0.0;\n");
-            splineSource.append("precise float ").append(name).append("(").append(params).append(") {\n").append(body).append("}\n");
-            return name;
+            int record = tables.spline((ProgramNode.SplineMultipoint) spline.spline(), coordinates, indexOf);
+            return fresh(block, "double(splineEval(" + record + ", " + array + "))");
         }
 
-        private String splineValue(ProgramNode.SplineNode node, List<ProgramNode> coordinates, String args) {
-            if (node instanceof ProgramNode.SplineConstant constant) return flit(constant.value());
-            return splineFunction(node, coordinates) + "(" + args + ")";
+        private void collectCoordinates(ProgramNode.SplineNode node, List<ProgramNode> out,
+                                        Map<String, Integer> byFingerprint, Map<ProgramNode, Integer> indexOf) {
+            if (node instanceof ProgramNode.SplineMultipoint mp) {
+                if (!indexOf.containsKey(mp.coordinate())) {
+                    String fingerprint = dev.worldgennext.semantic.program.WorldgenProgram.nodeFingerprint(mp.coordinate());
+                    Integer index = byFingerprint.get(fingerprint);
+                    if (index == null) {
+                        index = out.size();
+                        out.add(mp.coordinate());
+                        byFingerprint.put(fingerprint, index);
+                    }
+                    indexOf.put(mp.coordinate(), index);
+                }
+                for (ProgramNode.SplineNode child : mp.values()) collectCoordinates(child, out, byFingerprint, indexOf);
+            }
         }
 
         private int normal(dev.worldgennext.semantic.snapshot.NoiseParameters parameters) {

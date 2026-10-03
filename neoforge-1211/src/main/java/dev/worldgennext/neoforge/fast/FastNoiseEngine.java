@@ -65,7 +65,7 @@ public final class FastNoiseEngine {
             verifiedChunks = new AtomicLong(), verifyMismatches = new AtomicLong(), batches = new AtomicLong();
 
     record LevelProgram(String dimension, FusedNoiseDevice.Program program, BlockState[] palette,
-                        FusedNoiseCompiler.Geometry geometry) {}
+                        FusedNoiseCompiler.Geometry geometry, WorldgenSnapshot snapshot) {}
 
     record Request(LevelProgram program, ChunkAccess chunk, NoiseBasedChunkGenerator generator, Blender blender,
                    RandomState randomState, StructureManager structures, int[] beard, int pieces, int junctions,
@@ -144,9 +144,12 @@ public final class FastNoiseEngine {
                 snapshot.randomState().aquiferRandom(), snapshot.randomState().oreRandom(), materialPalette, beardKernel());
         FusedNoiseCompiler.Compiled compiled = new FusedNoiseCompiler().compile(request);
         dumpSource(level, compiled);
+        if (Boolean.getBoolean("worldgennext.fast.dumpSourceOnly")) {
+            throw new IllegalStateException("source dumped; pipeline build skipped by worldgennext.fast.dumpSourceOnly");
+        }
         FusedNoiseDevice.Program program = device.load(compiled, BATCH, SLOTS);
         programs.put(level.getChunkSource().randomState(),
-                new LevelProgram(level.dimension().location().toString(), program, palette, compiled.geometry()));
+                new LevelProgram(level.dimension().location().toString(), program, palette, compiled.geometry(), snapshot));
         LOG.info("Fast GPU NOISE ready for {}: flat={} interp={} source={} chars, compile {} ms (pipelines {} ms)",
                 level.dimension().location(), compiled.flatChannels(), compiled.interpolatedChannels(), compiled.source().length(),
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), TimeUnit.NANOSECONDS.toMillis(program.compileNanos));
@@ -346,16 +349,28 @@ public final class FastNoiseEngine {
             blocks.get(i * blockBytes, data);
             int[] h = new int[512];
             for (int k = 0; k < 512; k++) h[k] = heights.getInt((i * 512 + k) * 4);
-            CompletableFuture.runAsync(() -> applyOrVerify(r, data, h), Util.backgroundExecutor());
+            double[][] debug = null;
+            if (VERIFY && FusedNoiseDevice.DEBUG_BUFFERS) {
+                var compiled = program.program().compiled;
+                int perColumns = Math.max(1, compiled.flatChannels()) * g.columnCount();
+                int perCorners = Math.max(1, compiled.interpolatedChannels()) * g.cornerCount();
+                double[] columns = new double[perColumns];
+                double[] corners = new double[perCorners];
+                slot.debugColumns().asDoubleBuffer().get(i * perColumns, columns);
+                slot.debugCorners().asDoubleBuffer().get(i * perCorners, corners);
+                debug = new double[][]{columns, corners};
+            }
+            double[][] debugFinal = debug;
+            CompletableFuture.runAsync(() -> applyOrVerify(r, data, h, debugFinal), Util.backgroundExecutor());
         }
     }
 
-    private void applyOrVerify(Request r, byte[] data, int[] heights) {
+    private void applyOrVerify(Request r, byte[] data, int[] heights, double[][] debug) {
         try {
             var g = r.program().geometry();
             if (VERIFY) {
                 ChunkAccess vanilla = original(r).join();
-                verify(r, vanilla, data, heights);
+                verify(r, vanilla, data, heights, debug);
                 r.result().complete(vanilla);
                 return;
             }
@@ -374,7 +389,49 @@ public final class FastNoiseEngine {
         }
     }
 
-    private void verify(Request r, ChunkAccess vanilla, byte[] data, int[] heights) {
+    private final java.util.concurrent.atomic.AtomicInteger debugReports = new java.util.concurrent.atomic.AtomicInteger();
+
+    /** Compares GPU flat columns and interpolation corners with the CPU reference interpreter for one chunk. */
+    private void debugCompare(Request r, double[][] debug, int mismatchY) {
+        var compiled = r.program().program().compiled;
+        var g = r.program().geometry();
+        var snapshot = r.program().snapshot();
+        var reference = new dev.worldgennext.compiler.jvm.worldgen.DenseNoiseGenerator();
+        int cx = r.chunk().getPos().x, cz = r.chunk().getPos().z;
+        int baseX = cx * 16, baseZ = cz * 16, cols = g.columnsPerAxis();
+        StringBuilder out = new StringBuilder("Fast GPU NOISE debug chunk " + r.chunk().getPos() + ":");
+        for (int f = 0; f < compiled.flatChannels(); f++) {
+            int bad = 0; String firstBad = "";
+            for (int qi = 0; qi < cols; qi++) for (int qj = 0; qj < cols; qj++) {
+                int x = ((baseX >> 2) + qi) << 2, z = ((baseZ >> 2) + qj) << 2;
+                double cpu = reference.capturedNodeValueAt(snapshot, cx, cz, compiled.flatChildren().get(f), x, 0, z);
+                double gpu = debug[0][(f * cols + qi) * cols + qj];
+                if (Double.doubleToLongBits(cpu) != Double.doubleToLongBits(gpu) && !(cpu == 0.0 && gpu == 0.0)) {
+                    if (bad++ == 0) firstBad = " first(" + x + "," + z + ") cpu=" + cpu + " gpu=" + gpu;
+                }
+            }
+            if (bad > 0) out.append("\n  flat ").append(f).append(": ").append(bad).append(" columns differ").append(firstBad)
+                    .append(" node=").append(compiled.flatChildren().get(f).operation());
+        }
+        int nx = g.cornersPerAxisXZ(), ny = g.cornersY();
+        int centerIy = Math.floorDiv(mismatchY, g.cellHeight()) - g.minCellY();
+        for (int k = 0; k < compiled.interpolatedChannels(); k++) {
+            int bad = 0; String firstBad = "";
+            for (int iy = Math.max(0, centerIy - 3); iy <= Math.min(ny - 1, centerIy + 3); iy++)
+                for (int ix = 0; ix < nx; ix++) for (int iz = 0; iz < nx; iz++) {
+                    int x = baseX + ix * g.cellWidth(), y = (g.minCellY() + iy) * g.cellHeight(), z = baseZ + iz * g.cellWidth();
+                    double cpu = reference.capturedNodeValueAt(snapshot, cx, cz, compiled.interpolatedChildren().get(k), x, y, z);
+                    double gpu = debug[1][((k * ny + iy) * nx + ix) * nx + iz];
+                    if (Double.doubleToLongBits(cpu) != Double.doubleToLongBits(gpu) && !(cpu == 0.0 && gpu == 0.0)) {
+                        if (bad++ == 0) firstBad = " first(" + x + "," + y + "," + z + ") cpu=" + cpu + " gpu=" + gpu;
+                    }
+                }
+            if (bad > 0) out.append("\n  interp ").append(k).append(": ").append(bad).append(" corners differ").append(firstBad);
+        }
+        LOG.warn(out.toString());
+    }
+
+    private void verify(Request r, ChunkAccess vanilla, byte[] data, int[] heights, double[][] debug) {
         verifiedChunks.incrementAndGet();
         var palette = r.program().palette();
         int minY = vanilla.getMinBuildHeight();
@@ -392,10 +449,19 @@ public final class FastNoiseEngine {
                 }
             }
         }
+        if (mismatches > 0 && debug != null && debugReports.getAndIncrement() < 3) {
+            try {
+                int y = Integer.parseInt(first.substring(1, first.indexOf(41)).split(",")[1]);
+                debugCompare(r, debug, y);
+            } catch (Throwable failure) {
+                LOG.warn("Fast GPU NOISE debug comparison failed", failure);
+            }
+        }
         if (mismatches > 0) {
             verifyMismatches.incrementAndGet();
-            LOG.warn("Fast GPU NOISE verify mismatch {} at chunk {}: {} blocks, first {}", r.program().dimension(),
-                    vanilla.getPos(), mismatches, first);
+            LOG.warn("Fast GPU NOISE verify mismatch {} at chunk {}: {} blocks, first {} pieces={} junctions={} beard={}",
+                    r.program().dimension(), vanilla.getPos(), mismatches, first, r.pieces(), r.junctions(),
+                    java.util.Arrays.toString(java.util.Arrays.copyOf(r.beard(), Math.min(r.beard().length, 24))));
         }
     }
 

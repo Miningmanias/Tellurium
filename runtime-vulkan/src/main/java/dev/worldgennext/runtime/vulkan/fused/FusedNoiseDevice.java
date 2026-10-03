@@ -27,6 +27,8 @@ import static org.lwjgl.vulkan.VK10.*;
 public final class FusedNoiseDevice implements AutoCloseable {
     private static final int BINDINGS = 10;
     private static final String[] KERNELS = {"K_COLUMN", "K_CORNER", "K_AQUIFER", "K_BLOCK", "K_HEIGHT"};
+    /** Diagnostic: keep intermediate buffers host-visible so they can be compared with a CPU reference. */
+    public static final boolean DEBUG_BUFFERS = Boolean.getBoolean("worldgennext.fast.debugBuffers");
     public static final boolean PROFILE = Boolean.getBoolean("worldgennext.fast.profile");
     private static final java.util.concurrent.atomic.AtomicLong[] PROFILE_NANOS = new java.util.concurrent.atomic.AtomicLong[5];
     private static final java.util.concurrent.atomic.AtomicLong PROFILE_CHUNKS = new java.util.concurrent.atomic.AtomicLong();
@@ -309,8 +311,8 @@ public final class FusedNoiseDevice implements AutoCloseable {
                 var g = compiled.geometry();
                 int n = maxBatchChunks;
                 chunks = new Buffer((long) n * CHUNK_INFO_INTS * 4, true);
-                columns = new Buffer((long) n * Math.max(1, compiled.flatChannels()) * g.columnCount() * 8, false);
-                corners = new Buffer((long) n * Math.max(1, compiled.interpolatedChannels()) * g.cornerCount() * 8, false);
+                columns = new Buffer((long) n * Math.max(1, compiled.flatChannels()) * g.columnCount() * 8, DEBUG_BUFFERS);
+                corners = new Buffer((long) n * Math.max(1, compiled.interpolatedChannels()) * g.cornerCount() * 8, DEBUG_BUFFERS);
                 aquifer = new Buffer((long) n * g.aquiferCellCount() * 8 * 4, false);
                 blocks = new Buffer((long) n * g.blockCount(), true);
                 beardCapacityInts = n * 2048;
@@ -438,6 +440,8 @@ public final class FusedNoiseDevice implements AutoCloseable {
             }
 
             public ByteBuffer blocks() { return blocks.mapped; }
+            public ByteBuffer debugColumns() { return columns.mapped; }
+            public ByteBuffer debugCorners() { return corners.mapped; }
             public ByteBuffer heights() { return heights.mapped; }
             public int flags(int chunk) { return flags.mapped.getInt(chunk * 4); }
 
