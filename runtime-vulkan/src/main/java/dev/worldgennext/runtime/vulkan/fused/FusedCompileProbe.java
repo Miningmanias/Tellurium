@@ -30,8 +30,8 @@ public final class FusedCompileProbe {
         System.out.println("shaderc " + kernel + ": " + spirv.length + " bytes in " + shaderc / 1_000_000 + " ms");
         try (FusedNoiseDevice device = FusedNoiseDevice.open(); MemoryStack stack = MemoryStack.stackPush()) {
             VkDevice vk = device.vkDevice();
-            var bindings = VkDescriptorSetLayoutBinding.calloc(14, stack);
-            for (int i = 0; i < 14; i++) bindings.get(i).binding(i).descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER).descriptorCount(1).stageFlags(VK_SHADER_STAGE_COMPUTE_BIT);
+            var bindings = VkDescriptorSetLayoutBinding.calloc(FusedNoiseDevice.BINDINGS, stack);
+            for (int i = 0; i < FusedNoiseDevice.BINDINGS; i++) bindings.get(i).binding(i).descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER).descriptorCount(1).stageFlags(VK_SHADER_STAGE_COMPUTE_BIT);
             LongBuffer handle = stack.mallocLong(1);
             vkCreateDescriptorSetLayout(vk, VkDescriptorSetLayoutCreateInfo.calloc(stack).sType$Default().pBindings(bindings), null, handle);
             long setLayout = handle.get(0);

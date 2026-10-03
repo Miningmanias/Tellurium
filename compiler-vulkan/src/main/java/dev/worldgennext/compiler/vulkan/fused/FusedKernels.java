@@ -516,10 +516,11 @@ final class FusedKernels {
             uint per = uint(64 * STORAGE_H);
             int ocean = MIN_Y, surface = MIN_Y;
             bool haveOcean = false, haveSurface = false;
+            int surf = chunks[slot].pad0;
             for (int ly = STORAGE_H - 1; ly >= 0 && !(haveOcean && haveSurface); ly--) {
                 uint word = blocks[slot * per + uint(ly * 64 + lz * 4 + lx / 4)];
                 int state = int((word >> (8 * (lx % 4))) & 0x7Fu);
-                int f = PALETTE_FLAGS[state];
+                int f = surf != 0 ? int(perm[int(perm[surf + 1]) + state]) : PALETTE_FLAGS[state];
                 if (!haveOcean && (f & 2) != 0) { ocean = MIN_Y + ly + 1; haveOcean = true; }
                 if (!haveSurface && (f & 4) != 0) { surface = MIN_Y + ly + 1; haveSurface = true; }
             }

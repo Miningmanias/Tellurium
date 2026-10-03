@@ -37,7 +37,10 @@ public interface FusedGpuBackend extends AutoCloseable {
         /** Unique quart-aligned column block coordinates (x, z pairs) for this batch. */
         ByteBuffer prelimColumns();
         int prelimColumnCapacity();
-        void submit(int count, int prelimCount);
+        /** Per chunk, 16-bit biome ids over the 6x6 quart-column window around the chunk (surface stage input). */
+        ByteBuffer biomes();
+        /** @param surface run the surface kernels (chunks opt in through their ChunkInfo surface header) */
+        void submit(int count, int prelimCount, boolean surface);
         boolean poll();
         ByteBuffer blocks();
         ByteBuffer heights();

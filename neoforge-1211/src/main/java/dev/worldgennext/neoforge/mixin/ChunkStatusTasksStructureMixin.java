@@ -75,9 +75,21 @@ public abstract class ChunkStatusTasksStructureMixin {
     private static void worldgenNext$parallelSurface(
             WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> cache, ChunkAccess chunk,
             CallbackInfoReturnable<CompletableFuture<ChunkAccess>> callback) {
+        if (dev.worldgennext.neoforge.fast.FastSurfaceState.applied(chunk)) {
+            // The fused kernels already produced this chunk's surface together with NOISE.
+            callback.setReturnValue(CompletableFuture.completedFuture(chunk));
+            return;
+        }
         if (ParallelWorldgenSteps.shouldOffloadTerrain()) {
-            callback.setReturnValue(ParallelWorldgenSteps.offload("surface",
-                    () -> generateSurface(context, step, cache, chunk)));
+            CompletableFuture<ChunkAccess> result = ParallelWorldgenSteps.offload("surface",
+                    () -> generateSurface(context, step, cache, chunk));
+            if (dev.worldgennext.neoforge.fast.FastSurfaceState.VERIFY) {
+                result = result.thenApply(done -> {
+                    dev.worldgennext.neoforge.fast.FastSurfaceState.verify(done);
+                    return done;
+                });
+            }
+            callback.setReturnValue(result);
         }
     }
 

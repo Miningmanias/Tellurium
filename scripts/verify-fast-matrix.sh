@@ -1,68 +1,96 @@
 #!/usr/bin/env bash
-# Digest-compares the fused GPU NOISE path against serial vanilla for every
-# supported context. Each row runs two fresh worlds (vanilla reference, GPU)
-# and compares per-chunk digests. Prints one PASS/FAIL line per context.
+# Digest-compares the fused GPU path (NOISE plus the fused SURFACE stage) against
+# serial vanilla for every supported context.  Each row runs two fresh worlds
+# (vanilla reference, GPU) to STATUS and compares per-chunk digests of blocks,
+# heightmaps, post-processing marks, biomes and structures.
 # A row passes only when the digests are identical AND the GPU generated the
-# chunks; every other outcome, including a script error, is a FAIL.
+# chunks (and, at SURFACE status, their surface); every other outcome,
+# including a script error, is a FAIL.
+# Every run has the ScalableLux companion installed (build/test-mods/*).
 # Usage: scripts/verify-fast-matrix.sh [radiusChunks]
 #        EVALUATE_ONLY=1 scripts/verify-fast-matrix.sh   (re-evaluate the latest existing runs)
+#        STATUS=NOISE EXTRA="worldgennext.fast.surface=false" scripts/verify-fast-matrix.sh
+#        ROWS="terralith combined" scripts/verify-fast-matrix.sh   (subset)
 set -u
 cd "$(dirname "$0")/.."
 RADIUS="${1:-45}"
+STATUS="${STATUS:-SURFACE}"
+EXTRA="${EXTRA:-}"
+status_lc=$(echo "$STATUS" | tr '[:upper:]' '[:lower:]')
 CACHE="worldgennext.fast.pipelineCacheDir=$(pwd -W 2>/dev/null || pwd)/build/fast-cache"
 # force: qualify the current kernels regardless of the shipped list (auto would silently use vanilla).
 G="worldgennext.fast.gpu=force;$CACHE"
 D="worldgennext.bench.release=end;worldgennext.bench.digest=true"
-MODS=build/terrain-mods
+MODS=build/test-mods
 passed=0
 total=0
 cps() { grep -E "measured phase" "$1" 2>/dev/null | tail -1 | sed -E 's/.*, ([0-9.]+) cps.*/\1/'; }
-pair() { # name, extra script args, extra properties
-  local name="$1" args="$2" props="$3"
+wanted() { [ -z "${ROWS:-}" ] && return 0; for r in $ROWS; do [ "$r" = "$1" ] && return 0; done; return 1; }
+pair() { # name, mods subdirectory, extra script args, extra properties
+  local name="$1" mods="$2" args="$3" props="$4"
+  wanted "$name" || return 0
   total=$((total + 1))
   if [ -z "${EVALUATE_ONLY:-}" ]; then
     # shellcheck disable=SC2086
-    powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bench-cps.ps1 -Status NOISE -Label "mv-$name" -RadiusChunks "$RADIUS" $args \
-        -Properties "$D;worldgennext.fast.gpu=off;worldgennext.parallelStructureSteps=false;$props" >/dev/null 2>&1
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bench-cps.ps1 -Status "$STATUS" -Label "mv-$name" -RadiusChunks "$RADIUS" \
+        -ModsDir "$MODS/$mods" $args \
+        -Properties "$D;worldgennext.fast.gpu=off;worldgennext.parallelStructureSteps=false;worldgennext.parallelSurfaceCarvers=false;worldgennext.parallelFeatures=false;worldgennext.asyncChunkSave=false;worldgennext.asyncChunkCompress=false;worldgennext.biomeColumnCache=false;worldgennext.unloadTypeCache=false;worldgennext.fast.rtreeStoreSkip=false;$props" >/dev/null 2>&1
     # shellcheck disable=SC2086
-    powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bench-cps.ps1 -Status NOISE -Label "mg-$name" -RadiusChunks "$RADIUS" $args \
-        -Properties "$G;$D;$props" >/dev/null 2>&1
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bench-cps.ps1 -Status "$STATUS" -Label "mg-$name" -RadiusChunks "$RADIUS" \
+        -ModsDir "$MODS/$mods" $args \
+        -Properties "$G;$D;$props;$EXTRA" >/dev/null 2>&1
   fi
   local vdigest gdigest vlog glog
-  vdigest=$(ls -t build/bench/mv-"$name"-noise-*.digest.txt 2>/dev/null | head -1)
-  gdigest=$(ls -t build/bench/mg-"$name"-noise-*.digest.txt 2>/dev/null | head -1)
-  vlog=$(ls -td build/run/bench-mv-"$name"-noise-* 2>/dev/null | head -1)/logs/latest.log
-  glog=$(ls -td build/run/bench-mg-"$name"-noise-* 2>/dev/null | head -1)/logs/latest.log
+  vdigest=$(ls -t build/bench/mv-"$name"-"$status_lc"-*.digest.txt 2>/dev/null | head -1)
+  gdigest=$(ls -t build/bench/mg-"$name"-"$status_lc"-*.digest.txt 2>/dev/null | head -1)
+  vlog=$(ls -td build/run/bench-mv-"$name"-"$status_lc"-* 2>/dev/null | head -1)/logs/latest.log
+  glog=$(ls -td build/run/bench-mg-"$name"-"$status_lc"-* 2>/dev/null | head -1)/logs/latest.log
   local comparison="no digests"
   if [ -n "$vdigest" ] && [ -n "$gdigest" ]; then
     comparison=$(python scripts/compare-digests.py "$vdigest" "$gdigest" | tr '\n' ' ')
   fi
-  local stopped gpuChunks bail expected
+  local stopped gpuChunks bail expected surface surfaceBail
   stopped=$(grep -E "Fast GPU NOISE stopped" "$glog" 2>/dev/null | tail -1 | sed -E 's/.*stopped: //')
   gpuChunks=$(echo "$stopped" | sed -nE 's/.*gpu=([0-9]+).*/\1/p')
-  bail=$(echo "$stopped" | sed -nE 's/.*bail=([0-9]+).*/\1/p')
+  bail=$(echo "$stopped" | sed -nE 's/.* bail=([0-9]+).*/\1/p')
+  surface=$(echo "$stopped" | sed -nE 's/.* surface=([0-9]+).*/\1/p')
+  surfaceBail=$(echo "$stopped" | sed -nE 's/.*surfaceBail=([0-9]+).*/\1/p')
   expected=$(echo "$comparison" | sed -nE 's/.*expected=([0-9]+).*/\1/p')
   local verdict="FAIL"
   case "$comparison" in
     *PASS*)
-      if [ -n "$gpuChunks" ] && [ -n "$expected" ] && [ "$gpuChunks" -ge $((expected * 9 / 10)) ]; then
-        verdict="PASS"
-      else
+      if [ -z "$gpuChunks" ] || [ -z "$expected" ] || [ "$gpuChunks" -lt $((expected * 9 / 10)) ]; then
         verdict="FAIL(gpu generated ${gpuChunks:-0} of ${expected:-?})"
+      elif [ "$STATUS" != "NOISE" ] && [ -z "$EXTRA" ] && { [ -z "$surface" ] || [ "$surface" -lt $((expected * 8 / 10)) ]; }; then
+        verdict="FAIL(gpu surfaced ${surface:-0} of ${expected:-?})"
+      else
+        verdict="PASS"
       fi ;;
   esac
   [ "$verdict" = "PASS" ] && passed=$((passed + 1))
-  echo "$name | vanilla $(cps "$vlog") cps | gpu $(cps "$glog") cps gpuChunks=${gpuChunks:-0} bail=${bail:-?} | $comparison| $verdict"
+  echo "$name | vanilla $(cps "$vlog") cps | gpu $(cps "$glog") cps gpuChunks=${gpuChunks:-0} bail=${bail:-?} surface=${surface:-0} surfaceBail=${surfaceBail:-?} | $comparison| $verdict"
 }
-pair vanilla-overworld "" ""
-pair vanilla-seed12345 "-Seed 12345" ""
-pair vanilla-seedneg1 "-Seed -1" ""
-pair vanilla-nether "" "worldgennext.bench.dimension=minecraft:the_nether;worldgennext.bench.centerX=300;worldgennext.bench.centerZ=300"
-pair vanilla-end "" "worldgennext.bench.dimension=minecraft:the_end;worldgennext.bench.centerX=300;worldgennext.bench.centerZ=300"
-pair terralith "-ModsDir $MODS/terralith-2.6.2-lithostitched-1.8.0b6-20260913" ""
-pair tectonic "-ModsDir $MODS/tectonic-3.0.26-lithostitched-1.8.0b6-20260913" ""
-pair combined "-ModsDir $MODS/combined-terralith-tectonic-lithostitched-20260913" ""
-if [ "$passed" -eq "$total" ] && [ "$total" -eq 8 ]; then
+NETHER="worldgennext.bench.dimension=minecraft:the_nether;worldgennext.bench.centerX=300;worldgennext.bench.centerZ=300"
+END="worldgennext.bench.dimension=minecraft:the_end;worldgennext.bench.centerX=300;worldgennext.bench.centerZ=300"
+pair vanilla-overworld vanilla "" ""
+pair vanilla-seed12345 vanilla "-Seed 12345" ""
+pair vanilla-seedneg1 vanilla "-Seed -1" ""
+pair vanilla-nether vanilla "" "$NETHER"
+pair vanilla-end vanilla "" "$END"
+# Biome-specific surface code: badlands pillars and clay bands, icebergs, steep slopes.
+pair vanilla-eroded-badlands vanilla "" "worldgennext.bench.centerBiome=minecraft:eroded_badlands"
+pair vanilla-frozen-ocean vanilla "" "worldgennext.bench.centerBiome=minecraft:frozen_ocean"
+pair vanilla-deep-frozen-ocean vanilla "-Seed 12345" "worldgennext.bench.centerBiome=minecraft:deep_frozen_ocean"
+pair vanilla-frozen-peaks vanilla "" "worldgennext.bench.centerBiome=minecraft:frozen_peaks"
+pair vanilla-jagged-peaks vanilla "-Seed 12345" "worldgennext.bench.centerBiome=minecraft:jagged_peaks"
+pair vanilla-windswept-savanna vanilla "-Seed -1" "worldgennext.bench.centerBiome=minecraft:windswept_savanna"
+pair vanilla-mangrove-swamp vanilla "" "worldgennext.bench.centerBiome=minecraft:mangrove_swamp"
+pair terralith terralith "" ""
+pair tectonic tectonic "" ""
+pair combined combined "" ""
+EXPECTED_ROWS=15
+[ -n "${ROWS:-}" ] && EXPECTED_ROWS=$total
+if [ "$passed" -eq "$total" ] && [ "$total" -eq "$EXPECTED_ROWS" ]; then
   echo "MATRIX PASS ($passed/$total)"
   exit 0
 fi

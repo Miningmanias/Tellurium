@@ -77,6 +77,8 @@ public final class FastNoiseEngine {
         return Map.copyOf(out);
     }
     public static final boolean VERIFY = Boolean.getBoolean("worldgennext.fast.verify");
+    /** Fuse the SURFACE stage into the NOISE batch where the level's surface rules could be lowered. */
+    public static final boolean SURFACE = Boolean.parseBoolean(System.getProperty("worldgennext.fast.surface", "true"));
     private static final int BATCH = Integer.getInteger("worldgennext.fast.batch", 64);
     private static final int SLOTS = Integer.getInteger("worldgennext.fast.slots", 4);
     private static final long MAX_DELAY_NANOS = TimeUnit.MICROSECONDS.toNanos(Long.getLong("worldgennext.fast.maxDelayMicros", 1500));
@@ -90,14 +92,18 @@ public final class FastNoiseEngine {
     private final Thread worker;
     private volatile boolean running = true;
     final AtomicLong gpuChunks = new AtomicLong(), fallbackChunks = new AtomicLong(), bailChunks = new AtomicLong(),
-            verifiedChunks = new AtomicLong(), verifyMismatches = new AtomicLong(), batches = new AtomicLong();
+            verifiedChunks = new AtomicLong(), verifyMismatches = new AtomicLong(), batches = new AtomicLong(),
+            surfaceChunks = new AtomicLong(), surfaceBails = new AtomicLong();
 
+    /** @param surfaceHeader non-zero when the SURFACE stage is fused for this level */
     record LevelProgram(String dimension, FusedGpuBackend.Program program, BlockState[] palette,
-                        FusedNoiseCompiler.Geometry geometry, WorldgenSnapshot snapshot, boolean aquifers) {}
+                        FusedNoiseCompiler.Geometry geometry, WorldgenSnapshot snapshot, boolean aquifers,
+                        int surfaceHeader, int basePaletteSize, FastSurfaceCapture.Captured surface) {}
 
+    /** @param biomes 16-bit biome ids of the 6x6 quart-column window, or null when this chunk's surface stays vanilla */
     record Request(LevelProgram program, ChunkAccess chunk, NoiseBasedChunkGenerator generator, Blender blender,
                    RandomState randomState, StructureManager structures, int[] beard, int pieces, int junctions,
-                   CompletableFuture<ChunkAccess> result, long enqueuedNanos) {}
+                   short[] biomes, CompletableFuture<ChunkAccess> result, long enqueuedNanos) {}
 
     private FastNoiseEngine(FusedGpuBackend device) {
         this.device = device;
@@ -164,9 +170,11 @@ public final class FastNoiseEngine {
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
         }
-        LOG.info("Fast GPU NOISE stopped: gpu={} fallback={} bail={} batches={} verified={} verifyMismatches={}",
+        LOG.info("Fast GPU NOISE stopped: gpu={} fallback={} bail={} batches={} verified={} verifyMismatches={} surface={} surfaceBail={}",
                 engine.gpuChunks.get(), engine.fallbackChunks.get(), engine.bailChunks.get(), engine.batches.get(),
-                engine.verifiedChunks.get(), engine.verifyMismatches.get());
+                engine.verifiedChunks.get(), engine.verifyMismatches.get(), engine.surfaceChunks.get(), engine.surfaceBails.get());
+        if (FastSurfaceState.VERIFY) LOG.info("Fast GPU SURFACE verify: chunks={} mismatched={}",
+                FastSurfaceState.verified.get(), FastSurfaceState.mismatched.get());
         if (engine.device.profiling()) LOG.info("Fast GPU NOISE kernel profile: {}", engine.device.profileSummary());
         engine.device.close();
     }
@@ -192,10 +200,20 @@ public final class FastNoiseEngine {
         var materialPalette = new FusedNoiseCompiler.MaterialPalette(0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
                 fluid.is(Blocks.WATER), fluid.is(Blocks.LAVA), fluid == Blocks.LAVA.defaultBlockState(), fluid.isAir(),
                 palette.length, flags);
-        var request = new FusedNoiseCompiler.Request(snapshot.router().roots(), snapshot.generatorSettings(),
-                snapshot.randomState().aquiferRandom(), snapshot.randomState().oreRandom(), materialPalette, beardKernel());
-        FusedNoiseCompiler.Compiled compiled = new FusedNoiseCompiler().compile(request);
         String dimension = level.dimension().location().toString();
+        FastSurfaceCapture.Captured captured = null;
+        if (SURFACE && !VERIFY) {
+            try {
+                captured = FastSurfaceCapture.capture(level, generator, palette);
+            } catch (Throwable failure) {
+                LOG.warn("Fast GPU SURFACE not available for {} (the SURFACE step stays vanilla): {}", dimension, failure.toString());
+            }
+        }
+        FastSurfaceCapture.Captured surface = captured;
+        var request = new FusedNoiseCompiler.Request(snapshot.router().roots(), snapshot.generatorSettings(),
+                snapshot.randomState().aquiferRandom(), snapshot.randomState().oreRandom(), materialPalette, beardKernel(),
+                surface == null ? null : surface.program());
+        FusedNoiseCompiler.Compiled compiled = new FusedNoiseCompiler().compile(request);
         RandomState randomState = level.getChunkSource().randomState();
         String qualifiedAs = QUALIFIED.get(compiled.structureFingerprint());
         LOG.info("Fast GPU NOISE {}: kernel structure {} ({})", dimension, compiled.structureFingerprint(),
@@ -205,9 +223,22 @@ public final class FastNoiseEngine {
                     + "using vanilla generation (set -Dworldgennext.fast.gpu=force to override)", dimension);
             return null;
         }
+        boolean surfaceEnabled = false;
+        if (surface != null) {
+            String surfaceKey = "surface." + compiled.structureFingerprint() + "." + compiled.surfaceFingerprint();
+            String surfaceQualifiedAs = QUALIFIED.get(surfaceKey);
+            surfaceEnabled = surfaceQualifiedAs != null || MODE == GpuMode.FORCE;
+            LOG.info("Fast GPU SURFACE {}: {} ({}), {} instructions, {} block states, {} noises", dimension, surfaceKey,
+                    surfaceQualifiedAs == null ? (surfaceEnabled ? "not in the qualified list, forced" : "not in the qualified list, SURFACE stays vanilla")
+                            : "qualified as " + surfaceQualifiedAs,
+                    surface.program().code().length / dev.worldgennext.compiler.vulkan.fused.SurfaceProgram.INSTRUCTION_INTS,
+                    surface.palette().length, surface.program().conditionNoises().size());
+        }
+        boolean fuseSurface = surfaceEnabled;
         return () -> {
             try {
-                install(level, dimension, randomState, compiled, palette, snapshot, start);
+                install(level, dimension, randomState, compiled, fuseSurface ? surface.palette() : palette, snapshot, start,
+                        fuseSurface ? surface : null, palette.length);
             } catch (Throwable failure) {
                 LOG.warn("Fast GPU NOISE disabled for {}: {}", dimension, failure.toString());
             }
@@ -215,14 +246,15 @@ public final class FastNoiseEngine {
     }
 
     private void install(ServerLevel level, String dimension, RandomState randomState, FusedNoiseCompiler.Compiled compiled,
-                         BlockState[] palette, WorldgenSnapshot snapshot, long start) {
+                         BlockState[] palette, WorldgenSnapshot snapshot, long start,
+                         FastSurfaceCapture.Captured surface, int basePaletteSize) {
         dumpSource(level, compiled);
         if (Boolean.getBoolean("worldgennext.fast.dumpSourceOnly")) {
             throw new IllegalStateException("source dumped; pipeline build skipped by worldgennext.fast.dumpSourceOnly");
         }
         FusedGpuBackend.Program program = device.load(compiled, BATCH, SLOTS);
         programs.put(randomState, new LevelProgram(dimension, program, palette, compiled.geometry(), snapshot,
-                snapshot.generatorSettings().aquifersEnabled()));
+                snapshot.generatorSettings().aquifersEnabled(), surface == null ? 0 : compiled.surfaceHeader(), basePaletteSize, surface));
         LOG.info("Fast GPU NOISE ready for {}: flat={} interp={} source={} chars, compile {} ms (pipelines {} ms)",
                 level.dimension().location(), compiled.flatChannels(), compiled.interpolatedChannels(), compiled.source().length(),
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), TimeUnit.NANOSECONDS.toMillis(program.compileNanos()));
@@ -288,13 +320,65 @@ public final class FastNoiseEngine {
             fallbackChunks.incrementAndGet();
             return null;
         }
+        short[] biomes = program.surfaceHeader() != 0 ? gatherBiomes(program, structures, chunk) : null;
         CompletableFuture<ChunkAccess> result = new CompletableFuture<>();
         synchronized (queue) {
             queue.add(new Request(program, chunk, generator, blender, randomState, structures, beard, pieces, junctions,
-                    result, System.nanoTime()));
+                    biomes, result, System.nanoTime()));
             queue.notifyAll();
         }
         return result;
+    }
+
+    private static final Field STRUCTURE_LEVEL = structureLevelField();
+    private static Field structureLevelField() {
+        try {
+            Field field = StructureManager.class.getDeclaredField("level");
+            field.setAccessible(true);
+            return field;
+        } catch (ReflectiveOperationException failure) {
+            return null;
+        }
+    }
+
+    /**
+     * Biome ids of the quart columns [-1, 4] x [-1, 4] around the chunk at every quart Y: everything
+     * BiomeManager.getBiome can read for a block of this chunk.  Null keeps the chunk's SURFACE step vanilla.
+     */
+    private static short[] gatherBiomes(LevelProgram program, StructureManager structures, ChunkAccess chunk) {
+        try {
+            if (STRUCTURE_LEVEL == null || !(STRUCTURE_LEVEL.get(structures) instanceof net.minecraft.server.level.WorldGenRegion region)) return null;
+            var surface = program.surface();
+            int quartHeight = program.geometry().storageHeight() >> 2;
+            int minQuartY = program.geometry().minY() >> 2;
+            int firstQuartX = chunk.getPos().x * 4 - 1, firstQuartZ = chunk.getPos().z * 4 - 1;
+            short[] out = new short[36 * quartHeight];
+            for (int ix = 0; ix < 6; ix++) {
+                for (int iz = 0; iz < 6; iz++) {
+                    int qx = firstQuartX + ix, qz = firstQuartZ + iz;
+                    ChunkAccess source = region.getChunk(qx >> 2, qz >> 2, net.minecraft.world.level.chunk.status.ChunkStatus.BIOMES, false);
+                    if (source == null) return null;
+                    int base = (ix * 6 + iz) * quartHeight;
+                    Object previous = null;
+                    int id = -1;
+                    for (int iy = 0; iy < quartHeight; iy++) {
+                        var holder = source.getNoiseBiome(qx, minQuartY + iy, qz);
+                        if (holder != previous) {
+                            previous = holder;
+                            id = surface.biomeIds().getInt(holder);
+                            if (id < 0) {
+                                id = surface.biomes().getId(holder.value());
+                                if (id < 0) return null;
+                            }
+                        }
+                        out[base + iy] = (short) id;
+                    }
+                }
+            }
+            return out;
+        } catch (Throwable failure) {
+            return null;
+        }
     }
 
     private static final Field PIECES = beardField("pieceIterator");
@@ -390,6 +474,10 @@ public final class FastNoiseEngine {
         ByteBuffer info = slot.chunkInfo();
         ByteBuffer beard = slot.beardData();
         int beardOffset = 0;
+        boolean anySurface = false;
+        LevelProgram level = requests.get(0).program();
+        int biomeShorts = level.program().compiled().biomeWordsPerChunk() * 2;
+        java.nio.ShortBuffer biomeIds = slot.biomes().asShortBuffer();
         for (int i = 0; i < requests.size(); i++) {
             Request r = requests.get(i);
             ChunkPos pos = r.chunk().getPos();
@@ -399,9 +487,39 @@ public final class FastNoiseEngine {
             info.putInt(base + 8, beardOffset);
             info.putInt(base + 12, r.pieces());
             info.putInt(base + 16, r.junctions());
+            info.putInt(base + 20, r.biomes() != null ? level.surfaceHeader() : 0);
+            if (r.biomes() != null) {
+                anySurface = true;
+                biomeIds.put(i * biomeShorts, r.biomes());
+            }
             for (int v : r.beard()) { beard.putInt(beardOffset * 4, v); beardOffset++; }
         }
         int prelimCount = 0;
+        if (!level.aquifers() && anySurface) {
+            // Only the surface rules read preliminary surfaces here: the four chunk-corner columns.
+            var ids = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(requests.size() * 4);
+            ids.defaultReturnValue(-1);
+            java.nio.IntBuffer index = slot.prelimIndex().asIntBuffer();
+            java.nio.IntBuffer columns = slot.prelimColumns().asIntBuffer();
+            int window = dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler.PRELIM_WINDOW;
+            int origin = dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler.PRELIM_ORIGIN;
+            for (int i = 0; i < requests.size(); i++) {
+                ChunkPos pos = requests.get(i).chunk().getPos();
+                for (int corner = 0; corner < 4; corner++) {
+                    int a = -origin + 4 * (corner & 1), b = -origin + 4 * (corner >> 1);
+                    int qx = pos.x * 4 + origin + a, qz = pos.z * 4 + origin + b;
+                    long key = ChunkPos.asLong(qx, qz);
+                    int id = ids.get(key);
+                    if (id < 0) {
+                        id = prelimCount++;
+                        ids.put(key, id);
+                        columns.put(2 * id, qx << 2);
+                        columns.put(2 * id + 1, qz << 2);
+                    }
+                    index.put((i * window + a) * window + b, id);
+                }
+            }
+        }
         if (requests.get(0).program().aquifers()) {
             // Unique preliminary-surface columns of the whole batch, and each chunk's 31x31 index window.
             var ids = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(requests.size() * 256);
@@ -428,7 +546,7 @@ public final class FastNoiseEngine {
                 }
             }
         }
-        slot.submit(requests.size(), prelimCount);
+        slot.submit(requests.size(), prelimCount, anySurface);
     }
 
     private void complete(InFlight batch) {
@@ -440,7 +558,12 @@ public final class FastNoiseEngine {
         ByteBuffer heights = slot.heights().duplicate().order(ByteOrder.LITTLE_ENDIAN);
         for (int i = 0; i < batch.requests().size(); i++) {
             Request r = batch.requests().get(i);
-            if (slot.flags(i) != 0) {
+            int chunkFlags = slot.flags(i);
+            int surfaceSoft = FusedNoiseCompiler.SURF_HEIGHT_CHANGED | FusedNoiseCompiler.SURF_STEEP_USED;
+            if ((chunkFlags & FusedNoiseCompiler.BAIL_MASK) != 0 || (chunkFlags & surfaceSoft) == surfaceSoft) {
+                // The surface kernels rewrite the block output in place, so a chunk whose surface result
+                // cannot be trusted is regenerated as a whole by the original code.
+                if ((chunkFlags & FusedNoiseCompiler.BAIL_MASK) == 0) surfaceBails.incrementAndGet();
                 bailChunks.incrementAndGet();
                 runOriginal(r);
                 continue;
@@ -474,13 +597,23 @@ public final class FastNoiseEngine {
                 r.result().complete(vanilla);
                 return;
             }
+            if (FastSurfaceState.VERIFY && r.biomes() != null) {
+                ChunkAccess vanilla = original(r).join();
+                FastSurfaceState.expect(vanilla, data, heights, r.program().palette());
+                r.result().complete(vanilla);
+                return;
+            }
             LevelChunkSection[] sections = r.chunk().getSections();
             for (LevelChunkSection section : sections) section.acquire();
             try {
-                FastChunkApplier.apply(r.chunk(), data, heights, r.program().palette(), g.minY(), g.genHeight(),
-                        g.cellWidth(), g.cellHeight());
+                FastChunkApplier.apply(r.chunk(), data, heights, r.program().palette(), r.program().basePaletteSize(),
+                        g.minY(), g.genHeight(), g.cellWidth(), g.cellHeight());
             } finally {
                 for (LevelChunkSection section : sections) section.release();
+            }
+            if (r.biomes() != null) {
+                FastSurfaceState.mark(r.chunk());
+                surfaceChunks.incrementAndGet();
             }
             gpuChunks.incrementAndGet();
             r.result().complete(r.chunk());

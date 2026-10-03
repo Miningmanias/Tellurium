@@ -20,9 +20,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 
 /**
  * For a chunk that is being unloaded (its holder has already left the
@@ -35,7 +33,7 @@ public abstract class ChunkMapAsyncSaveMixin {
     @Shadow @Final private Long2ObjectLinkedOpenHashMap<ChunkHolder> updatingChunkMap;
 
     /** Set between the two redirects of one save() call on the server thread. */
-    @Unique private Map<Tag, Supplier<Tag>> worldgenNext$deferred;
+    @Unique private AsyncSectionEncoding.Deferred worldgenNext$deferred;
 
     @Redirect(method = "save", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/chunk/storage/ChunkSerializer;write(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/level/chunk/ChunkAccess;)Lnet/minecraft/nbt/CompoundTag;"))
@@ -45,7 +43,7 @@ public abstract class ChunkMapAsyncSaveMixin {
                 || ((PendingChunkSaves) this).worldgenNext$legacyIndexActive()) {
             return ChunkSerializer.write(level, chunk);
         }
-        Map<Tag, Supplier<Tag>> collector = AsyncSectionEncoding.begin();
+        AsyncSectionEncoding.Deferred collector = AsyncSectionEncoding.begin();
         try {
             CompoundTag tag = ChunkSerializer.write(level, chunk);
             if (!collector.isEmpty()) worldgenNext$deferred = collector;
@@ -58,13 +56,20 @@ public abstract class ChunkMapAsyncSaveMixin {
     @Redirect(method = "save", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/server/level/ChunkMap;write(Lnet/minecraft/world/level/ChunkPos;Lnet/minecraft/nbt/CompoundTag;)Ljava/util/concurrent/CompletableFuture;"))
     private CompletableFuture<Void> worldgenNext$store(ChunkMap self, ChunkPos pos, CompoundTag tag) {
-        Map<Tag, Supplier<Tag>> collector = worldgenNext$deferred;
+        AsyncSectionEncoding.Deferred collector = worldgenNext$deferred;
         worldgenNext$deferred = null;
         if (collector == null) return self.write(pos, tag);
-        CompletableFuture<Void> save = CompletableFuture
-                .runAsync(() -> AsyncSectionEncoding.resolve(tag, collector), Util.backgroundExecutor())
-                .thenCompose(ignored -> self.write(pos, tag));
-        ((PendingChunkSaves) self).worldgenNext$track(pos, save);
+        AsyncSectionEncoding.Task encoding = AsyncSectionEncoding.submit(() -> {
+            AsyncSectionEncoding.resolve(tag, collector);
+            dev.worldgennext.neoforge.threading.PrecompressedChunks.prepare(tag);
+        });
+        CompletableFuture<Void> save = encoding.done().thenCompose(ignored -> {
+            CompletableFuture<Void> written = self.write(pos, tag);
+            encoding.handedOff.complete(null);
+            return written;
+        });
+        save.whenComplete((ignored, error) -> encoding.handedOff.complete(null));
+        ((PendingChunkSaves) self).worldgenNext$track(pos, save, encoding);
         return save;
     }
 }

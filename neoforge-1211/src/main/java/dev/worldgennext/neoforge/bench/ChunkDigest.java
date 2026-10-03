@@ -40,6 +40,7 @@ public final class ChunkDigest {
                 + " blocks=" + blocks(chunk)
                 + " heightmaps=" + heightmaps(chunk)
                 + " post=" + postProcessing(chunk)
+                + " biomes=" + biomes(level, chunk)
                 + " structures=" + structures(level, chunk);
     }
 
@@ -54,6 +55,29 @@ public final class ChunkDigest {
             digest.update(buffer.array(), 0, buffer.position());
         }
         return hex(digest);
+    }
+
+    private static String biomes(ServerLevel level, ChunkAccess chunk) {
+        var registry = level.registryAccess().registryOrThrow(Registries.BIOME);
+        MessageDigest digest = sha256();
+        ByteBuffer buffer = ByteBuffer.allocate(64 * 4);
+        for (LevelChunkSection section : chunk.getSections()) {
+            buffer.clear();
+            for (int y = 0; y < 4; y++) for (int z = 0; z < 4; z++) for (int x = 0; x < 4; x++) {
+                buffer.putInt(registry.getId(section.getNoiseBiome(x, y, z).value()));
+            }
+            digest.update(buffer.array(), 0, buffer.position());
+        }
+        return hex(digest);
+    }
+
+    /** Names of the biomes present in the chunk's biome containers. */
+    public static java.util.Set<String> biomeNames(ChunkAccess chunk) {
+        java.util.Set<String> names = new java.util.TreeSet<>();
+        for (LevelChunkSection section : chunk.getSections()) {
+            section.getBiomes().getAll(holder -> names.add(holder.unwrapKey().map(key -> key.location().toString()).orElse("?")));
+        }
+        return names;
     }
 
     private static String heightmaps(ChunkAccess chunk) {

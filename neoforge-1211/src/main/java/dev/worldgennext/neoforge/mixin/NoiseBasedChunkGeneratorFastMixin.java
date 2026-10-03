@@ -26,4 +26,27 @@ public abstract class NoiseBasedChunkGeneratorFastMixin {
                 (NoiseBasedChunkGenerator) (Object) this, blender, randomState, structures, chunk);
         if (future != null) callback.setReturnValue(future);
     }
+
+    /** BIOMES: where the cache wrappers provably do not change sampled values, skip building the NoiseChunk. */
+    @Inject(method = "doCreateBiomes", at = @At("HEAD"), cancellable = true)
+    private void worldgenNext$biomesWithoutNoiseChunk(Blender blender, RandomState randomState, StructureManager structures,
+                                                      ChunkAccess chunk, org.spongepowered.asm.mixin.injection.callback.CallbackInfo callback) {
+        net.minecraft.world.level.biome.Climate.Sampler sampler =
+                dev.worldgennext.neoforge.fast.ClimateColumnCache.unwrappedSampler(blender, randomState, chunk);
+        if (sampler == null) return;
+        NoiseBasedChunkGenerator self = (NoiseBasedChunkGenerator) (Object) this;
+        net.minecraft.world.level.biome.BiomeResolver resolver = net.minecraft.world.level.levelgen.BelowZeroRetrogen.getBiomeResolver(
+                blender.getBiomeResolver(self.getBiomeSource()), chunk);
+        chunk.fillBiomesFromNoise(resolver, sampler);
+        callback.cancel();
+    }
+
+    /** BIOMES: evaluate provably Y-independent climate functions once per quart column. */
+    @org.spongepowered.asm.mixin.injection.Redirect(method = "doCreateBiomes", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/world/level/chunk/ChunkAccess;fillBiomesFromNoise(Lnet/minecraft/world/level/biome/BiomeResolver;Lnet/minecraft/world/level/biome/Climate$Sampler;)V"))
+    private void worldgenNext$columnCachedClimate(ChunkAccess target, net.minecraft.world.level.biome.BiomeResolver resolver,
+                                                  net.minecraft.world.level.biome.Climate.Sampler sampler,
+                                                  Blender blender, RandomState randomState, StructureManager structures, ChunkAccess chunk) {
+        target.fillBiomesFromNoise(resolver, dev.worldgennext.neoforge.fast.ClimateColumnCache.wrap(sampler, blender, randomState, chunk));
+    }
 }

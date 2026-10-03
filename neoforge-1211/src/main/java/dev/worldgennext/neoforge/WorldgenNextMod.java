@@ -510,6 +510,7 @@ public final class WorldgenNextMod {
         if (draftCpuLiveMode()) RUNTIME.bindAuthoritativeExecutor(event.getServer()::execute);
         RUNTIME.serverReady();
         dev.worldgennext.neoforge.fast.FastNoiseEngine.start(event.getServer());
+        dev.worldgennext.neoforge.fast.ClimateColumnCache.start(event.getServer());
         String graphDump = System.getProperty("worldgennext.fast.dumpGraph", "").trim();
         if (!graphDump.isEmpty()) {
             StringBuilder text = new StringBuilder();
@@ -540,6 +541,7 @@ public final class WorldgenNextMod {
 
     private static void serverStopping(ServerStoppingEvent event) {
         dev.worldgennext.neoforge.fast.FastNoiseEngine.stop();
+        dev.worldgennext.neoforge.fast.ClimateColumnCache.stop();
         RUNTIME.serverStopping();
     }
 

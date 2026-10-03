@@ -33,11 +33,20 @@ public abstract class ChunkStorageAsyncMixin implements PendingChunkSaves {
     private final ConcurrentHashMap<Long, CompletableFuture<Void>> worldgenNext$pendingSaves = new ConcurrentHashMap<>();
 
     @Override
-    public void worldgenNext$track(ChunkPos pos, CompletableFuture<Void> save) {
+    public void worldgenNext$track(ChunkPos pos, CompletableFuture<Void> save,
+                                   dev.worldgennext.neoforge.threading.AsyncSectionEncoding.Task encoding) {
         long key = pos.toLong();
         worldgenNext$pendingSaves.put(key, save);
-        save.whenComplete((ignored, error) -> worldgenNext$pendingSaves.remove(key, save));
+        worldgenNext$pendingEncodings.put(key, encoding);
+        save.whenComplete((ignored, error) -> {
+            worldgenNext$pendingSaves.remove(key, save);
+            worldgenNext$pendingEncodings.remove(key, encoding);
+        });
     }
+
+    @Unique
+    private final ConcurrentHashMap<Long, dev.worldgennext.neoforge.threading.AsyncSectionEncoding.Task> worldgenNext$pendingEncodings =
+            new ConcurrentHashMap<>();
 
     @Override
     public void worldgenNext$awaitAll() {
@@ -54,7 +63,14 @@ public abstract class ChunkStorageAsyncMixin implements PendingChunkSaves {
     private void worldgenNext$readAfterPendingSave(ChunkPos pos, CallbackInfoReturnable<CompletableFuture<Optional<CompoundTag>>> callback) {
         CompletableFuture<Void> pending = worldgenNext$pendingSaves.get(pos.toLong());
         if (pending != null && !pending.isDone()) {
-            callback.setReturnValue(pending.handle((ignored, error) -> null)
+            var encoding = worldgenNext$pendingEncodings.get(pos.toLong());
+            CompletableFuture<Void> ready = pending;
+            if (encoding != null) {
+                encoding.expedite();
+                ready = encoding.handedOff;
+            }
+            if (ready.isDone()) return; // already with the IO worker: the ordinary read sees the pending write
+            callback.setReturnValue(ready.handle((ignored, error) -> null)
                     .thenCompose(ignored -> ((ChunkStorage) (Object) this).read(pos)));
         }
     }

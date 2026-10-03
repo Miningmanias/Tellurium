@@ -114,9 +114,28 @@ public final class ChunkThroughputBenchmark {
             server.execute(() -> server.halt(false));
             return;
         }
+        Settings located = settings;
+        String centerBiome = System.getProperty("worldgennext.bench.centerBiome", "").trim();
+        if (!centerBiome.isEmpty()) {
+            // Centre the measured square on the nearest occurrence of a biome (test coverage of biome-specific code).
+            var key = net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.BIOME,
+                    net.minecraft.resources.ResourceLocation.parse(centerBiome));
+            var origin = new net.minecraft.core.BlockPos(settings.centerX() * 16, 64, settings.centerZ() * 16);
+            var found = level.findClosestBiome3d(holder -> holder.is(key), origin, 12800, 64, 64);
+            if (found == null) {
+                LOG.error("Benchmark centre biome {} not found near {}", centerBiome, origin);
+                server.execute(() -> server.halt(false));
+                return;
+            }
+            var at = found.getFirst();
+            LOG.info("WorldgenNext benchmark centre moved to {} at block {} {}", centerBiome, at.getX(), at.getZ());
+            located = new Settings(settings.status(), settings.radiusChunks(), settings.warmupRadiusChunks(), at.getX() >> 4, at.getZ() >> 4,
+                    settings.inFlight(), settings.output(), settings.stopAfter(), settings.releaseAtEnd(), settings.digest());
+        }
+        Settings resolved = located;
         Thread driver = new Thread(() -> {
             try {
-                new ChunkThroughputBenchmark(server, level, settings).run(routeDescription);
+                new ChunkThroughputBenchmark(server, level, resolved).run(routeDescription);
             } catch (Throwable failure) {
                 LOG.error("WorldgenNext benchmark failed", failure);
                 writeQuietly(settings.output(), "{\"status\":\"ERROR\",\"error\":" + json(failure.toString()) + "}\n");
@@ -178,7 +197,11 @@ public final class ChunkThroughputBenchmark {
         AtomicInteger failed = new AtomicInteger();
         AtomicLong lastCompletion = new AtomicLong();
         CompletableFuture<?>[] futures = new CompletableFuture<?>[order.size()];
+        java.util.concurrent.atomic.AtomicLongArray completionNanos = new java.util.concurrent.atomic.AtomicLongArray(order.size());
+        AtomicInteger finished = new AtomicInteger();
         long start = System.nanoTime();
+        Thread sampler = Boolean.getBoolean("worldgennext.bench.sampleServerThread") && label.equals("measured")
+                ? startServerThreadSampler(finished, order.size()) : null;
         for (int i = 0; i < order.size(); i++) {
             permits.acquire();
             ChunkPos pos = order.get(i);
@@ -187,7 +210,9 @@ public final class ChunkThroughputBenchmark {
                     .handle((result, error) -> {
                         if (error == null && result != null && result.isSuccess()) completed.incrementAndGet();
                         else failed.incrementAndGet();
-                        lastCompletion.set(System.nanoTime());
+                        long now = System.nanoTime();
+                        lastCompletion.set(now);
+                        completionNanos.set(finished.getAndIncrement(), now - start);
                         if (!settings.releaseAtEnd()) {
                             server.execute(() -> cache.removeRegionTicket(BENCH_TICKET, pos, ticketDistance, pos));
                         }
@@ -196,6 +221,10 @@ public final class ChunkThroughputBenchmark {
                     });
         }
         CompletableFuture.allOf(futures).join();
+        if (sampler != null) {
+            sampler.interrupt();
+            sampler.join();
+        }
         long elapsed = lastCompletion.get() - start;
         if (digest) writeDigest(order);
         if (settings.releaseAtEnd()) {
@@ -203,6 +232,11 @@ public final class ChunkThroughputBenchmark {
                 for (ChunkPos pos : order) cache.removeRegionTicket(BENCH_TICKET, pos, ticketDistance, pos);
             });
         }
+        // Completions per half second: shows whether throughput is steady or ends in a serial tail.
+        int buckets = (int) (elapsed / 500_000_000L) + 1;
+        int[] timeline = new int[buckets];
+        for (int i = 0; i < finished.get(); i++) timeline[(int) Math.min(buckets - 1, completionNanos.get(i) / 500_000_000L)]++;
+        LOG.info("WorldgenNext benchmark {} completions per 500 ms: {}", label, java.util.Arrays.toString(timeline));
         Phase phase = new Phase(order.size(), completed.get(), failed.get(), elapsed);
         LOG.info("WorldgenNext benchmark {} phase: {}/{} chunks, failed={}, {} ms, {} cps", label,
                 phase.completed(), phase.requested(), phase.failed(), TimeUnit.NANOSECONDS.toMillis(elapsed),
@@ -210,14 +244,87 @@ public final class ChunkThroughputBenchmark {
         return phase;
     }
 
+    /**
+     * Diagnostic: samples the server thread's stack every 2 ms (JFR samples too few threads per tick to
+     * profile one thread) and logs where it spends its time, overall and after 90% of chunks completed.
+     */
+    private Thread startServerThreadSampler(AtomicInteger finished, int total) {
+        Thread target = server.getRunningThread();
+        Thread sampler = new Thread(() -> {
+            java.util.Map<String, int[]> counts = new java.util.HashMap<>();
+            int samples = 0, tailSamples = 0;
+            int lastFinished = -1, dumps = 0;
+            long lastChange = System.nanoTime();
+            while (!Thread.currentThread().isInterrupted()) {
+                int now = finished.get();
+                if (now != lastFinished) {
+                    lastFinished = now;
+                    lastChange = System.nanoTime();
+                } else if (now > total / 2 && now < total && dumps < 3 && System.nanoTime() - lastChange > 500_000_000L) {
+                    // Nothing completed for half a second: record what every thread is doing.
+                    dumps++;
+                    lastChange = System.nanoTime();
+                    StringBuilder dump = new StringBuilder();
+                    java.util.Map<String, Integer> grouped = new java.util.TreeMap<>();
+                    for (java.util.Map.Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
+                        StackTraceElement[] frames = entry.getValue();
+                        if (frames.length == 0) continue;
+                        StringBuilder line = new StringBuilder(entry.getKey().getName().replaceAll("[0-9]+", "N")).append(": ");
+                        for (int i = 0; i < Math.min(frames.length, 7); i++) {
+                            String owner = frames[i].getClassName();
+                            line.append(owner.substring(owner.lastIndexOf('.') + 1)).append('.').append(frames[i].getMethodName()).append(" < ");
+                        }
+                        grouped.merge(line.toString(), 1, Integer::sum);
+                    }
+                    grouped.forEach((line, count) -> dump.append(String.format(Locale.ROOT, "%n  %3d  %s", count, line)));
+                    LOG.info("Stall at {}/{} completed; threads:{}", now, total, dump);
+                }
+                StackTraceElement[] stack = target.getStackTrace();
+                boolean tail = finished.get() >= total * 9 / 10;
+                StringBuilder key = new StringBuilder();
+                int kept = 0;
+                for (StackTraceElement frame : stack) {
+                    String owner = frame.getClassName();
+                    if (kept == 0 || owner.startsWith("net.minecraft") || owner.startsWith("dev.worldgennext") || owner.startsWith("ca.spottedleaf")) {
+                        key.append(owner.substring(owner.lastIndexOf('.') + 1)).append('.').append(frame.getMethodName()).append(" < ");
+                        if (++kept >= 5) break;
+                    }
+                }
+                int[] count = counts.computeIfAbsent(key.toString(), ignored -> new int[2]);
+                count[0]++;
+                samples++;
+                if (tail) { count[1]++; tailSamples++; }
+                try {
+                    Thread.sleep(2);
+                } catch (InterruptedException stop) {
+                    break;
+                }
+            }
+            for (int column = 0; column < 2; column++) {
+                int which = column;
+                StringBuilder out = new StringBuilder();
+                counts.entrySet().stream().sorted((a, b) -> b.getValue()[which] - a.getValue()[which]).limit(18)
+                        .forEach(e -> out.append(String.format(Locale.ROOT, "%n  %5d  %s", e.getValue()[which], e.getKey())));
+                LOG.info("Server thread samples {} ({}):{}", column == 0 ? "overall" : "after 90% completed",
+                        column == 0 ? samples : tailSamples, out);
+            }
+        }, "worldgennext-bench-sampler");
+        sampler.setDaemon(true);
+        sampler.start();
+        return sampler;
+    }
+
     private void writeDigest(List<ChunkPos> order) {
         ServerChunkCache cache = level.getChunkSource();
         CompletableFuture<String> lines = CompletableFuture.supplyAsync(() -> {
             StringBuilder text = new StringBuilder();
+            java.util.Map<String, Integer> coverage = new java.util.TreeMap<>();
             for (ChunkPos pos : order) {
                 var chunk = cache.getChunk(pos.x, pos.z, settings.status(), false);
                 text.append(chunk == null ? pos.x + " " + pos.z + " MISSING" : ChunkDigest.line(level, chunk)).append(System.lineSeparator());
+                if (chunk != null) for (String biome : ChunkDigest.biomeNames(chunk)) coverage.merge(biome, 1, Integer::sum);
             }
+            LOG.info("WorldgenNext benchmark biome coverage (chunks containing each biome): {}", coverage);
             return text.toString();
         }, server);
         Path digestPath = settings.output().resolveSibling(settings.output().getFileName().toString()

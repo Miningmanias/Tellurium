@@ -11,7 +11,12 @@
     "NoiseBasedChunkGeneratorFastMixin",
     "ChunkSerializerAsyncMixin",
     "ChunkStorageAsyncMixin",
-    "ChunkMapAsyncSaveMixin"
+    "ChunkMapAsyncSaveMixin",
+    "ChunkSerializerSurfaceMixin",
+    "ChunkMapUnloadTypeMixin",
+    "RegionFileAccessor",
+    "RegionFileStorageCompressMixin",
+    "ClimateRTreeMixin"
   ],
   "injectors": {
     "defaultRequire": 1

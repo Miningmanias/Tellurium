@@ -34,15 +34,19 @@ public final class FastChunkApplier {
      * @param data one byte per storage block (palette index | 0x80 mark), section-major,
      *             index = (localY * 16 + z) * 16 + x relative to the storage bottom
      */
-    public static void apply(ChunkAccess chunk, byte[] data, int[] heights, BlockState[] palette,
+    public static void apply(ChunkAccess chunk, byte[] data, int[] heights, BlockState[] palette, int basePaletteSize,
                              int minY, int genHeight, int cellWidth, int cellHeight) {
         LevelChunkSection[] sections = chunk.getSections();
-        int airIndex = -1;
-        for (int i = 0; i < palette.length; i++) if (palette[i].isAir()) { airIndex = i; break; }
+        boolean[] air = new boolean[128];
+        boolean[] surfaceFluid = new boolean[128];
+        for (int i = 0; i < palette.length; i++) {
+            air[i] = palette[i].isAir();
+            surfaceFluid[i] = i >= basePaletteSize && !palette[i].getFluidState().isEmpty();
+        }
         for (int s = 0; s < sections.length; s++) {
             int offset = s * 4096;
             if (offset + 4096 > data.length) break;
-            if (allAir(data, offset, palette)) continue; // doFill never touches an all-air section
+            if (allAir(data, offset, air)) continue; // doFill never touches an all-air section
             LevelChunkSection old = sections[s];
             sections[s] = buildSection(data, offset, palette, old.getBiomes());
         }
@@ -62,7 +66,8 @@ public final class FastChunkApplier {
                         int x = cx * cellWidth + ix;
                         for (int iz = 0; iz < cellWidth; iz++) {
                             int z = cz * cellWidth + iz;
-                            if ((data[rowBase + z * 16 + x] & 0x80) != 0) {
+                            int raw = data[rowBase + z * 16 + x];
+                            if ((raw & 0x80) != 0 && !surfaceFluid[raw & 0x7F]) {
                                 pos.set(baseX + x, y, baseZ + z);
                                 chunk.markPosForPostprocessing(pos);
                             }
@@ -71,11 +76,30 @@ public final class FastChunkApplier {
                 }
             }
         }
+        // Surface marks follow in buildSurface order: x, z, y descending.  A marked fluid with a
+        // surface-palette index was placed by a surface rule; a marked non-fluid surface state (ice
+        // over aquifer water) inherited the mark doFill gave the fluid it replaced.
+        if (palette.length > basePaletteSize) {
+            int storageHeight = data.length / 256;
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    for (int ly = storageHeight - 1; ly >= 0; ly--) {
+                        int raw = data[ly * 256 + z * 16 + x];
+                        if ((raw & 0x80) != 0 && surfaceFluid[raw & 0x7F]) {
+                            pos.set(baseX + x, chunk.getMinBuildHeight() + ly, baseZ + z);
+                            chunk.markPosForPostprocessing(pos);
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    private static boolean allAir(byte[] data, int offset, BlockState[] palette) {
+
+
+    private static boolean allAir(byte[] data, int offset, boolean[] air) {
         for (int i = 0; i < 4096; i++) {
-            if (!palette[data[offset + i] & 0x7F].isAir()) return false;
+            if (!air[data[offset + i] & 0x7F]) return false;
         }
         return true;
     }

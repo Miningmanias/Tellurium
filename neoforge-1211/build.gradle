@@ -100,7 +100,8 @@ tasks.matching { it.name == 'runServer' }.configureEach {
     }
     // Throughput benchmark settings are forwarded verbatim (output resolved at the Gradle boundary).
     System.properties.each { key, value ->
-        if (['worldgennext.bench.', 'worldgennext.parallel', 'worldgennext.fast.', 'worldgennext.async'].any { key.toString().startsWith(it) }) {
+        if (['worldgennext.bench.', 'worldgennext.parallel', 'worldgennext.fast.', 'worldgennext.async', 'worldgennext.biome',
+             'worldgennext.unload', 'worldgennext.noiseChunk'].any { key.toString().startsWith(it) }) {
             def forwarded = key == 'worldgennext.bench.output' && !value.toString().trim().isEmpty()
                     ? project.file(value.toString().trim()).absolutePath : value.toString()
             systemProperty key.toString(), forwarded
@@ -108,6 +109,8 @@ tasks.matching { it.name == 'runServer' }.configureEach {
     }
     def maxHeap = System.getProperty('worldgennext.run.maxHeap', '').trim()
     if (!maxHeap.isEmpty()) jvmArgs "-Xmx${maxHeap}"
+    def extraJvmArgs = System.getProperty('worldgennext.run.jvmArgs', '').trim()
+    if (!extraJvmArgs.isEmpty()) jvmArgs extraJvmArgs.split(/\s+/)
     def jfr = System.getProperty('worldgennext.run.jfr', '').trim()
     if (!jfr.isEmpty()) { def jfrFile = rootProject.file(jfr); jfrFile.parentFile.mkdirs(); jvmArgs "-XX:StartFlightRecording=filename=${jfrFile.absolutePath},settings=profile,dumponexit=true" }
     systemProperty 'worldgennext.candidate.capture', System.getProperty('worldgennext.candidate.capture', 'false')

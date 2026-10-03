@@ -59,7 +59,7 @@ public final class FusedNoiseCompiler {
 
     public record Request(Map<String, ProgramNode> roots, GeneratorSettingsSnapshot settings,
                           PositionalRandomFactorySnapshot aquiferRandom, PositionalRandomFactorySnapshot oreRandom,
-                          MaterialPalette palette, float[] beardKernel) {
+                          MaterialPalette palette, float[] beardKernel, SurfaceProgram surface) {
         public Request {
             Objects.requireNonNull(roots, "roots");
             Objects.requireNonNull(settings, "settings");
@@ -89,7 +89,16 @@ public final class FusedNoiseCompiler {
     public record Compiled(String source, double[] doubleTable, int[] permTable, int flatChannels,
                            int interpolatedChannels, Geometry geometry, String fingerprint,
                            List<ProgramNode> flatChildren, List<ProgramNode> interpolatedChildren,
-                           String structureFingerprint, int xzChannels) {}
+                           String structureFingerprint, int xzChannels, int surfaceHeader, String surfaceFingerprint) {
+        /** uints of biome ids uploaded per chunk for the surface stage. */
+        public int biomeWordsPerChunk() { return FusedSurfaceKernels.biomeWordsPerChunk(geometry); }
+        public int biomeQuartHeight() { return geometry.storageHeight() / 4; }
+    }
+
+    /** Soft surface flags: a chunk is discarded only when both are set (see FusedSurfaceKernels). */
+    public static final int SURF_HEIGHT_CHANGED = FusedSurfaceKernels.SURF_HEIGHT_CHANGED;
+    public static final int SURF_STEEP_USED = FusedSurfaceKernels.SURF_STEEP_USED;
+    public static final int BAIL_MASK = 0xFF;
 
     public static final class UnsupportedFusedProgramException extends RuntimeException {
         public UnsupportedFusedProgramException(String message) { super(message); }
@@ -195,9 +204,10 @@ public final class FusedNoiseCompiler {
                 emitFunction("flat_" + f + "_column", flats.get(f).child(), Mode.COLUMN);
             }
 
+            int surfaceHeader = request.surface() == null ? 0 : tables.surface(request.surface());
             String source = header() + FusedNoiseCompiler.library() + "\n" + accessors()
-                    + FusedKernels.prelude(geometry, request, beardKernelIndex) + functions
-                    + FusedKernels.kernels(flats.size(), interps.size(), xzNodes.size());
+                    + FusedKernels.prelude(geometry, request, beardKernelIndex) + FusedSurfaceKernels.constants(geometry) + functions
+                    + FusedKernels.kernels(flats.size(), interps.size(), xzNodes.size()) + FusedSurfaceKernels.BODY;
             String fingerprint = sha256(source);
             List<ProgramNode> flatChildren = new ArrayList<>();
             for (ProgramNode.Marker flat : flats) flatChildren.add(flat.child());
@@ -205,7 +215,8 @@ public final class FusedNoiseCompiler {
             for (ProgramNode.Interpolated interp : interps) interpChildren.add(interp.child());
             return new Compiled(source, tables.doubleTable(), tables.permTable(), flats.size(), interps.size(),
                     geometry, fingerprint, List.copyOf(flatChildren), List.copyOf(interpChildren),
-                    structureFingerprint(source), xzNodes.size());
+                    structureFingerprint(source), xzNodes.size(), surfaceHeader,
+                    request.surface() == null ? null : sha256(request.surface().identity()));
         }
 
         private String header() {
@@ -229,6 +240,8 @@ public final class FusedNoiseCompiler {
                     + "layout(std430, binding = 11) readonly buffer PrelimIndex { int prelimIndex[]; };\n"
                     + "layout(std430, binding = 12) readonly buffer PrelimCols { int prelimCols[]; };\n"
                     + "layout(std430, binding = 13) buffer PrelimOut { int prelimOut[]; };\n"
+                    + "layout(std430, binding = 14) readonly buffer Biomes { uint biomes[]; };\n"
+                    + "layout(std430, binding = 15) buffer SurfTmp { int surfTmp[]; };\n"
                     + "layout(push_constant) uniform Push { uint chunkCount; uint prelimCount; } pc;\n";
         }
 
@@ -393,32 +406,7 @@ public final class FusedNoiseCompiler {
         }
         private final Map<ProgramNode, Boolean> yDependence = new IdentityHashMap<>();
 
-        /** Conservative: true unless the node's value provably ignores the block Y in POINT mode. */
-        private boolean yDependent(ProgramNode node) {
-            Boolean known = yDependence.get(node);
-            if (known != null) return known;
-            boolean result = switch (node) {
-                case ProgramNode.Constant ignored -> false;
-                case ProgramNode.Input input -> input.name().equals("y") || input.name().equals("worldY");
-                case ProgramNode.Noise noise -> noise.yScale() != 0.0;
-                case ProgramNode.ShiftedNoise noise -> noise.yScale() != 0.0 || yDependent(noise.shiftX())
-                        || yDependent(noise.shiftY()) || yDependent(noise.shiftZ());
-                case ProgramNode.Shift shift -> shift.axis().equals("XYZ");
-                case ProgramNode.EndIsland ignored -> false;
-                case ProgramNode.BlendAlpha ignored -> false;
-                case ProgramNode.BlendOffset ignored -> false;
-                case ProgramNode.BlendedNoise ignored -> true;
-                case ProgramNode.WeirdScaledSampler ignored -> true;
-                case ProgramNode.Beardifier ignored -> true;
-                default -> {
-                    boolean any = false;
-                    for (ProgramNode child : node.children()) any |= yDependent(child);
-                    yield any;
-                }
-            };
-            yDependence.put(node, result);
-            return result;
-        }
+        private boolean yDependent(ProgramNode node) { return FusedNoiseCompiler.yDependent(node, yDependence); }
 
         /**
          * NoiseChunk.computePreliminarySurfaceLevel as one function: Y-independent
@@ -728,6 +716,72 @@ public final class FusedNoiseCompiler {
             interpIds.put(node, id);
             return id;
         }
+    }
+
+    /**
+     * True unless the captured function provably ignores the block Y when evaluated at a single
+     * point of an empty-blender NoiseChunk (caches and interpolators are transparent or column keyed).
+     */
+    public static boolean dependsOnY(ProgramNode root) {
+        return yDependent(root, new IdentityHashMap<>());
+    }
+
+    /**
+     * True when evaluating the function at a single point gives the same value with and without
+     * NoiseChunk's cache wrappers.  CacheOnce, CacheAllInCell and interpolators are transparent for a
+     * single-point context; FlatCache returns its child at Y 0 of the quart column and Cache2D returns
+     * the child's value from an earlier Y of the same column, so both must wrap a child that ignores Y.
+     * Callers must also ensure the point is quart aligned in X and Z and the blender is empty.
+     */
+    public static boolean pointValueIgnoresCaches(ProgramNode root) {
+        Map<ProgramNode, Boolean> yDependence = new IdentityHashMap<>();
+        java.util.Set<ProgramNode> seen = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+        java.util.ArrayDeque<ProgramNode> pending = new java.util.ArrayDeque<>();
+        pending.add(root);
+        while (!pending.isEmpty()) {
+            ProgramNode node = pending.poll();
+            if (!seen.add(node)) continue;
+            if (node instanceof ProgramNode.Marker marker) {
+                String mode = marker.cacheMode().toUpperCase(java.util.Locale.ROOT).replace("_", "");
+                switch (mode) {
+                    case "FLATCACHE", "CACHE2D" -> {
+                        if (yDependent(marker.child(), yDependence)) return false;
+                    }
+                    case "ONCE", "CACHEONCE", "CACHEALLINCELL", "ALLINCELL", "NONE", "TRANSPARENT" -> { }
+                    default -> { return false; }
+                }
+            }
+            if (node instanceof ProgramNode.BlendDensity || node instanceof ProgramNode.Beardifier) return false;
+            pending.addAll(node.children());
+        }
+        return true;
+    }
+
+    /** Conservative: true unless the node's value provably ignores the block Y in POINT mode. */
+    private static boolean yDependent(ProgramNode node, Map<ProgramNode, Boolean> yDependence) {
+        Boolean known = yDependence.get(node);
+        if (known != null) return known;
+        boolean result = switch (node) {
+            case ProgramNode.Constant ignored -> false;
+            case ProgramNode.Input input -> input.name().equals("y") || input.name().equals("worldY");
+            case ProgramNode.Noise noise -> noise.yScale() != 0.0;
+            case ProgramNode.ShiftedNoise noise -> noise.yScale() != 0.0 || yDependent(noise.shiftX(), yDependence)
+                    || yDependent(noise.shiftY(), yDependence) || yDependent(noise.shiftZ(), yDependence);
+            case ProgramNode.Shift shift -> shift.axis().equals("XYZ");
+            case ProgramNode.EndIsland ignored -> false;
+            case ProgramNode.BlendAlpha ignored -> false;
+            case ProgramNode.BlendOffset ignored -> false;
+            case ProgramNode.BlendedNoise ignored -> true;
+            case ProgramNode.WeirdScaledSampler ignored -> true;
+            case ProgramNode.Beardifier ignored -> true;
+            default -> {
+                boolean any = false;
+                for (ProgramNode child : node.children()) any |= yDependent(child, yDependence);
+                yield any;
+            }
+        };
+        yDependence.put(node, result);
+        return result;
     }
 
     /**
