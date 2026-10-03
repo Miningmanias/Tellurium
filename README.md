@@ -1,37 +1,138 @@
-# WorldgenNext 0.2.0 checkpoint
+# WorldgenNext
 
-A separate Java21/NeoForge1.21.1 development foundation for exact, efficient chunk generation. No CUDA and no dependency on GPUWorldGen.
+Faster chunk generation for Minecraft 1.21.1 (NeoForge) that produces the same
+world. No CUDA: the GPU part runs on Vulkan.
 
-**This is a correctness-first v0.2 checkpoint, not a qualified Minecraft terrain release yet.** It provides typed capture/program contracts, deterministic CPU worldgen primitives, registry-aware dense results, resource/commit/lifecycle models, a field-level oracle comparator, lazy Vulkan service boundaries, configuration modes and an installable NeoForge jar. Live Minecraft generation remains disabled until the independent oracle, real CPU/GPU replay, commit, FULL and SAVED/reopened gates qualify.
+- **Terrain and surface on the GPU** for world generators on the tested list:
+  vanilla Overworld, Nether and End, Terralith, Tectonic, and Terralith with
+  Tectonic. Any other generator, and any chunk the GPU flags as unsafe,
+  uses vanilla code.
+- **Structure, carver and feature steps in parallel**, with cheaper but
+  equivalent versions of the hottest vanilla loops (ore veins, biome lookups).
+- **Background saving**: chunks are encoded and compressed off the server
+  thread.
+- **Built-in pregenerator**: `/worldgennext pregen start <radius>`.
 
-Start with [Plan.md](Plan.md), [architecture](docs/ARCHITECTURE.md), [file map](docs/FILE_MAP.md), [planned implementation files](docs/IMPLEMENTATION_MAP.md) and [current validation status](docs/STATUS.md). The [long-term proposal](docs/design/PROPOSAL.md) contains conditional performance targets; none are v0.1 benchmark claims.
+## Install
 
-The [detailed v0.2 plan](docs/V0.2-PLAN.md) covers the complete functional product, including the real Minecraft oracle, exact GPU route, live generation, FULL and saved-world verification. Focused portions are implemented; release qualification remains fail-closed. Optimization starts in v0.3.
+1. A dedicated NeoForge 21.1.176+ server for Minecraft 1.21.1, on Java 21.
+   The mod's generation changes apply on dedicated servers only; a client or
+   singleplayer world has not been tested and is not accelerated.
+2. A GPU with Vulkan and 64-bit float support for the GPU part. Without one
+   the mod logs why and keeps the CPU-side improvements.
+3. Put `worldgennext-neoforge-1.21.1-0.2.0.jar` in `mods/`.
+4. Recommended: also install ScalableLux.
+   Lighting is not part of this mod, and every throughput figure below was
+   measured with ScalableLux installed.
 
-## Throughput path (2026-10-02)
+Start the server and run `/worldgennext status`. It names the GPU, says what
+each dimension is generated with (and why, if that is vanilla code), and lists
+anything worth changing.
 
-The mod now accelerates generation by default:
+## Use
 
-- NOISE runs on the GPU for routers whose generated kernel structure is on the
-  shipped qualified list (vanilla Overworld/Nether/End, Terralith, Tectonic and
-  their combination at the pinned versions). Anything else, and any chunk the
-  kernels flag, uses the original generator.
-- Structure starts/references, surface, carvers and features run on the
-  worldgen worker pool instead of one thread.
+| Command | What it does |
+| --- | --- |
+| `/worldgennext status` | What is active, chunk counts, tips |
+| `/worldgennext pregen start <radius>` | Generate a square, `radius` chunks in each direction from where you stand (from the console: the world spawn) |
+| `/worldgennext pregen start <radius> <x> <z>` | Same, centred on block coordinates |
+| `/worldgennext pregen pause` / `resume` / `stop` / `status` | `resume` also continues a job that a restart interrupted |
 
-Measured on the reference host: about 3,330–3,480 NOISE chunks/s on vanilla
-Overworld (vanilla: about 720) and about 2,340–2,480 on the combined pack
-(vanilla: about 490); FULL about 660 against about 110. GPU output is digest-identical to
-vanilla through CARVERS in the tested contexts. See
-[throughput evidence](docs/evidence/throughput-fused-gpu.md) for method and
-limits; it has run in an installed dedicated server but not in a client.
+Settings live in `config/worldgennext.toml`, written on first start:
+
+```toml
+enabled = true            # false: behave exactly as without the mod
+
+[gpu]
+mode = "auto"             # "auto" | "force" (untested generators too) | "off"
+
+[generation]
+parallel_steps = true
+
+[saving]
+async = true
+compression_level = 1     # 1 fastest (files ~12% larger) ... 6 = vanilla size ... 9
+
+[pregen]
+in_flight = 1024
+progress_seconds = 10
+```
+
+Two things affect sustained pregeneration speed more than anything in that
+file:
+
+- `sync-chunk-writes=true` in `server.properties` (the default) makes every
+  chunk write wait for the disk. The mod leaves it alone and tells you when it
+  is on.
+- Generation order. The built-in pregenerator works one region file at a time.
+  A pregenerator that walks one-chunk-wide rings re-reads its neighbours from
+  disk on every lap; in a benchmark with that order, throughput fell from about
+  2,400 to about 200 chunks/s once the radius passed 128 chunks.
+
+All options, commands and developer switches: [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
+
+## What "the same world" means here
+
+Checked on the reference host (2026-10-03), each on 8,281 chunks per context
+against vanilla generating one chunk at a time with every optimization off:
+
+- Through the SURFACE step, per-chunk digests (blocks, heightmaps, biomes,
+  structure starts and references, post-processing marks) are identical in 15
+  contexts: three vanilla Overworld seeds, Nether, End, seven biome-specific
+  Overworld areas, Terralith, Tectonic and both together.
+- Through CARVERS, the same holds for the contexts re-run after each change
+  (vanilla Overworld, Nether, End, Terralith).
+- From FEATURES on, chunk contents are not reproducible from run to run (feature
+  placement depends on the order neighbouring chunks are generated in), so
+  later steps are checked piece by piece instead: the ore-vein scan against vanilla's on the same
+  random draws (871,121 veins in vanilla, 893,472 with Terralith, no
+  difference), the biome shortcut against vanilla's answer (6.8 million
+  lookups, no difference), and saved chunks against the chunks as generated
+  after reopening the world (blocks, heightmaps, biomes, post-processing marks
+  identical; structure data identical to what vanilla's save path writes).
+
+Not checked: clients and singleplayer, Linux, GPUs other than an RTX 5070 Ti,
+world generators outside the tested list, other mods that change chunk
+generation or saving.
+
+## Throughput
+
+Reference host: 24 logical cores, RTX 5070 Ti, 16 GB heap, ScalableLux, dev
+server, chunks generated to FULL and saved, measured after a 6,561-chunk
+warm-up. Whole-run figures; one run each unless a range is given.
+
+| World generator | Vanilla | WorldgenNext |
+| --- | --- | --- |
+| Vanilla Overworld | 124 (8,281 chunks) | 2,675–2,802 (32,761 chunks) |
+| Tectonic | not measured | 2,593 |
+| Terralith | not measured | 1,824 |
+| Terralith + Tectonic | not measured | 1,811 |
+
+A cold start (121-chunk warm-up) gives 2,465–2,475 on vanilla Overworld. A
+90,601-chunk run in region order with `sync-chunk-writes=false` sustained
+2,734. Method, history and limits:
+[docs/evidence/throughput-fused-gpu.md](docs/evidence/throughput-fused-gpu.md).
 
 ```powershell
-# Timed benchmark (fresh world, 8,281 chunks); add -ModsDir for a terrain pack
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\bench-cps.ps1 -Status NOISE
-# Digest matrix against serial vanilla for every context
+# One FULL benchmark run (label, extra -D properties, mods folder, radius, warm-up radius)
+bash scripts/bench-full.sh myrun "" build/test-mods/vanilla 90 40
+# Digest matrix against serial vanilla (15 contexts, about 45 minutes)
 bash scripts/verify-fast-matrix.sh 45
+# Save, reopen and compare
+bash scripts/verify-save-reopen.sh 45 vanilla
+# The user path end to end: default config, pregenerate, status report
+bash scripts/run-pregen.sh 60 vanilla
 ```
+
+## Repository
+
+This repository also contains the earlier, stricter qualification route (typed
+capture/program contracts, an independent Minecraft oracle, a bit-exact GPU
+route behind evidence gates). It ships in the jar as developer tooling under
+`/worldgennext dev` and generates nothing unless an operator supplies
+qualification evidence. Start with [Plan.md](Plan.md),
+[architecture](docs/ARCHITECTURE.md), [file map](docs/FILE_MAP.md) and
+[validation status](docs/STATUS.md).
 
 ## Build and test
 
@@ -55,7 +156,7 @@ python3 scripts/summarize-tests.py
 
 The default suite does not require a GPU or launch Minecraft. Aggregate HTML: `build/reports/tests/all/index.html`. Every module retains its own JUnit XML and HTML reports. Python is needed only for the convenience summary script.
 
-## Run the v0.1 diagnostics
+## Run the staged-route diagnostics
 
 With JDK21 selected, run these from the repository root:
 
@@ -102,7 +203,7 @@ Replay reports are in `oracle-and-replay/build/replay/`. The dedicated game run 
 
 On the initial RTX5070Ti host, the normal-range diagnostic passed 917 comparisons. The strict GPU check failed its capability gate because the driver does not advertise FP64 subnormal preservation. The two results have different corpus IDs and neither establishes full floating-point or Minecraft qualification. See [validation status](docs/STATUS.md).
 
-The checkpoint mod is `neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-0.2.0.jar`. In a Minecraft1.21.1/NeoForge installation it exposes `/worldgennext status` and `/worldgennext selftest` to operators. The latter compares synthetic CPU expressions and fixture material states; it does not accelerate or validate world generation. Native Vulkan is exercised through the separate replay application, while the persistent service is packaged with lazy initialization. Fabric packaging is deferred.
+The mod jar is `neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-0.2.0.jar`. The staged route's diagnostics are under `/worldgennext dev` (`status`, `status-json`, `write-default-config`, `selftest`); `selftest` compares synthetic CPU expressions and fixture material states and validates no world generation. Fabric packaging is deferred.
 
 ## Modules
 

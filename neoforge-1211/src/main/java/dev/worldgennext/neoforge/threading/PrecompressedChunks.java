@@ -6,11 +6,15 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.world.level.chunk.storage.RegionFileVersion;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentMap;
+import java.util.zip.Deflater;
+import java.util.zip.DeflaterOutputStream;
 
 /**
  * Region payloads compressed ahead of the IO worker.
@@ -69,10 +73,10 @@ public final class PrecompressedChunks {
      */
     private static final int DEFLATE_LEVEL = Integer.getInteger("worldgennext.asyncChunkCompressLevel", 1);
 
-    private static java.io.OutputStream wrap(RegionFileVersion version, java.io.OutputStream out) throws IOException {
+    private static OutputStream wrap(RegionFileVersion version, OutputStream out) throws IOException {
         if (DEFLATE_LEVEL >= 0 && DEFLATE_LEVEL <= 9 && version == RegionFileVersion.VERSION_DEFLATE) {
-            java.util.zip.Deflater deflater = new java.util.zip.Deflater(DEFLATE_LEVEL);
-            return new java.io.BufferedOutputStream(new java.util.zip.DeflaterOutputStream(out, deflater) {
+            Deflater deflater = new Deflater(DEFLATE_LEVEL);
+            return new BufferedOutputStream(new DeflaterOutputStream(out, deflater) {
                 @Override
                 public void close() throws IOException {
                     try {

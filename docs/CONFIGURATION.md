@@ -1,6 +1,51 @@
 # WorldgenNext configuration
 
+## Settings file: `config/worldgennext.toml`
+
+Written with these defaults on first start; read once at startup, before any
+of the mod's code runs. Unknown options and invalid values are reported in the
+log and by `/worldgennext status`, and the default is used.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | Master switch. `false` turns off everything the mod changes (every switch in the developer table below is set to its original-behaviour value). |
+| `gpu.mode` | `"auto"` | `"auto"`: GPU terrain for world generators on the tested list, vanilla code for the rest. `"force"`: GPU for any generator the kernels build for; untested generators are not guaranteed identical. `"off"`: no GPU, CPU-side optimizations stay on. |
+| `generation.parallel_steps` | `true` | Structure, surface, carver and feature steps of different chunks run at the same time. |
+| `saving.async` | `true` | Chunks are encoded and compressed on background threads when they unload. |
+| `saving.compression_level` | `1` | Deflate level for those chunks, 1–9. Level 1 files are about 12% larger than vanilla's; 6 matches vanilla's size. |
+| `pregen.in_flight` | `1024` | Chunks `/worldgennext pregen` works on at once (16–16384). |
+| `pregen.progress_seconds` | `10` | Seconds between progress messages. |
+
+Each option stands for one or more of the system properties below. A property
+given on the command line (`-Dworldgennext...`) wins over the file.
+
+## Commands (permission level 2)
+
+| Command | Effect |
+| --- | --- |
+| `/worldgennext status` | GPU in use, what each dimension generates with and why, chunk counts, settings problems, tips. |
+| `/worldgennext pregen start <radius> [<centerX> <centerZ>]` | Generates a square of `(2·radius+1)²` chunks in the caller's dimension. Radius in chunks (max 5000); centre in block coordinates, default the caller's position (the world spawn from the console). |
+| `/worldgennext pregen pause` / `resume` / `stop` / `status` | Pause keeps progress; `resume` also continues a job a restart cut short; `stop` discards it (generated chunks stay). |
+| `/worldgennext dev status`, `dev status-json`, `dev write-default-config`, `dev selftest` | Staged-route developer diagnostics (formerly directly under `/worldgennext`). |
+
+The pregenerator walks one region file (32×32 chunks) at a time, outward from
+the centre. Progress is kept in `worldgennext-pregen.properties` in the world
+folder. Unattended use: `-Dworldgennext.pregen.autostart=<radius>` starts a
+job around the Overworld spawn when the server is up,
+`-Dworldgennext.pregen.autoresume=true` continues an unfinished one instead,
+`-Dworldgennext.pregen.stopServerWhenDone=true` stops the server at the end,
+and `-Dworldgennext.statusOnStop=true` writes the status report to the log at
+shutdown.
+
+`sync-chunk-writes=true` in `server.properties` (the dedicated-server default)
+makes every chunk write wait for the disk. A 90,601-chunk run reached about
+2,000–2,130 chunks/s with it and 2,372 without (2026-10-03, before the
+scheduling-thread change); the mod does not change the setting.
+
 ## Throughput path settings (JVM system properties)
+
+Developer switches. Every one defaults to the optimized behaviour; the value
+in the last column of the second table restores the original code path.
 
 | Property | Default | Meaning |
 | --- | --- | --- |
@@ -12,6 +57,36 @@
 | `worldgennext.parallelStructureSteps` | `true` | Run structure starts/references on the worker pool. |
 | `worldgennext.parallelSurfaceCarvers` | `true` | Run surface and carvers on the worker pool. |
 | `worldgennext.parallelFeatures` | `true` | Run features in parallel where 3×3 neighbourhoods are disjoint. |
+
+| Property | Default | Original behaviour | Meaning |
+| --- | --- | --- | --- |
+| `worldgennext.fast.surface` | `true` | `false` | Surface rules on the GPU for qualified surface programs. |
+| `worldgennext.fast.aquiferPrefill` | `true` | `false` | Carvers reuse aquifer cell results the GPU already computed. |
+| `worldgennext.fast.lazyNoiseWrap` | `true` | `false` | NoiseChunk maps its router on first use instead of in its constructor. |
+| `worldgennext.fast.orePlacement` | `true` | `false` | Ore veins use the row-mask scan (`worldgennext.fast.oreRows=false` keeps the hoisted terms but the original visited index). |
+| `worldgennext.fast.uniformBiome` | `true` | `false` | Biome lookups skip the seeded cell choice when all eight candidate cells hold one biome. |
+| `worldgennext.fast.biomeIndex` | `true` | `false` | Exact per-column replacement for the climate R-tree search. |
+| `worldgennext.fast.rtreeStoreSkip` | `true` | `false` | The climate R-tree does not re-store a lookup result that is already the stored one. |
+| `worldgennext.biomeColumnCache` | `true` | `false` | Column-only climate functions are evaluated once per column (`worldgennext.biomeUnwrappedSampler=false` keeps the NoiseChunk for BIOMES). |
+| `worldgennext.fast.regionChunkCache` | `true` | `false` | A WorldGenRegion remembers the chunks it resolved, with the status each may be read at. |
+| `worldgennext.fast.shapeCache` | `true` | `false` | `Block.isShapeFullBlock` is memoized per thread instead of in a shared, lock-taking cache. |
+| `worldgennext.fast.freshRegionShortcut` | `true` | `false` | Region files created this session are not scanned for pre-1.18 chunks. |
+| `worldgennext.asyncChunkSave` | `true` | `false` | Section encoding of unloading chunks runs on a save pool (`asyncChunkSaveThreads`, `asyncChunkSaveQueue`). |
+| `worldgennext.asyncChunkCompress` | `true` | `false` | The save pool also compresses the chunk; the IO thread only writes. |
+| `worldgennext.asyncChunkCompressLevel` | `1` | — | Deflate level for precompressed chunks. |
+| `worldgennext.regionHeaderBatch` | `true` | `false` | Region headers are written when the IO worker runs dry instead of after every chunk. |
+| `worldgennext.asyncIoMailboxBatch` | `256` | `1` | Messages an IO worker handles per dispatch. |
+| `worldgennext.parallelMailboxThreads` | `true` | `false` | The chunk system's "worldgen" and "sorter" mailboxes run on their own threads (`worldgennext.parallelMailboxBatch`, default 64 messages per dispatch). |
+| `worldgennext.unloadTypeCache` | `true` | `false` | Remembers chunk types so unload saves do not re-read the region file. |
+| `worldgennext.unloadPacing` | `true` | `false` | Spreads unload saves over ticks and idle time. |
+| `worldgennext.promptTaskRelease` | `true` | `false` | Cancelled generation tasks release their chunk references at top priority. |
+
+Verification modes compare an optimized result with the original while the
+server runs: `worldgennext.fast.verify` and `worldgennext.fast.surfaceVerify`
+log and count differences (the original result is kept);
+`worldgennext.fast.biomeIndexVerify` counts them;
+`worldgennext.fast.oreVerify` and `worldgennext.fast.uniformBiomeVerify` fail
+the chunk on a difference and print totals at shutdown.
 
 Diagnostics: `worldgennext.fast.verify=true` generates each chunk with both the
 original generator and the GPU and logs block mismatches (the original result
@@ -487,17 +562,17 @@ scope is `executor_lifetime_since_batch_start`, covering successful dispatches,
 elements, input/output bytes and wall-clock nanoseconds for the worker's
 persistent executor; it is diagnostic evidence, not a throughput claim.
 
-`/worldgennext status` reports `qualificationStatus=HOOK_DISABLED`,
+`/worldgennext dev status` reports `qualificationStatus=HOOK_DISABLED`,
 `NO_RECEIPT_CONFIGURED`, `REJECTED:<reason>`, or `ADMITTED:<route>` so an
 operator can distinguish configuration from qualification state.
-`/worldgennext status-json` exposes the same native state plus a schema-1
+`/worldgennext dev status-json` exposes the same native state plus a schema-1
 coordinator object containing lifecycle, queue depth/capacity, active and
 retained-terminal records, reserved/budget bytes, and every independent work
 counter. The live mod also exposes effective hook/config identity and a
 process-local `telemetry` object. Its counters distinguish hook calls,
 bypasses, replacement decisions, immediate failures, successful async target
 completions, async failures, and cancellations. They are diagnostic operator
-counters, not parity evidence. `/worldgennext write-default-config` creates a
+counters, not parity evidence. `/worldgennext dev write-default-config` creates a
 deterministic default `config/worldgennext.properties` only when the file does
 not already exist; it never overwrites a file and requires a restart to apply
 the new values. Machine-readable status also carries `qualificationStatus`,

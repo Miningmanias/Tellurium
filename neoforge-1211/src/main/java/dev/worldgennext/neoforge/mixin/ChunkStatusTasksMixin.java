@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.mixin;
 
-import dev.worldgennext.neoforge.WorldgenNextMod;
+import dev.worldgennext.neoforge.legacy.StagedRoute;
 import net.minecraft.server.level.GenerationChunkHolder;
 import net.minecraft.util.StaticCache2D;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -28,8 +28,8 @@ public abstract class ChunkStatusTasksMixin {
             StaticCache2D<GenerationChunkHolder> cache,
             ChunkAccess chunk,
             CallbackInfoReturnable<CompletableFuture<ChunkAccess>> callback) {
-        WorldgenNextMod.HookResult result = WorldgenNextMod.interceptNoise(context, step, cache, chunk);
-        if (result.action() != WorldgenNextMod.HookAction.BYPASS) {
+        StagedRoute.HookResult result = StagedRoute.interceptNoise(context, step, cache, chunk);
+        if (result.action() != StagedRoute.HookAction.BYPASS) {
             callback.setReturnValue(result.future());
         }
     }

@@ -14,7 +14,7 @@ import dev.worldgennext.semantic.identity.DynamicInputIdentity;
 import dev.worldgennext.semantic.snapshot.GeneratorSettingsSnapshot;
 import dev.worldgennext.semantic.snapshot.RegistrySnapshot;
 import dev.worldgennext.semantic.snapshot.StructureBlendSnapshot;
-import dev.worldgennext.neoforge.WorldgenNextMod;
+import dev.worldgennext.neoforge.legacy.StagedRoute;
 import dev.worldgennext.neoforge.runtime.QualifiedHookEvidence;
 import dev.worldgennext.semantic.WorldgenIdentity;
 import net.minecraft.gametest.framework.GameTest;
@@ -62,7 +62,7 @@ import java.util.concurrent.CompletableFuture;
 public final class DiagnosticGameTests {
     @GameTest(template = "empty", timeoutTicks = 100)
     public void packagedCoreAvailable(GameTestHelper helper) {
-        helper.assertTrue(ModList.get().isLoaded(WorldgenNextMod.MOD_ID), "Main diagnostics mod must be loaded");
+        helper.assertTrue(ModList.get().isLoaded(dev.worldgennext.neoforge.WorldgenNextMod.MOD_ID), "Main diagnostics mod must be loaded");
         var result = DiagnosticSelfTest.run();
         helper.assertTrue(result.passed(), "Synthetic core selftest failed: " + result);
         helper.succeed();
@@ -208,8 +208,8 @@ public final class DiagnosticGameTests {
 
     @GameTest(template = "empty", timeoutTicks = 100)
     public void versionPinnedNoiseHookBypassesWithoutQualification(GameTestHelper helper) {
-        var result = WorldgenNextMod.interceptNoise(null, null, null, null);
-        helper.assertTrue(result.action() == WorldgenNextMod.HookAction.BYPASS,
+        var result = StagedRoute.interceptNoise(null, null, null, null);
+        helper.assertTrue(result.action() == StagedRoute.HookAction.BYPASS,
                 "Unqualified generateNoise must remain vanilla: " + result.reason());
         helper.assertTrue(result.future() == null, "Vanilla bypass must not create a replacement future");
         helper.succeed();
@@ -218,7 +218,7 @@ public final class DiagnosticGameTests {
     @GameTest(template = "empty", timeoutTicks = 100)
     public void hookValidationCancellationPropagatesToProvider(GameTestHelper helper) {
         CompletableFuture<ChunkAccess> provider = new CompletableFuture<>();
-        CompletableFuture<ChunkAccess> validated = WorldgenNextMod.validatedProviderFuture(provider, null);
+        CompletableFuture<ChunkAccess> validated = StagedRoute.validatedProviderFuture(provider, null);
         helper.assertTrue(validated.cancel(false), "Hook validation future did not accept cancellation");
         helper.assertTrue(provider.isCancelled(), "Provider future kept running after hook cancellation");
         helper.assertTrue(validated.isCancelled(), "Hook validation future did not remain cancelled");
@@ -227,11 +227,11 @@ public final class DiagnosticGameTests {
 
     @GameTest(template = "empty", timeoutTicks = 100)
     public void rejectedProviderAdmissionClosesOnlyTheUninstalledProvider(GameTestHelper helper) {
-        WorldgenNextMod.clearQualifiedNoiseProvider(null);
+        StagedRoute.clearQualifiedNoiseProvider(null);
         var closed = new AtomicInteger();
         Object proxy = java.lang.reflect.Proxy.newProxyInstance(
-                WorldgenNextMod.QualifiedNoiseProvider.class.getClassLoader(),
-                new Class<?>[]{WorldgenNextMod.QualifiedNoiseProvider.class, AutoCloseable.class},
+                StagedRoute.QualifiedNoiseProvider.class.getClassLoader(),
+                new Class<?>[]{StagedRoute.QualifiedNoiseProvider.class, AutoCloseable.class},
                 (ignored, method, arguments) -> switch (method.getName()) {
                     case "route" -> "CPU_OWNED";
                     case "close" -> { closed.incrementAndGet(); yield null; }
@@ -239,15 +239,15 @@ public final class DiagnosticGameTests {
                 });
         boolean rejected = false;
         try {
-            WorldgenNextMod.registerQualifiedNoiseProvider(
-                    (WorldgenNextMod.QualifiedNoiseProvider) proxy,
+            StagedRoute.registerQualifiedNoiseProvider(
+                    (StagedRoute.QualifiedNoiseProvider) proxy,
                     new QualifiedHookEvidence("unqualified", "CPU_OWNED", 0, 0, 0,
                             false, true,
                             "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"));
         } catch (IllegalArgumentException expected) {
             rejected = true;
         } finally {
-            WorldgenNextMod.clearQualifiedNoiseProvider(null);
+            StagedRoute.clearQualifiedNoiseProvider(null);
         }
         helper.assertTrue(rejected, "Unqualified provider admission unexpectedly succeeded");
         helper.assertTrue(closed.get() == 1,

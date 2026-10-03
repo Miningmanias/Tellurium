@@ -3,6 +3,7 @@ package dev.worldgennext.neoforge.mixin;
 
 import dev.worldgennext.neoforge.threading.AsyncSectionEncoding;
 import dev.worldgennext.neoforge.threading.PendingChunkSaves;
+import dev.worldgennext.neoforge.threading.PrecompressedChunks;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import net.minecraft.Util;
 import net.minecraft.nbt.CompoundTag;
@@ -61,7 +62,7 @@ public abstract class ChunkMapAsyncSaveMixin {
         if (collector == null) return self.write(pos, tag);
         AsyncSectionEncoding.Task encoding = AsyncSectionEncoding.submit(() -> {
             AsyncSectionEncoding.resolve(tag, collector);
-            dev.worldgennext.neoforge.threading.PrecompressedChunks.prepare(tag);
+            PrecompressedChunks.prepare(tag);
         });
         CompletableFuture<Void> save = encoding.done().thenCompose(ignored -> {
             CompletableFuture<Void> written = self.write(pos, tag);

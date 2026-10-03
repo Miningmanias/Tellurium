@@ -20,6 +20,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.material.FluidState;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -85,7 +86,7 @@ public final class FastChunkApplier {
         for (int s = 0; s < sections.length; s++) {
             int offset = s * 4096;
             if (offset + 4096 > data.length) break;
-            java.util.Arrays.fill(local, -1);
+            Arrays.fill(local, -1);
             int distinct = 0, marks = 0;
             boolean onlyAir = true;
             for (int i = 0; i < 4096; i++) {

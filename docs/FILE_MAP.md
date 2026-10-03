@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **449**, plus this generated index.
+Indexed project files: **580**, plus this generated index.
 
 ## semantic-core
 
@@ -57,6 +57,7 @@ Immutable semantic language and independent reference evaluation.
 | [semantic-core/src/main/java/dev/worldgennext/semantic/WorldgenIdentity.java](../semantic-core/src/main/java/dev/worldgennext/semantic/WorldgenIdentity.java) | Implementation or explicit public contract |
 | [semantic-core/src/test/java/dev/worldgennext/semantic/SemanticContractTest.java](../semantic-core/src/test/java/dev/worldgennext/semantic/SemanticContractTest.java) | Executable CPU test |
 | [semantic-core/src/test/java/dev/worldgennext/semantic/V02ContractsTest.java](../semantic-core/src/test/java/dev/worldgennext/semantic/V02ContractsTest.java) | Executable CPU test |
+| [semantic-core/src/test/java/dev/worldgennext/semantic/WorldgenProgramFingerprintTest.java](../semantic-core/src/test/java/dev/worldgennext/semantic/WorldgenProgramFingerprintTest.java) | Executable CPU test |
 
 ## compiler-jvm
 
@@ -95,22 +96,35 @@ Vulkan GLSL source generation.
 | File | Role |
 | --- | --- |
 | [compiler-vulkan/README.md](../compiler-vulkan/README.md) | Documentation |
+| [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/fused/FusedGpuBackend.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/fused/FusedGpuBackend.java) | Implementation or explicit public contract |
+| [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/fused/FusedKernels.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/fused/FusedKernels.java) | Implementation or explicit public contract |
+| [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/fused/FusedNoiseCompiler.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/fused/FusedNoiseCompiler.java) | Implementation or explicit public contract |
+| [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/fused/FusedSurfaceKernels.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/fused/FusedSurfaceKernels.java) | Implementation or explicit public contract |
+| [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/fused/FusedTables.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/fused/FusedTables.java) | Implementation or explicit public contract |
+| [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/fused/SurfaceProgram.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/fused/SurfaceProgram.java) | Implementation or explicit public contract |
 | [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/GlslCompiler.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/GlslCompiler.java) | Implementation or explicit public contract |
 | [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/AquiferEmitter.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/AquiferEmitter.java) | Implementation or explicit public contract |
+| [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/BeardifierEmitter.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/BeardifierEmitter.java) | Implementation or explicit public contract |
+| [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/BeardifierKernelInputStage.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/BeardifierKernelInputStage.java) | Implementation or explicit public contract |
 | [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/CapturedNoiseEmitter.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/CapturedNoiseEmitter.java) | Implementation or explicit public contract |
 | [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/ControlFlowEmitter.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/ControlFlowEmitter.java) | Implementation or explicit public contract |
 | [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/IntegerIeeeEmitter.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/IntegerIeeeEmitter.java) | Implementation or explicit public contract |
 | [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/MarkerEmitter.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/MarkerEmitter.java) | Implementation or explicit public contract |
 | [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/MaterialEmitter.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/MaterialEmitter.java) | Implementation or explicit public contract |
+| [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/NativeDraftMath.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/NativeDraftMath.java) | Implementation or explicit public contract |
 | [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/NoiseEmitter.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/NoiseEmitter.java) | Implementation or explicit public contract |
 | [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/NumericHelperRegistry.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/NumericHelperRegistry.java) | Implementation or explicit public contract |
 | [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/OreVeinEmitter.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/OreVeinEmitter.java) | Implementation or explicit public contract |
 | [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/ShaderCacheKey.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/ShaderCacheKey.java) | Implementation or explicit public contract |
+| [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/SharedBlendedReductionStageEmitter.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/SharedBlendedReductionStageEmitter.java) | Implementation or explicit public contract |
+| [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/SharedFp64DivisionStageEmitter.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/SharedFp64DivisionStageEmitter.java) | Implementation or explicit public contract |
+| [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/SharedSplineStageEmitter.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/SharedSplineStageEmitter.java) | Implementation or explicit public contract |
 | [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/SpirvFunctionControlPatcher.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/SpirvFunctionControlPatcher.java) | Implementation or explicit public contract |
 | [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/SpirvNumericContract.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/SpirvNumericContract.java) | Implementation or explicit public contract |
 | [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/StageLayout.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/StageLayout.java) | Implementation or explicit public contract |
 | [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/StagePlanner.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/StagePlanner.java) | Implementation or explicit public contract |
 | [compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/WorldgenShaderCompiler.java](../compiler-vulkan/src/main/java/dev/worldgennext/compiler/vulkan/worldgen/WorldgenShaderCompiler.java) | Implementation or explicit public contract |
+| [compiler-vulkan/src/main/resources/dev/worldgennext/compiler/vulkan/fused/fused_lib.glsl](../compiler-vulkan/src/main/resources/dev/worldgennext/compiler/vulkan/fused/fused_lib.glsl) | Packaged metadata/resource |
 | [compiler-vulkan/src/main/resources/shaders/ieee/bits32.glsl](../compiler-vulkan/src/main/resources/shaders/ieee/bits32.glsl) | Packaged metadata/resource |
 | [compiler-vulkan/src/main/resources/shaders/ieee/bits64.glsl](../compiler-vulkan/src/main/resources/shaders/ieee/bits64.glsl) | Packaged metadata/resource |
 | [compiler-vulkan/src/main/resources/shaders/ieee/integer-java.glsl](../compiler-vulkan/src/main/resources/shaders/ieee/integer-java.glsl) | Packaged metadata/resource |
@@ -118,9 +132,16 @@ Vulkan GLSL source generation.
 | [compiler-vulkan/src/main/resources/shaders/worldgen/metadata.comp](../compiler-vulkan/src/main/resources/shaders/worldgen/metadata.comp) | Packaged metadata/resource |
 | [compiler-vulkan/src/main/resources/shaders/worldgen/noise.comp](../compiler-vulkan/src/main/resources/shaders/worldgen/noise.comp) | Packaged metadata/resource |
 | [compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/GlslCompilerTest.java](../compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/GlslCompilerTest.java) | Executable CPU test |
+| [compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/IntegerIeeeLimbOrderTest.java](../compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/IntegerIeeeLimbOrderTest.java) | Executable CPU test |
+| [compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/NativeDraftMathTest.java](../compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/NativeDraftMathTest.java) | Executable CPU test |
+| [compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/OreVeinEmitterTest.java](../compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/OreVeinEmitterTest.java) | Executable CPU test |
 | [compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/SpirvFunctionControlPatcherTest.java](../compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/SpirvFunctionControlPatcherTest.java) | Executable CPU test |
 | [compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/SpirvNumericContractTest.java](../compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/SpirvNumericContractTest.java) | Executable CPU test |
 | [compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/V02WorldgenShaderTest.java](../compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/V02WorldgenShaderTest.java) | Executable CPU test |
+| [compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/worldgen/BeardifierKernelInputStageTest.java](../compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/worldgen/BeardifierKernelInputStageTest.java) | Executable CPU test |
+| [compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/worldgen/SharedBlendedReductionStageEmitterTest.java](../compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/worldgen/SharedBlendedReductionStageEmitterTest.java) | Executable CPU test |
+| [compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/worldgen/SharedFp64DivisionStageEmitterTest.java](../compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/worldgen/SharedFp64DivisionStageEmitterTest.java) | Executable CPU test |
+| [compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/worldgen/SharedSplineStageEmitterTest.java](../compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/worldgen/SharedSplineStageEmitterTest.java) | Executable CPU test |
 
 ## material-codec
 
@@ -226,10 +247,12 @@ Bounded coordinator, routing and commit models.
 | [chunk-engine/src/test/java/dev/worldgennext/engine/RoutingPolicyTest.java](../chunk-engine/src/test/java/dev/worldgennext/engine/RoutingPolicyTest.java) | Executable CPU test |
 | [chunk-engine/src/test/java/dev/worldgennext/engine/worldgen/CommitCoordinatorTest.java](../chunk-engine/src/test/java/dev/worldgennext/engine/worldgen/CommitCoordinatorTest.java) | Executable CPU test |
 | [chunk-engine/src/test/java/dev/worldgennext/engine/worldgen/CommitReceiptProvenanceTest.java](../chunk-engine/src/test/java/dev/worldgennext/engine/worldgen/CommitReceiptProvenanceTest.java) | Executable CPU test |
+| [chunk-engine/src/test/java/dev/worldgennext/engine/worldgen/FixedBatchBuilderTest.java](../chunk-engine/src/test/java/dev/worldgennext/engine/worldgen/FixedBatchBuilderTest.java) | Executable CPU test |
 | [chunk-engine/src/test/java/dev/worldgennext/engine/worldgen/ResourceEstimateTest.java](../chunk-engine/src/test/java/dev/worldgennext/engine/worldgen/ResourceEstimateTest.java) | Executable CPU test |
 | [chunk-engine/src/test/java/dev/worldgennext/engine/worldgen/SpatialWorkServiceTest.java](../chunk-engine/src/test/java/dev/worldgennext/engine/worldgen/SpatialWorkServiceTest.java) | Executable CPU test |
 | [chunk-engine/src/test/java/dev/worldgennext/engine/worldgen/WorkCountersTest.java](../chunk-engine/src/test/java/dev/worldgennext/engine/worldgen/WorkCountersTest.java) | Executable CPU test |
 | [chunk-engine/src/test/java/dev/worldgennext/engine/worldgen/WorkRecordTest.java](../chunk-engine/src/test/java/dev/worldgennext/engine/worldgen/WorkRecordTest.java) | Executable CPU test |
+| [chunk-engine/src/test/java/dev/worldgennext/engine/WorldgenCoordinatorCampaign.java](../chunk-engine/src/test/java/dev/worldgennext/engine/WorldgenCoordinatorCampaign.java) | Executable CPU test |
 | [chunk-engine/src/test/java/dev/worldgennext/engine/WorldgenCoordinatorTest.java](../chunk-engine/src/test/java/dev/worldgennext/engine/WorldgenCoordinatorTest.java) | Executable CPU test |
 
 ## frontend-mc1211
@@ -265,14 +288,24 @@ Persistent Vulkan lifecycle and opt-in native compute.
 | [runtime-vulkan/README.md](../runtime-vulkan/README.md) | Documentation |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/DeviceCapabilities.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/DeviceCapabilities.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/Fp64Profile.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/Fp64Profile.java) | Implementation or explicit public contract |
+| [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/fused/FusedCompileProbe.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/fused/FusedCompileProbe.java) | Implementation or explicit public contract |
+| [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/fused/FusedNoiseDevice.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/fused/FusedNoiseDevice.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/GpuSmokeResult.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/GpuSmokeResult.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/Hashes.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/Hashes.java) | Implementation or explicit public contract |
+| [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeBeardifierSmoke.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeBeardifierSmoke.java) | Implementation or explicit public contract |
+| [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeBlendedReductionSmoke.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeBlendedReductionSmoke.java) | Implementation or explicit public contract |
+| [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeIntegerFloorSmoke.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeIntegerFloorSmoke.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeIntegerIeeeCompile.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeIntegerIeeeCompile.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeIntegerIeeeRunner.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeIntegerIeeeRunner.java) | Implementation or explicit public contract |
+| [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeRangeChoiceSmoke.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeRangeChoiceSmoke.java) | Implementation or explicit public contract |
+| [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeRawChainSuffixSmoke.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeRawChainSuffixSmoke.java) | Implementation or explicit public contract |
+| [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeSharedFp64DivisionSmoke.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeSharedFp64DivisionSmoke.java) | Implementation or explicit public contract |
+| [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeSingleKnotSplineSmoke.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeSingleKnotSplineSmoke.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeVulkanLifecycleRunner.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeVulkanLifecycleRunner.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeWorldgenSmoke.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/NativeWorldgenSmoke.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/BufferLayout.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/BufferLayout.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/CapabilityQualifier.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/CapabilityQualifier.java) | Implementation or explicit public contract |
+| [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/ChainStoragePlan.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/ChainStoragePlan.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/CompletionPump.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/CompletionPump.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/DeviceArena.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/DeviceArena.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/DeviceFailureHandler.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/DeviceFailureHandler.java) | Implementation or explicit public contract |
@@ -282,12 +315,15 @@ Persistent Vulkan lifecycle and opt-in native compute.
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/MemoryVisibility.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/MemoryVisibility.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/NativeBudgetLedger.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/NativeBudgetLedger.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/PipelineCache.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/PipelineCache.java) | Implementation or explicit public contract |
+| [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/PipelineCacheLimits.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/PipelineCacheLimits.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/PipelineCompiler.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/PipelineCompiler.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/QuarantineLedger.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/QuarantineLedger.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/QueueOwner.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/QueueOwner.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/ReadbackLease.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/ReadbackLease.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/RuntimeDiagnostics.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/RuntimeDiagnostics.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/ScratchLease.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/ScratchLease.java) | Implementation or explicit public contract |
+| [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/ScratchStoragePlan.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/ScratchStoragePlan.java) | Implementation or explicit public contract |
+| [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/SpirvModuleCache.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/SpirvModuleCache.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/SubmissionRing.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/SubmissionRing.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/UploadLease.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/UploadLease.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/VulkanContext.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/production/VulkanContext.java) | Implementation or explicit public contract |
@@ -298,6 +334,12 @@ Persistent Vulkan lifecycle and opt-in native compute.
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/SmokeWorkBudget.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/SmokeWorkBudget.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/VulkanSmokeRunner.java](../runtime-vulkan/src/main/java/dev/worldgennext/runtime/vulkan/VulkanSmokeRunner.java) | Implementation or explicit public contract |
 | [runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/DeviceCapabilitiesTest.java](../runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/DeviceCapabilitiesTest.java) | Executable CPU test |
+| [runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/NativeRangeChoiceSmokeTest.java](../runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/NativeRangeChoiceSmokeTest.java) | Executable CPU test |
+| [runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/production/ChainStoragePlanTest.java](../runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/production/ChainStoragePlanTest.java) | Executable CPU test |
+| [runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/production/PipelineCacheLimitsTest.java](../runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/production/PipelineCacheLimitsTest.java) | Executable CPU test |
+| [runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/production/RawRequestOwnershipTest.java](../runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/production/RawRequestOwnershipTest.java) | Executable CPU test |
+| [runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/production/ScratchStoragePlanTest.java](../runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/production/ScratchStoragePlanTest.java) | Executable CPU test |
+| [runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/production/SpirvModuleCacheTest.java](../runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/production/SpirvModuleCacheTest.java) | Executable CPU test |
 | [runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/SmokeWorkBudgetTest.java](../runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/SmokeWorkBudgetTest.java) | Executable CPU test |
 | [runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/V02ProductionTest.java](../runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/V02ProductionTest.java) | Executable CPU test |
 | [runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/VulkanWorldgenExecutorTest.java](../runtime-vulkan/src/test/java/dev/worldgennext/runtime/vulkan/VulkanWorldgenExecutorTest.java) | Executable CPU test |
@@ -365,18 +407,70 @@ Minecraft snapshot/runtime composition and bootstrap tests.
 | [neoforge-1211/src/gameTest/java/dev/worldgennext/neoforge/gametest/DiagnosticGameTests.java](../neoforge-1211/src/gameTest/java/dev/worldgennext/neoforge/gametest/DiagnosticGameTests.java) | Opt-in game bootstrap test/resource |
 | [neoforge-1211/src/gameTest/resources/data/worldgennext_test/structure/empty.nbt](../neoforge-1211/src/gameTest/resources/data/worldgennext_test/structure/empty.nbt) | Opt-in game bootstrap test/resource |
 | [neoforge-1211/src/gameTest/resources/META-INF/neoforge.mods.toml](../neoforge-1211/src/gameTest/resources/META-INF/neoforge.mods.toml) | Opt-in game bootstrap test/resource |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/bench/ChunkDigest.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/bench/ChunkDigest.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/bench/ChunkThroughputBenchmark.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/bench/ChunkThroughputBenchmark.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/command/StatusReport.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/command/StatusReport.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/command/WorldgenNextCommands.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/command/WorldgenNextCommands.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/compat/CompatibilityRegistry.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/compat/CompatibilityRegistry.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/config/UserSettings.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/config/UserSettings.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/config/WorldgenNextConfig.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/config/WorldgenNextConfig.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/config/WorldgenNextConfigLoader.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/config/WorldgenNextConfigLoader.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/DiagnosticSelfTest.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/DiagnosticSelfTest.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/AquiferPrefill.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/AquiferPrefill.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/ClimateColumnCache.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/ClimateColumnCache.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/ColumnBiomeIndex.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/ColumnBiomeIndex.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastChunkApplier.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastChunkApplier.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastNoiseEngine.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastNoiseEngine.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastOrePlacement.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastOrePlacement.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastRouterCapture.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastRouterCapture.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastSurfaceCapture.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastSurfaceCapture.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastSurfaceState.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastSurfaceState.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/GpuRuntimeLoader.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/GpuRuntimeLoader.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/GraphDump.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/GraphDump.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/GraphStatistics.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/GraphStatistics.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/LazyMappedDensity.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/LazyMappedDensity.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/OrePlacementVerifier.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/OrePlacementVerifier.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/UniformBiomeLookup.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/UniformBiomeLookup.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/legacy/StagedRoute.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/legacy/StagedRoute.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/BiomeManagerUniformMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/BiomeManagerUniformMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/BlockableEventLoopAccessor.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/BlockableEventLoopAccessor.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/BlockShapeCacheMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/BlockShapeCacheMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkMapAsyncSaveMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkMapAsyncSaveMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkMapUnloadTypeMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkMapUnloadTypeMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkSerializerAsyncMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkSerializerAsyncMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkSerializerSurfaceMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkSerializerSurfaceMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkStatusTasksMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkStatusTasksMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkStatusTasksStructureMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkStatusTasksStructureMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkStorageAsyncMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkStorageAsyncMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkTaskPriorityQueueMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkTaskPriorityQueueMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ClimateParameterListMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ClimateParameterListMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ClimateRTreeMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ClimateRTreeMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerHeaderFlushMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerHeaderFlushMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerOldChunkMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerOldChunkMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/LevelChunkSectionAccessor.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/LevelChunkSectionAccessor.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/LevelChunkSectionUniformBiomeMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/LevelChunkSectionUniformBiomeMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/MinecraftServerIdleUnloadMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/MinecraftServerIdleUnloadMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/NoiseBasedChunkGeneratorFastMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/NoiseBasedChunkGeneratorFastMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/NoiseChunkLazyWrapMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/NoiseChunkLazyWrapMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/OreFeatureMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/OreFeatureMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ProcessorMailboxDispatchMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ProcessorMailboxDispatchMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileAccessor.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileAccessor.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileHeaderMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileHeaderMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileStorageAccessor.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileStorageAccessor.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileStorageCompressMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileStorageCompressMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/WorldgenNextMixinPlugin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/WorldgenNextMixinPlugin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/WorldGenRegionChunkCacheMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/WorldGenRegionChunkCacheMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/pregen/Pregenerator.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/pregen/Pregenerator.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/pregen/TileOrder.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/pregen/TileOrder.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/ChunkMutationJournal.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/ChunkMutationJournal.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/CompletionObservation.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/CompletionObservation.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/CoordinatedNoiseAttempt.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/CoordinatedNoiseAttempt.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/GenerationInterceptor.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/GenerationInterceptor.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/HeightmapPacking.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/HeightmapPacking.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/HookTelemetry.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/HookTelemetry.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/IsolatedGpuEvidence.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/IsolatedGpuEvidence.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/LiveNoiseBridge.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/LiveNoiseBridge.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/LogicalCandidateBackend.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/LogicalCandidateBackend.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/MinecraftChunkApplier.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/MinecraftChunkApplier.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/MinecraftChunkCommitter.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/MinecraftChunkCommitter.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/MinecraftCpuCandidate.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/MinecraftCpuCandidate.java) | Implementation or explicit public contract |
@@ -392,6 +486,7 @@ Minecraft snapshot/runtime composition and bootstrap tests.
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/MinecraftStageAdapter.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/MinecraftStageAdapter.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/NativeDependencyBootstrap.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/NativeDependencyBootstrap.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/NoiseChunkLifecycleAdapter.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/NoiseChunkLifecycleAdapter.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/ProviderActivity.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/ProviderActivity.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/QualificationEvidenceBundleFile.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/QualificationEvidenceBundleFile.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/QualificationEvidenceFile.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/QualificationEvidenceFile.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/QualifiedHookAdmission.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/QualifiedHookAdmission.java) | Implementation or explicit public contract |
@@ -406,15 +501,30 @@ Minecraft snapshot/runtime composition and bootstrap tests.
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/snapshot/MinecraftSnapshotReader.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/snapshot/MinecraftSnapshotReader.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/snapshot/RegistrySnapshotReader.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/snapshot/RegistrySnapshotReader.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/snapshot/StructureBlendReader.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/snapshot/StructureBlendReader.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/AsyncSectionEncoding.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/AsyncSectionEncoding.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/DeferredRegionHeaders.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/DeferredRegionHeaders.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/FeatureRegionScheduler.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/FeatureRegionScheduler.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/IdleUnloads.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/IdleUnloads.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/MailboxThreads.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/MailboxThreads.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/ParallelWorldgenSteps.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/ParallelWorldgenSteps.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/PendingChunkSaves.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/PendingChunkSaves.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/PrecompressedChunks.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/PrecompressedChunks.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/ShapeFullBlockCache.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/ShapeFullBlockCache.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/WorldgenNextMod.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/WorldgenNextMod.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/resources/META-INF/neoforge.mods.toml](../neoforge-1211/src/main/resources/META-INF/neoforge.mods.toml) | Packaged metadata/resource |
+| [neoforge-1211/src/main/resources/worldgennext/fused-qualified.properties](../neoforge-1211/src/main/resources/worldgennext/fused-qualified.properties) | Packaged metadata/resource |
 | [neoforge-1211/src/main/resources/worldgennext.mixins.json](../neoforge-1211/src/main/resources/worldgennext.mixins.json) | Packaged metadata/resource |
 | [neoforge-1211/src/test/java/dev/worldgennext/neoforge/command/WorldgenNextCommandsTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/command/WorldgenNextCommandsTest.java) | Executable CPU test |
+| [neoforge-1211/src/test/java/dev/worldgennext/neoforge/config/UserSettingsTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/config/UserSettingsTest.java) | Executable CPU test |
 | [neoforge-1211/src/test/java/dev/worldgennext/neoforge/config/WorldgenNextConfigLoaderTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/config/WorldgenNextConfigLoaderTest.java) | Executable CPU test |
 | [neoforge-1211/src/test/java/dev/worldgennext/neoforge/DiagnosticSelfTestTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/DiagnosticSelfTestTest.java) | Executable CPU test |
+| [neoforge-1211/src/test/java/dev/worldgennext/neoforge/pregen/TileOrderTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/pregen/TileOrderTest.java) | Executable CPU test |
 | [neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/ChunkMutationJournalTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/ChunkMutationJournalTest.java) | Executable CPU test |
+| [neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/CompletionObservationTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/CompletionObservationTest.java) | Executable CPU test |
+| [neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/IsolatedGpuEvidenceTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/IsolatedGpuEvidenceTest.java) | Executable CPU test |
 | [neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/LiveNoiseBridgeTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/LiveNoiseBridgeTest.java) | Executable CPU test |
 | [neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/MinecraftGpuCandidateTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/MinecraftGpuCandidateTest.java) | Executable CPU test |
+| [neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/ProviderActivityTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/ProviderActivityTest.java) | Executable CPU test |
 | [neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/QualificationEvidenceFileTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/QualificationEvidenceFileTest.java) | Executable CPU test |
 | [neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/QualifiedHookAdmissionTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/QualifiedHookAdmissionTest.java) | Executable CPU test |
 | [neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/QualifiedHookEvidenceBundleTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/QualifiedHookEvidenceBundleTest.java) | Executable CPU test |
@@ -448,6 +558,7 @@ Deferred loader frame.
 | [docs/design/EVIDENCE.md](../docs/design/EVIDENCE.md) | Documentation |
 | [docs/design/performance-model.json](../docs/design/performance-model.json) | Tooling, data or provenance |
 | [docs/design/PROPOSAL.md](../docs/design/PROPOSAL.md) | Documentation |
+| [docs/evidence/throughput-fused-gpu.md](../docs/evidence/throughput-fused-gpu.md) | Documentation |
 | [docs/evidence/v0.1-cpu-replay.json](../docs/evidence/v0.1-cpu-replay.json) | Tooling, data or provenance |
 | [docs/evidence/v0.1-cpu-tests.json](../docs/evidence/v0.1-cpu-tests.json) | Tooling, data or provenance |
 | [docs/evidence/v0.1-game-bootstrap.txt](../docs/evidence/v0.1-game-bootstrap.txt) | Tooling, data or provenance |
@@ -455,19 +566,29 @@ Deferred loader frame.
 | [docs/evidence/v0.1-gpu-strict.json](../docs/evidence/v0.1-gpu-strict.json) | Tooling, data or provenance |
 | [docs/evidence/v0.1-validation.json](../docs/evidence/v0.1-validation.json) | Tooling, data or provenance |
 | [docs/evidence/v0.1-validation.md](../docs/evidence/v0.1-validation.md) | Documentation |
+| [docs/evidence/v0.2-aquifer-integer-floor.md](../docs/evidence/v0.2-aquifer-integer-floor.md) | Documentation |
+| [docs/evidence/v0.2-beardifier-gpu.md](../docs/evidence/v0.2-beardifier-gpu.md) | Documentation |
 | [docs/evidence/v0.2-candidate-saved.md](../docs/evidence/v0.2-candidate-saved.md) | Documentation |
+| [docs/evidence/v0.2-coordinator-model-campaign.md](../docs/evidence/v0.2-coordinator-model-campaign.md) | Documentation |
 | [docs/evidence/v0.2-cpu-candidate.md](../docs/evidence/v0.2-cpu-candidate.md) | Documentation |
 | [docs/evidence/v0.2-cpu-live-prototype.md](../docs/evidence/v0.2-cpu-live-prototype.md) | Documentation |
 | [docs/evidence/v0.2-gpu-candidate-end.md](../docs/evidence/v0.2-gpu-candidate-end.md) | Documentation |
 | [docs/evidence/v0.2-gpu-candidate-nether.md](../docs/evidence/v0.2-gpu-candidate-nether.md) | Documentation |
 | [docs/evidence/v0.2-gpu-candidate-overworld-staging.md](../docs/evidence/v0.2-gpu-candidate-overworld-staging.md) | Documentation |
+| [docs/evidence/v0.2-gpu-exact-overworld.md](../docs/evidence/v0.2-gpu-exact-overworld.md) | Documentation |
 | [docs/evidence/v0.2-gpu-executor.md](../docs/evidence/v0.2-gpu-executor.md) | Documentation |
+| [docs/evidence/v0.2-gpu-seed1-fix.md](../docs/evidence/v0.2-gpu-seed1-fix.md) | Documentation |
+| [docs/evidence/v0.2-host-copy-fingerprint.md](../docs/evidence/v0.2-host-copy-fingerprint.md) | Documentation |
 | [docs/evidence/v0.2-integer-ieee.md](../docs/evidence/v0.2-integer-ieee.md) | Documentation |
+| [docs/evidence/v0.2-live-gpu-verifier.md](../docs/evidence/v0.2-live-gpu-verifier.md) | Documentation |
 | [docs/evidence/v0.2-mapped-capture.md](../docs/evidence/v0.2-mapped-capture.md) | Documentation |
 | [docs/evidence/v0.2-minecraft-application.md](../docs/evidence/v0.2-minecraft-application.md) | Documentation |
 | [docs/evidence/v0.2-original-full.md](../docs/evidence/v0.2-original-full.md) | Documentation |
 | [docs/evidence/v0.2-original-oracle.md](../docs/evidence/v0.2-original-oracle.md) | Documentation |
 | [docs/evidence/v0.2-original-saved.md](../docs/evidence/v0.2-original-saved.md) | Documentation |
+| [docs/evidence/v0.2-shared-blended-reduction.md](../docs/evidence/v0.2-shared-blended-reduction.md) | Documentation |
+| [docs/evidence/v0.2-shared-end-metadata.md](../docs/evidence/v0.2-shared-end-metadata.md) | Documentation |
+| [docs/evidence/v0.2-shared-fp64-divider.md](../docs/evidence/v0.2-shared-fp64-divider.md) | Documentation |
 | [docs/evidence/v0.2-terrain-mods.md](../docs/evidence/v0.2-terrain-mods.md) | Documentation |
 | [docs/IMPLEMENTATION_MAP.md](../docs/IMPLEMENTATION_MAP.md) | Documentation |
 | [docs/RELEASING.md](../docs/RELEASING.md) | Documentation |
@@ -487,21 +608,6 @@ Deferred loader frame.
 | [gradlew](../gradlew) | Build configuration/tooling |
 | [gradlew.bat](../gradlew.bat) | Build configuration/tooling |
 | [LICENSE](../LICENSE) | Tooling, data or provenance |
-| [net/minecraft/world/level/chunk/ChunkAccess.java](../net/minecraft/world/level/chunk/ChunkAccess.java) | Tooling, data or provenance |
-| [net/minecraft/world/level/chunk/ProtoChunk.java](../net/minecraft/world/level/chunk/ProtoChunk.java) | Tooling, data or provenance |
-| [net/minecraft/world/level/chunk/UpgradeData.java](../net/minecraft/world/level/chunk/UpgradeData.java) | Tooling, data or provenance |
-| [net/minecraft/world/level/levelgen/blending/Blender.java](../net/minecraft/world/level/levelgen/blending/Blender.java) | Tooling, data or provenance |
-| [net/minecraft/world/level/levelgen/blending/BlendingData.java](../net/minecraft/world/level/levelgen/blending/BlendingData.java) | Tooling, data or provenance |
-| [net/minecraft/world/level/levelgen/DensityFunctions.java](../net/minecraft/world/level/levelgen/DensityFunctions.java) | Tooling, data or provenance |
-| [net/minecraft/world/level/levelgen/Heightmap.java](../net/minecraft/world/level/levelgen/Heightmap.java) | Tooling, data or provenance |
-| [net/minecraft/world/level/levelgen/NoiseGeneratorSettings.java](../net/minecraft/world/level/levelgen/NoiseGeneratorSettings.java) | Tooling, data or provenance |
-| [net/minecraft/world/level/levelgen/NoiseRouter.java](../net/minecraft/world/level/levelgen/NoiseRouter.java) | Tooling, data or provenance |
-| [net/minecraft/world/level/levelgen/synth/BlendedNoise.java](../net/minecraft/world/level/levelgen/synth/BlendedNoise.java) | Tooling, data or provenance |
-| [net/minecraft/world/level/levelgen/synth/ImprovedNoise.java](../net/minecraft/world/level/levelgen/synth/ImprovedNoise.java) | Tooling, data or provenance |
-| [net/minecraft/world/level/levelgen/synth/NormalNoise.java](../net/minecraft/world/level/levelgen/synth/NormalNoise.java) | Tooling, data or provenance |
-| [net/minecraft/world/level/levelgen/synth/PerlinNoise.java](../net/minecraft/world/level/levelgen/synth/PerlinNoise.java) | Tooling, data or provenance |
-| [net/minecraft/world/level/levelgen/synth/SimplexNoise.java](../net/minecraft/world/level/levelgen/synth/SimplexNoise.java) | Tooling, data or provenance |
-| [net/minecraft/world/level/LevelHeightAccessor.java](../net/minecraft/world/level/LevelHeightAccessor.java) | Tooling, data or provenance |
 | [NOTICE](../NOTICE) | Tooling, data or provenance |
 | [oracle-1211/build.gradle](../oracle-1211/build.gradle) | Build configuration/tooling |
 | [oracle-1211/README.md](../oracle-1211/README.md) | Documentation |
@@ -510,21 +616,45 @@ Deferred loader frame.
 | [oracle-1211/src/main/resources/pack.mcmeta](../oracle-1211/src/main/resources/pack.mcmeta) | Packaged metadata/resource |
 | [Plan.md](../Plan.md) | Documentation |
 | [README.md](../README.md) | Documentation |
+| [scripts/bench-cps.ps1](../scripts/bench-cps.ps1) | Tooling, data or provenance |
+| [scripts/bench-full.sh](../scripts/bench-full.sh) | Tooling, data or provenance |
 | [scripts/capture-baseline.py](../scripts/capture-baseline.py) | Tooling, data or provenance |
 | [scripts/capture-candidate-saved.ps1](../scripts/capture-candidate-saved.ps1) | Tooling, data or provenance |
 | [scripts/capture-original-corpus.ps1](../scripts/capture-original-corpus.ps1) | Tooling, data or provenance |
+| [scripts/capture-original-endpoint-matrix.ps1](../scripts/capture-original-endpoint-matrix.ps1) | Tooling, data or provenance |
 | [scripts/capture-original-full.ps1](../scripts/capture-original-full.ps1) | Tooling, data or provenance |
 | [scripts/capture-original-saved.ps1](../scripts/capture-original-saved.ps1) | Tooling, data or provenance |
 | [scripts/check.ps1](../scripts/check.ps1) | Tooling, data or provenance |
+| [scripts/compare-digests.py](../scripts/compare-digests.py) | Tooling, data or provenance |
+| [scripts/CompiledReplayInputs.ps1](../scripts/CompiledReplayInputs.ps1) | Tooling, data or provenance |
+| [scripts/Invoke-ReplayProcess.ps1](../scripts/Invoke-ReplayProcess.ps1) | Tooling, data or provenance |
+| [scripts/jfr-stage-profile.py](../scripts/jfr-stage-profile.py) | Tooling, data or provenance |
+| [scripts/LogicalEndpointMatrix.ps1](../scripts/LogicalEndpointMatrix.ps1) | Tooling, data or provenance |
+| [scripts/merge-frozen-gpu-replay.ps1](../scripts/merge-frozen-gpu-replay.ps1) | Tooling, data or provenance |
 | [scripts/minecraft-replay.py](../scripts/minecraft-replay.py) | Tooling, data or provenance |
+| [scripts/probe-fused-kernels.ps1](../scripts/probe-fused-kernels.ps1) | Tooling, data or provenance |
+| [scripts/probe-gpu-density.ps1](../scripts/probe-gpu-density.ps1) | Tooling, data or provenance |
 | [scripts/qualify-v02.ps1](../scripts/qualify-v02.ps1) | Tooling, data or provenance |
+| [scripts/replay-minecraft-logical-matrix.ps1](../scripts/replay-minecraft-logical-matrix.ps1) | Tooling, data or provenance |
 | [scripts/replay-minecraft-logical.ps1](../scripts/replay-minecraft-logical.ps1) | Tooling, data or provenance |
 | [scripts/replay-minecraft-noise-cpu.ps1](../scripts/replay-minecraft-noise-cpu.ps1) | Tooling, data or provenance |
+| [scripts/replay-minecraft-noise-gpu-matrix.ps1](../scripts/replay-minecraft-noise-gpu-matrix.ps1) | Tooling, data or provenance |
 | [scripts/replay-minecraft-noise-gpu.ps1](../scripts/replay-minecraft-noise-gpu.ps1) | Tooling, data or provenance |
+| [scripts/run-pregen.sh](../scripts/run-pregen.sh) | Tooling, data or provenance |
 | [scripts/run-prototype-cpu-live.ps1](../scripts/run-prototype-cpu-live.ps1) | Tooling, data or provenance |
 | [scripts/summarize-tests.py](../scripts/summarize-tests.py) | Tooling, data or provenance |
 | [scripts/test-installed-mod.ps1](../scripts/test-installed-mod.ps1) | Tooling, data or provenance |
+| [scripts/tests/FocusedJUnitRunner.java](../scripts/tests/FocusedJUnitRunner.java) | Tooling, data or provenance |
+| [scripts/tests/test-compiled-replay-inputs.ps1](../scripts/tests/test-compiled-replay-inputs.ps1) | Tooling, data or provenance |
+| [scripts/tests/test-gpu-matrix-contract.ps1](../scripts/tests/test-gpu-matrix-contract.ps1) | Tooling, data or provenance |
+| [scripts/tests/test-logical-endpoint-matrix.ps1](../scripts/tests/test-logical-endpoint-matrix.ps1) | Tooling, data or provenance |
+| [scripts/tests/test-original-capture-plan.ps1](../scripts/tests/test-original-capture-plan.ps1) | Tooling, data or provenance |
+| [scripts/tests/test-original-endpoint-matrix-plan.ps1](../scripts/tests/test-original-endpoint-matrix-plan.ps1) | Tooling, data or provenance |
+| [scripts/tests/test-replay-process.ps1](../scripts/tests/test-replay-process.ps1) | Tooling, data or provenance |
+| [scripts/tests/test_capture_baseline.py](../scripts/tests/test_capture_baseline.py) | Tooling, data or provenance |
 | [scripts/update-file-map.py](../scripts/update-file-map.py) | Tooling, data or provenance |
+| [scripts/verify-fast-matrix.sh](../scripts/verify-fast-matrix.sh) | Tooling, data or provenance |
+| [scripts/verify-save-reopen.sh](../scripts/verify-save-reopen.sh) | Tooling, data or provenance |
 | [scripts/write-qualification-bundle.ps1](../scripts/write-qualification-bundle.ps1) | Tooling, data or provenance |
 | [scripts/write-qualification-evidence.ps1](../scripts/write-qualification-evidence.ps1) | Tooling, data or provenance |
 | [settings.gradle](../settings.gradle) | Build configuration/tooling |
@@ -535,4 +665,5 @@ Deferred loader frame.
 | [test-manifest/normalization-policy.json](../test-manifest/normalization-policy.json) | Tooling, data or provenance |
 | [test-manifest/numeric-operators.json](../test-manifest/numeric-operators.json) | Tooling, data or provenance |
 | [test-manifest/v0.2-acceptance.json](../test-manifest/v0.2-acceptance.json) | Tooling, data or provenance |
+| [test-manifest/v0.2-gpu-matrix-local.json](../test-manifest/v0.2-gpu-matrix-local.json) | Tooling, data or provenance |
 | [third-party/gradle-LICENSE.txt](../third-party/gradle-LICENSE.txt) | Tooling, data or provenance |

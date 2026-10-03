@@ -7,6 +7,92 @@ and its G0–G12 gates, none of which this document closes.
 Host: Windows 11, 24 logical cores, RTX 5070 Ti, JDK 21.0.12, NeoForge 21.1.176,
 Minecraft 1.21.1, 16 GB heap, dev server (`:neoforge-1211:runServer`).
 
+## 2026-10-03 FULL throughput (latest; supersedes FULL figures below)
+
+All runs: dev server, ScalableLux installed, chunks generated to FULL with
+tickets released as chunks complete (unloading and saving are inside the
+interval), vanilla Overworld seed 0 unless stated. "Whole run" is chunks over
+wall time from first request to last completion; "steady" is the rate between
+20% and 85% of completions. `scripts/bench-full.sh <label> "" <mods> 90 <warm-up radius>`.
+
+| Run | Whole run | Steady |
+| --- | --- | --- |
+| Vanilla reference, every switch off, 8,281 chunks (one run) | 124 | 131 |
+| Mod, 32,761 chunks, 121-chunk warm-up (two runs) | 2,465–2,475 | 2,886–2,914 |
+| Mod, 32,761 chunks, 6,561-chunk warm-up (five runs) | 2,675–2,802 | 2,908–3,049 |
+| Mod, 90,601 chunks, region order, `sync-chunk-writes=false`, 6,561-chunk warm-up (one run) | 2,734 | 2,863 |
+| Tectonic, 32,761 chunks, 6,561-chunk warm-up (one run) | 2,593 | 2,841 |
+| Terralith, same (one run) | 1,824 | 1,944 |
+| Terralith + Tectonic, same (one run) | 1,811 | 1,909 |
+
+The warm-up square is generated at a separate location, so every measured
+chunk is new; the larger warm-up only removes JIT compilation from the
+interval. No vanilla FULL reference was measured for the three packs.
+
+What was added for FULL (each has a switch; see `docs/CONFIGURATION.md`):
+SURFACE on the GPU; aquifer results reused by carvers; exact per-column
+replacements for the biome R-tree search and column-only climate functions;
+lazy NoiseChunk router mapping; a row-mask ore scan; a uniform-section biome
+shortcut; background section encoding and compression with batched region
+headers; removal of serial stalls in unloading and task release; IO mailboxes
+that take many messages per dispatch; own threads for the chunk system's
+"worldgen" and "sorter" mailboxes. The last one was the largest single step
+after SURFACE: with the worker pool saturated by generation steps, scheduling
+messages had been waiting for a free worker.
+
+Tried and measured as no gain: replaying or memoizing NoiseChunk wrap hashing
+(slower), removing the chunk-holder map copy on the server thread, ParallelGC,
+a larger G1 young generation, tile request order at radius 90, batching ticket
+changes.
+
+**Correctness checks on this code** (GPU forced, 8,281 chunks per context):
+
+- `scripts/verify-fast-matrix.sh 45` at SURFACE: 15/15 contexts identical to
+  serial vanilla (three Overworld seeds, Nether, End, seven biome-centred
+  Overworld areas, Terralith, Tectonic, combined), run on the commit that added
+  the mailbox threads. A three-context subset passed again after the code
+  cleanup.
+- CARVERS: vanilla Overworld, End and Terralith identical on that commit;
+  the CPU noise path with the lazy router mapping identical to the reference.
+- Ore scan: `worldgennext.fast.oreVerify` replays vanilla's random draws
+  against the replacement and compares the vein's box of blocks: 871,121
+  veins (vanilla) and 893,472 (Terralith), 0 differences.
+- Biome shortcut: `worldgennext.fast.uniformBiomeVerify`, 6,806,077 shortcut
+  answers equal to vanilla's. The first version tested palette entries rather
+  than stored cells and never fired; the verify counter showed 0 and it was
+  corrected.
+- Saved world: `scripts/verify-save-reopen.sh 45` at FULL for vanilla and the
+  combined pack. Digests taken as each chunk completed equal the digests of
+  the same chunks loaded from disk in a new process for blocks, heightmaps,
+  post-processing marks and biomes; the reopened run generated no terrain.
+  Structure digests differ in 14 (vanilla) and 24 (combined) chunks between
+  completion and reload with the mod's save path and with the original save
+  path alike, and the two reopened worlds have identical structure digests:
+  structure pieces are shared objects that later chunks move, so the
+  completion-time digest can predate the saved state.
+
+FULL output itself is not compared with vanilla: two runs of one seed differ
+from FEATURES on, with or without the mod's save path.
+
+**Installed server, user path.** The release jar in the installer-made NeoForge
+21.1.176 dedicated server (`build/installed-server`), with ScalableLux, no
+WorldgenNext settings (the default `config/worldgennext.toml` was written on
+that start) and `sync-chunk-writes=true`: the built-in pregenerator
+(`-Dworldgennext.pregen.autostart=90`) generated 32,761 chunks in 16 s from a
+cold start (1,958 chunks/s by its own clock, which includes JIT warm-up);
+33,760 chunks' terrain came from the GPU and 4 from the CPU. One run.
+
+**Limits found.** With `sync-chunk-writes=true` (the dedicated-server default)
+each chunk write is synchronous; the IO thread then wrote about 2,700 chunks/s
+while about 3,300 were produced, pending writes held their chunk data, and a
+90,601-chunk run saw full collections (1,768–2,127 chunks/s over five runs,
+before the mailbox-thread change). With ring-by-ring request order, once a
+ring is longer than the in-flight window (radius above 128 at 1,024 in
+flight) every completed chunk needs about 24 chunk loads on the server thread
+and throughput fell to about 200 chunks/s. The built-in pregenerator uses
+region order for that reason. Group commit for synchronous writes and
+off-thread chunk loading are not built.
+
 ## 2026-10-03 update (supersedes the numbers below where they differ)
 
 Two kernel optimizations were added and every context was requalified:
@@ -163,6 +249,7 @@ pack. It runs on a background thread and is cached by the driver and by a
 
 - No run in a Minecraft client, on Linux or on another GPU; the installed
   dedicated server run above is the only non-dev execution.
-- Lighting is still vanilla's single light thread and now limits FULL.
+- Lighting is not changed by this mod; FULL figures from 2026-10-03 on are
+  measured with ScalableLux installed.
 - No sustained or multi-run statistics beyond the ranges above; no measurement
   on other hardware.

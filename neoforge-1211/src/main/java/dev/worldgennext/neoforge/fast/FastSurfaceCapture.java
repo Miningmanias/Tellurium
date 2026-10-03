@@ -9,6 +9,7 @@ import dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler;
 import dev.worldgennext.compiler.vulkan.fused.SurfaceProgram;
 import dev.worldgennext.semantic.snapshot.NoiseParameters;
 import dev.worldgennext.semantic.snapshot.PositionalRandomFactorySnapshot;
+import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import net.minecraft.core.Holder;
@@ -20,6 +21,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeManager;
 import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -40,6 +42,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -83,8 +86,8 @@ public final class FastSurfaceCapture {
         Object system = randomState.surfaceSystem();
         BlockState[] bands = (BlockState[]) field(system, "clayBands");
         // The band sequence is seed derived; palette order (and so the program identity) must not be.
-        java.util.Arrays.stream(bands).distinct()
-                .sorted(java.util.Comparator.comparingInt(net.minecraft.world.level.block.Block::getId))
+        Arrays.stream(bands).distinct()
+                .sorted(Comparator.comparingInt(Block::getId))
                 .forEach(builder::state);
         int[] bandIndices = new int[bands.length];
         for (int i = 0; i < bands.length; i++) bandIndices[i] = builder.state(bands[i]);
@@ -350,7 +353,7 @@ public final class FastSurfaceCapture {
 
     private static NoiseParameters.PerlinNoiseSnapshot perlin(PerlinNoise noise) {
         int firstOctave = ((Number) field(noise, "firstOctave")).intValue();
-        var amplitudes = (it.unimi.dsi.fastutil.doubles.DoubleList) field(noise, "amplitudes");
+        var amplitudes = (DoubleList) field(noise, "amplitudes");
         Object levels = field(noise, "noiseLevels");
         List<Double> values = new ArrayList<>();
         List<NoiseParameters.ImprovedNoiseSnapshot> snapshots = new ArrayList<>();

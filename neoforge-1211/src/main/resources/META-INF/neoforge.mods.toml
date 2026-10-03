@@ -6,7 +6,7 @@ license="MIT"
 modId="worldgennext"
 version="0.2.0"
 displayName="WorldgenNext"
-description='''CUDA-free correctness-first worldgen runtime checkpoint. CPU/GPU contracts, complete result ABI, lifecycle services and oracle tooling are included; live generation remains disabled until same-stack Minecraft qualification.'''
+description='''Faster chunk generation that produces the same world. Terrain and surface for tested world generators (vanilla, Terralith, Tectonic) are computed on the GPU through Vulkan; structure, carver and feature steps run in parallel; chunks are saved in the background. Includes a pregenerator: /worldgennext pregen start <radius>. Server-side; settings in config/worldgennext.toml; /worldgennext status shows what is active.'''
 
 [[mixins]]
 config="worldgennext.mixins.json"

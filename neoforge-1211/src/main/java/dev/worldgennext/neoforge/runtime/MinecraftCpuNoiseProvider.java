@@ -6,7 +6,7 @@ import dev.worldgennext.engine.worldgen.BackendResult;
 import dev.worldgennext.engine.worldgen.CommitCoordinator;
 import dev.worldgennext.material.chunk.ChunkNoiseResult;
 import dev.worldgennext.material.chunk.ChunkResultCodec;
-import dev.worldgennext.neoforge.WorldgenNextMod;
+import dev.worldgennext.neoforge.legacy.StagedRoute;
 import dev.worldgennext.semantic.execution.ExecutionReceipt;
 import dev.worldgennext.semantic.identity.ContextIdentity;
 import dev.worldgennext.semantic.program.NumericProfile;
@@ -19,19 +19,19 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.status.ChunkStep;
 import net.minecraft.world.level.chunk.status.WorldGenContext;
+import org.slf4j.LoggerFactory;
 
-import java.util.Objects;
-import java.util.Set;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import org.slf4j.LoggerFactory;
 
 /**
  * Qualified CPU composition for the version-pinned NOISE boundary.
@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  * <p>This class is deliberately not registered by the mod constructor. A
  * caller must first obtain qualified evidence and pass its exact context
  * keys to this provider, then register it through the evidence-bearing
- * {@code WorldgenNextMod} method. Compute is scheduled on the supplied
+ * {@code StagedRoute} method. Compute is scheduled on the supplied
  * executor; the Minecraft holder executor is used only for the initial
  * immutable capture and for the normal status future that follows.</p>
  *
@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
  * existing {@code ChunkStep}/{@code ChunkGenerationTask} chain perform the
  * status transition and schedule SURFACE and later stages.</p>
  */
-public final class MinecraftCpuNoiseProvider implements WorldgenNextMod.QualifiedNoiseProvider, AutoCloseable {
+public final class MinecraftCpuNoiseProvider implements StagedRoute.QualifiedNoiseProvider, AutoCloseable {
     public static final String RESULT_ABI = "chunk-result-v4";
     public static final String COMPILER_VERSION = "worldgennext-cpu-live-v0.2";
 

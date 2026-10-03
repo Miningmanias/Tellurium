@@ -1,4 +1,25 @@
-# WorldgenNext status — 2026-10-01
+# WorldgenNext status — 2026-10-03
+
+## 2026-10-03 — FULL throughput and user-facing surface
+
+Supersedes the FULL figures further down.
+
+- **FULL throughput** (vanilla Overworld, ScalableLux, 32,761 chunks): 2,675–2,802
+  chunks/s after a JIT warm-up, 2,465–2,475 from a cold start, against 124 for
+  vanilla with every switch off. Tectonic 2,593, Terralith 1,824, combined 1,811
+  (one run each). Details, checks and limits:
+  [evidence](evidence/throughput-fused-gpu.md).
+- **Checks**: 15/15 contexts identical to serial vanilla at SURFACE; CARVERS
+  subset identical; ore scan and biome shortcut compared in place with
+  vanilla's results; FULL save/reopen passes for vanilla and combined.
+- **User-facing**: `config/worldgennext.toml`, `/worldgennext status`,
+  `/worldgennext pregen ...` (region-ordered, resumable). The staged route's
+  commands moved to `/worldgennext dev ...`, and its code from
+  `WorldgenNextMod` to `legacy/StagedRoute`; behaviour unchanged.
+- **Open**: client/singleplayer (mixins are registered for dedicated servers
+  only), Linux, other GPUs; group commit for `sync-chunk-writes=true`;
+  off-thread chunk loading; vanilla FULL references for the terrain packs. The
+  staged `GPU_IEEE_BITS` gates below are unchanged by any of this.
 
 ## 2026-10-02 — throughput path and frozen-matrix outcome
 

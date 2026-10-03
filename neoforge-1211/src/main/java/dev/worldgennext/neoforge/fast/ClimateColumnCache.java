@@ -72,16 +72,16 @@ public final class ClimateColumnCache {
                     unwrapped &= root != null && FusedNoiseCompiler.pointValueIgnoresCaches(root);
                 }
                 if (unwrapped) UNWRAPPED.put(level.getChunkSource().randomState(), Boolean.TRUE);
-                LOG.info("Biome column cache {}: {}{}", dimension, names.isEmpty() ? "no Y-independent climate function" : names,
+                LOG.debug("Biome column cache {}: {}{}", dimension, names.isEmpty() ? "no Y-independent climate function" : names,
                         unwrapped ? "; BIOMES samples the router without a NoiseChunk" : "");
             } catch (Throwable failure) {
-                LOG.info("Biome column cache not used for {}: {}", dimension, failure.toString());
+                LOG.debug("Biome column cache not used for {}: {}", dimension, failure.toString());
             }
         }
     }
 
     public static void stop() {
-        LOG.info("Biome index: lookups={} fast={} verifyMismatches={}", ColumnBiomeIndex.lookups.get(),
+        LOG.debug("Biome index: lookups={} fast={} verifyMismatches={}", ColumnBiomeIndex.lookups.get(),
                 ColumnBiomeIndex.fastLookups.get(), ColumnBiomeIndex.mismatches.get());
         COLUMN_ONLY.clear();
         UNWRAPPED.clear();

@@ -2,6 +2,7 @@
 package dev.worldgennext.neoforge.threading;
 
 import com.mojang.serialization.Codec;
+import net.minecraft.Util;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
@@ -14,7 +15,14 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 /**
@@ -40,16 +48,16 @@ public final class AsyncSectionEncoding {
      * Encoding and compression run on their own small pool rather than the worldgen pool: unloads arrive
      * in bursts of thousands, and queued behind them generation steps would wait for seconds.
      */
-    private static final java.util.concurrent.ThreadPoolExecutor SAVE_POOL = savePool();
+    private static final ThreadPoolExecutor SAVE_POOL = savePool();
     /** Above this many queued saves, further ones go to the worldgen pool, which bounds the backlog. */
     private static final int MAX_QUEUED = Integer.getInteger("worldgennext.asyncChunkSaveQueue", 4096);
 
-    private static java.util.concurrent.ThreadPoolExecutor savePool() {
+    private static ThreadPoolExecutor savePool() {
         int threads = Integer.getInteger("worldgennext.asyncChunkSaveThreads",
                 Math.max(2, Runtime.getRuntime().availableProcessors() / 2));
-        java.util.concurrent.atomic.AtomicInteger ids = new java.util.concurrent.atomic.AtomicInteger();
-        var pool = new java.util.concurrent.ThreadPoolExecutor(threads, threads, 30, java.util.concurrent.TimeUnit.SECONDS,
-                new java.util.concurrent.PriorityBlockingQueue<>(), task -> {
+        AtomicInteger ids = new AtomicInteger();
+        var pool = new ThreadPoolExecutor(threads, threads, 30, TimeUnit.SECONDS,
+                new PriorityBlockingQueue<>(), task -> {
                     Thread thread = new Thread(task, "worldgennext-save-" + ids.incrementAndGet());
                     thread.setDaemon(true);
                     return thread;
@@ -58,7 +66,7 @@ public final class AsyncSectionEncoding {
         return pool;
     }
 
-    private static final java.util.concurrent.atomic.AtomicLong SEQUENCE = new java.util.concurrent.atomic.AtomicLong();
+    private static final AtomicLong SEQUENCE = new AtomicLong();
 
     public static String status() {
         return "savePool{queued=" + SAVE_POOL.getQueue().size() + ", active=" + SAVE_POOL.getActiveCount()
@@ -70,19 +78,19 @@ public final class AsyncSectionEncoding {
         private final Runnable work;
         private final long sequence = SEQUENCE.incrementAndGet();
         private volatile boolean urgent;
-        private final java.util.concurrent.atomic.AtomicBoolean claimed = new java.util.concurrent.atomic.AtomicBoolean();
-        private final java.util.concurrent.CompletableFuture<Void> done = new java.util.concurrent.CompletableFuture<>();
+        private final AtomicBoolean claimed = new AtomicBoolean();
+        private final CompletableFuture<Void> done = new CompletableFuture<>();
 
         private Task(Runnable work) { this.work = work; }
 
-        public java.util.concurrent.CompletableFuture<Void> done() { return done; }
+        public CompletableFuture<Void> done() { return done; }
 
         /**
          * Completes once the finished tag was handed to the IO worker (or the encoding failed).  From then
          * on a read of this chunk is answered from the IO worker's pending write, so readers wait for this
          * and not for the physical write, which may sit behind thousands of others.
          */
-        public final java.util.concurrent.CompletableFuture<Void> handedOff = new java.util.concurrent.CompletableFuture<>();
+        public final CompletableFuture<Void> handedOff = new CompletableFuture<>();
 
         @Override
         public void run() {
@@ -118,7 +126,7 @@ public final class AsyncSectionEncoding {
      */
     public static Task submit(Runnable work) {
         Task task = new Task(work);
-        if (SAVE_POOL.getQueue().size() >= MAX_QUEUED) net.minecraft.Util.backgroundExecutor().execute(task);
+        if (SAVE_POOL.getQueue().size() >= MAX_QUEUED) Util.backgroundExecutor().execute(task);
         else SAVE_POOL.execute(task);
         return task;
     }

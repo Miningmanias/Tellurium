@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.fast;
 
-import dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler;
+import dev.worldgennext.compiler.jvm.worldgen.DenseNoiseGenerator;
 import dev.worldgennext.compiler.vulkan.fused.FusedGpuBackend;
+import dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler;
+import dev.worldgennext.compiler.vulkan.fused.SurfaceProgram;
 import dev.worldgennext.semantic.snapshot.WorldgenSnapshot;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectListIterator;
 import net.minecraft.Util;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.StructureManager;
 import net.minecraft.world.level.block.Blocks;
@@ -14,6 +19,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.ProtoChunk;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.levelgen.Beardifier;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
@@ -25,17 +31,30 @@ import net.minecraft.world.level.levelgen.structure.pools.JigsawJunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.IntBuffer;
+import java.nio.ShortBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 
@@ -53,7 +72,7 @@ public final class FastNoiseEngine {
     public static final boolean ENABLED = MODE != GpuMode.OFF;
 
     private static GpuMode parseMode(String value) {
-        return switch (value.trim().toLowerCase(java.util.Locale.ROOT)) {
+        return switch (value.trim().toLowerCase(Locale.ROOT)) {
             case "off", "false", "none" -> GpuMode.OFF;
             case "force", "true" -> GpuMode.FORCE;
             default -> GpuMode.AUTO;
@@ -64,14 +83,14 @@ public final class FastNoiseEngine {
     private static final Map<String, String> QUALIFIED = loadQualified();
 
     private static Map<String, String> loadQualified() {
-        Map<String, String> out = new java.util.HashMap<>();
+        Map<String, String> out = new HashMap<>();
         try (var in = FastNoiseEngine.class.getResourceAsStream("/worldgennext/fused-qualified.properties")) {
             if (in != null) {
-                var properties = new java.util.Properties();
+                var properties = new Properties();
                 properties.load(in);
                 for (String key : properties.stringPropertyNames()) out.put(key, properties.getProperty(key));
             }
-        } catch (java.io.IOException ignored) {
+        } catch (IOException ignored) {
             // no allowlist: AUTO admits nothing
         }
         return Map.copyOf(out);
@@ -115,7 +134,48 @@ public final class FastNoiseEngine {
 
     public static FastNoiseEngine instance() { return INSTANCE; }
 
-    private final java.util.concurrent.CountDownLatch compiled = new java.util.concurrent.CountDownLatch(1);
+    /** What one dimension is generated with, for the status command. */
+    public record DimensionStatus(String dimension, boolean terrain, boolean surface, String detail) {}
+
+    /** Chunk counts since server start. */
+    public record Counters(long gpu, long cpuFallback, long bail, long surface, long surfaceBail) {}
+
+    private static final Map<String, DimensionStatus> DIMENSIONS = Collections.synchronizedMap(new LinkedHashMap<>());
+    private static volatile String DEVICE_NAME;
+    private static volatile String UNAVAILABLE;
+
+    private static void report(String dimension, boolean terrain, boolean surface, String detail) {
+        DIMENSIONS.put(dimension, new DimensionStatus(dimension, terrain, surface, detail));
+    }
+
+    /** One entry per loaded dimension, in load order. */
+    public static List<DimensionStatus> dimensions() {
+        synchronized (DIMENSIONS) {
+            return List.copyOf(DIMENSIONS.values());
+        }
+    }
+
+    /** The GPU in use, or null when none is. */
+    public static String deviceName() { return DEVICE_NAME; }
+
+    /** Why no GPU is in use although the mode asks for one, or null. */
+    public static String unavailableReason() { return UNAVAILABLE; }
+
+    public static Counters counters() {
+        FastNoiseEngine engine = INSTANCE;
+        return engine == null ? new Counters(0, 0, 0, 0, 0) : new Counters(engine.gpuChunks.get(), engine.fallbackChunks.get(),
+                engine.bailChunks.get(), engine.surfaceChunks.get(), engine.surfaceBails.get());
+    }
+
+    /** A throwable as one line a server owner can act on. */
+    private static String reason(Throwable failure) {
+        Throwable root = failure;
+        while (root.getCause() != null && root.getCause() != root) root = root.getCause();
+        String message = root.getMessage();
+        return message == null || message.isBlank() ? root.getClass().getSimpleName() : message.lines().findFirst().orElse(message);
+    }
+
+    private final CountDownLatch compiled = new CountDownLatch(1);
 
     /**
      * Opens the device and compiles every NoiseBasedChunkGenerator level on a
@@ -128,12 +188,15 @@ public final class FastNoiseEngine {
         try {
             device = GpuRuntimeLoader.open(server.getServerDirectory());
         } catch (Throwable failure) {
-            LOG.warn("Fast GPU NOISE unavailable, using vanilla generation: {}", failure.toString());
+            UNAVAILABLE = reason(failure);
+            LOG.warn("GPU terrain generation is unavailable; terrain generates on the CPU as in vanilla. Reason: {}", UNAVAILABLE);
+            LOG.debug("GPU runtime failure", failure);
             return;
         }
         FastNoiseEngine engine = new FastNoiseEngine(device);
         INSTANCE = engine;
-        LOG.info("Fast GPU NOISE device: {} (mode {})", device.deviceName(), MODE);
+        DEVICE_NAME = device.deviceName();
+        LOG.info("GPU terrain generation on {} (mode {})", device.deviceName(), MODE.name().toLowerCase(Locale.ROOT));
         // Captures read live registries and the seeded router; take them on the server thread.
         List<Runnable> jobs = new ArrayList<>();
         for (ServerLevel level : server.getAllLevels()) {
@@ -141,7 +204,11 @@ public final class FastNoiseEngine {
                 Runnable job = engine.prepare(level);
                 if (job != null) jobs.add(job);
             } catch (Throwable failure) {
-                LOG.warn("Fast GPU NOISE disabled for {}: {}", level.dimension().location(), failure.toString());
+                String dimension = level.dimension().location().toString();
+                report(dimension, false, false, "vanilla generation: this world generator uses something the GPU kernels do not support ("
+                        + reason(failure) + ")");
+                LOG.warn("{} generates with vanilla code: the GPU kernels do not support this world generator ({})", dimension, reason(failure));
+                LOG.debug("Capture failure for {}", dimension, failure);
             }
         }
         Thread compiler = new Thread(() -> {
@@ -163,6 +230,9 @@ public final class FastNoiseEngine {
     public static void stop() {
         FastNoiseEngine engine = INSTANCE;
         INSTANCE = null;
+        DIMENSIONS.clear();
+        DEVICE_NAME = null;
+        UNAVAILABLE = null;
         if (engine == null) return;
         engine.running = false;
         engine.worker.interrupt();
@@ -183,7 +253,11 @@ public final class FastNoiseEngine {
 
     /** Captures on the calling (server) thread; the returned job compiles and installs off-thread. */
     private Runnable prepare(ServerLevel level) throws Exception {
-        if (!(level.getChunkSource().getGenerator() instanceof NoiseBasedChunkGenerator generator)) return null;
+        if (!(level.getChunkSource().getGenerator() instanceof NoiseBasedChunkGenerator generator)) {
+            report(level.dimension().location().toString(), false, false,
+                    "vanilla generation: not a noise-based generator (flat, debug or a mod's own generator)");
+            return null;
+        }
         long start = System.nanoTime();
         WorldgenSnapshot snapshot = FastRouterCapture.capture(level);
         NoiseGeneratorSettings settings = generator.generatorSettings().value();
@@ -208,7 +282,7 @@ public final class FastNoiseEngine {
             try {
                 captured = FastSurfaceCapture.capture(level, generator, palette);
             } catch (Throwable failure) {
-                LOG.warn("Fast GPU SURFACE not available for {} (the SURFACE step stays vanilla): {}", dimension, failure.toString());
+                LOG.info("{}: surface rules stay on the CPU ({})", dimension, reason(failure));
             }
         }
         FastSurfaceCapture.Captured surface = captured;
@@ -218,11 +292,18 @@ public final class FastNoiseEngine {
         FusedNoiseCompiler.Compiled compiled = new FusedNoiseCompiler().compile(request);
         RandomState randomState = level.getChunkSource().randomState();
         String qualifiedAs = QUALIFIED.get(compiled.structureFingerprint());
-        LOG.info("Fast GPU NOISE {}: kernel structure {} ({})", dimension, compiled.structureFingerprint(),
-                qualifiedAs == null ? "not in the qualified list" : "qualified as " + qualifiedAs);
+        // The fingerprints identify a generator for the tested list; they only matter to someone adding to it.
+        if (qualifiedAs == null) {
+            LOG.info("Fast GPU NOISE {}: kernel structure {} (not in the qualified list)", dimension, compiled.structureFingerprint());
+        } else {
+            LOG.debug("Fast GPU NOISE {}: kernel structure {} (qualified as {})", dimension, compiled.structureFingerprint(), qualifiedAs);
+        }
         if (qualifiedAs == null && MODE == GpuMode.AUTO) {
-            LOG.warn("Fast GPU NOISE not enabled for {}: this generator's kernel structure has not passed qualification; "
-                    + "using vanilla generation (set -Dworldgennext.fast.gpu=force to override)", dimension);
+            report(dimension, false, false, "vanilla generation: this world generator (datapack or mod combination) is not on the tested list;"
+                    + " set gpu.mode = \"force\" in config/worldgennext.toml to use the GPU anyway");
+            LOG.warn("{} generates with vanilla code: this world generator (datapack or mod combination) is not on the tested list. "
+                    + "Set gpu.mode = \"force\" in config/worldgennext.toml to use the GPU anyway; untested generators are not "
+                    + "guaranteed to produce identical terrain.", dimension);
             return null;
         }
         boolean surfaceEnabled = false;
@@ -230,19 +311,26 @@ public final class FastNoiseEngine {
             String surfaceKey = "surface." + compiled.structureFingerprint() + "." + compiled.surfaceFingerprint();
             String surfaceQualifiedAs = QUALIFIED.get(surfaceKey);
             surfaceEnabled = surfaceQualifiedAs != null || MODE == GpuMode.FORCE;
-            LOG.info("Fast GPU SURFACE {}: {} ({}), {} instructions, {} block states, {} noises", dimension, surfaceKey,
+            LOG.debug("Fast GPU SURFACE {}: {} ({}), {} instructions, {} block states, {} noises", dimension, surfaceKey,
                     surfaceQualifiedAs == null ? (surfaceEnabled ? "not in the qualified list, forced" : "not in the qualified list, SURFACE stays vanilla")
                             : "qualified as " + surfaceQualifiedAs,
-                    surface.program().code().length / dev.worldgennext.compiler.vulkan.fused.SurfaceProgram.INSTRUCTION_INTS,
+                    surface.program().code().length / SurfaceProgram.INSTRUCTION_INTS,
                     surface.palette().length, surface.program().conditionNoises().size());
         }
         boolean fuseSurface = surfaceEnabled;
+        String tested = qualifiedAs == null ? "untested generator, forced by config" : "tested as " + qualifiedAs;
+        report(dimension, false, false, "vanilla generation until the GPU kernels finish compiling");
         return () -> {
             try {
                 install(level, dimension, randomState, compiled, fuseSurface ? surface.palette() : palette, snapshot, start,
                         fuseSurface ? surface : null, palette.length);
+                report(dimension, true, fuseSurface, tested);
+                LOG.info("{}: {} on the GPU ({}; kernels ready in {} ms)", dimension, fuseSurface ? "terrain and surface" : "terrain",
+                        tested, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
             } catch (Throwable failure) {
-                LOG.warn("Fast GPU NOISE disabled for {}: {}", dimension, failure.toString());
+                report(dimension, false, false, "vanilla generation: the GPU kernels failed to build (" + reason(failure) + ")");
+                LOG.warn("{} generates with vanilla code: the GPU kernels failed to build ({})", dimension, reason(failure));
+                LOG.debug("Kernel build failure for {}", dimension, failure);
             }
         };
     }
@@ -258,7 +346,7 @@ public final class FastNoiseEngine {
         programs.put(randomState, new LevelProgram(dimension, program, palette, compiled.geometry(), snapshot,
                 snapshot.generatorSettings().aquifersEnabled(), surface == null ? 0 : compiled.surfaceHeader(), basePaletteSize, surface,
                 new FastChunkApplier.PaletteInfo(palette, basePaletteSize)));
-        LOG.info("Fast GPU NOISE ready for {}: flat={} interp={} source={} chars, compile {} ms (pipelines {} ms)",
+        LOG.debug("Fast GPU NOISE ready for {}: flat={} interp={} source={} chars, compile {} ms (pipelines {} ms)",
                 level.dimension().location(), compiled.flatChannels(), compiled.interpolatedChannels(), compiled.source().length(),
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), TimeUnit.NANOSECONDS.toMillis(program.compileNanos()));
     }
@@ -267,10 +355,10 @@ public final class FastNoiseEngine {
         String dir = System.getProperty("worldgennext.fast.dumpSourceDir", "").trim();
         if (dir.isEmpty()) return;
         try {
-            java.nio.file.Path path = java.nio.file.Path.of(dir, level.dimension().location().getPath() + ".comp");
-            java.nio.file.Files.createDirectories(path.getParent());
-            java.nio.file.Files.writeString(path, compiled.source());
-        } catch (java.io.IOException failure) {
+            Path path = Path.of(dir, level.dimension().location().getPath() + ".comp");
+            Files.createDirectories(path.getParent());
+            Files.writeString(path, compiled.source());
+        } catch (IOException failure) {
             LOG.warn("Could not dump fused source: {}", failure.toString());
         }
     }
@@ -327,14 +415,14 @@ public final class FastNoiseEngine {
             Beardifier beardifier = Beardifier.forStructuresInChunk(structures, chunk.getPos());
             List<int[]> rigid = new ArrayList<>();
             List<int[]> joints = new ArrayList<>();
-            var pieceIterator = (it.unimi.dsi.fastutil.objects.ObjectListIterator<?>) PIECES.get(beardifier);
+            var pieceIterator = (ObjectListIterator<?>) PIECES.get(beardifier);
             while (pieceIterator.hasNext()) {
                 var piece = (Beardifier.Rigid) pieceIterator.next();
                 BoundingBox box = piece.box();
                 rigid.add(new int[]{box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ(),
                         piece.terrainAdjustment().ordinal(), piece.groundLevelDelta()});
             }
-            var junctionIterator = (it.unimi.dsi.fastutil.objects.ObjectListIterator<?>) JUNCTIONS.get(beardifier);
+            var junctionIterator = (ObjectListIterator<?>) JUNCTIONS.get(beardifier);
             while (junctionIterator.hasNext()) {
                 var junction = (JigsawJunction) junctionIterator.next();
                 joints.add(new int[]{junction.getSourceX(), junction.getSourceGroundY(), junction.getSourceZ()});
@@ -375,7 +463,7 @@ public final class FastNoiseEngine {
      */
     private static short[] gatherBiomes(LevelProgram program, StructureManager structures, ChunkAccess chunk) {
         try {
-            if (STRUCTURE_LEVEL == null || !(STRUCTURE_LEVEL.get(structures) instanceof net.minecraft.server.level.WorldGenRegion region)) return null;
+            if (STRUCTURE_LEVEL == null || !(STRUCTURE_LEVEL.get(structures) instanceof WorldGenRegion region)) return null;
             var surface = program.surface();
             int quartHeight = program.geometry().storageHeight() >> 2;
             int minQuartY = program.geometry().minY() >> 2;
@@ -384,7 +472,7 @@ public final class FastNoiseEngine {
             for (int ix = 0; ix < 6; ix++) {
                 for (int iz = 0; iz < 6; iz++) {
                     int qx = firstQuartX + ix, qz = firstQuartZ + iz;
-                    ChunkAccess source = region.getChunk(qx >> 2, qz >> 2, net.minecraft.world.level.chunk.status.ChunkStatus.BIOMES, false);
+                    ChunkAccess source = region.getChunk(qx >> 2, qz >> 2, ChunkStatus.BIOMES, false);
                     if (source == null) return null;
                     int base = (ix * 6 + iz) * quartHeight;
                     Object previous = null;
@@ -505,7 +593,7 @@ public final class FastNoiseEngine {
         boolean anySurface = false;
         LevelProgram level = requests.get(0).program();
         int biomeShorts = level.program().compiled().biomeWordsPerChunk() * 2;
-        java.nio.ShortBuffer biomeIds = slot.biomes().asShortBuffer();
+        ShortBuffer biomeIds = slot.biomes().asShortBuffer();
         for (int i = 0; i < requests.size(); i++) {
             Request r = requests.get(i);
             ChunkPos pos = r.chunk().getPos();
@@ -525,12 +613,12 @@ public final class FastNoiseEngine {
         int prelimCount = 0;
         if (!level.aquifers() && anySurface) {
             // Only the surface rules read preliminary surfaces here: the four chunk-corner columns.
-            var ids = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(requests.size() * 4);
+            var ids = new Long2IntOpenHashMap(requests.size() * 4);
             ids.defaultReturnValue(-1);
-            java.nio.IntBuffer index = slot.prelimIndex().asIntBuffer();
-            java.nio.IntBuffer columns = slot.prelimColumns().asIntBuffer();
-            int window = dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler.PRELIM_WINDOW;
-            int origin = dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler.PRELIM_ORIGIN;
+            IntBuffer index = slot.prelimIndex().asIntBuffer();
+            IntBuffer columns = slot.prelimColumns().asIntBuffer();
+            int window = FusedNoiseCompiler.PRELIM_WINDOW;
+            int origin = FusedNoiseCompiler.PRELIM_ORIGIN;
             for (int i = 0; i < requests.size(); i++) {
                 ChunkPos pos = requests.get(i).chunk().getPos();
                 for (int corner = 0; corner < 4; corner++) {
@@ -550,12 +638,12 @@ public final class FastNoiseEngine {
         }
         if (requests.get(0).program().aquifers()) {
             // Unique preliminary-surface columns of the whole batch, and each chunk's 31x31 index window.
-            var ids = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(requests.size() * 256);
+            var ids = new Long2IntOpenHashMap(requests.size() * 256);
             ids.defaultReturnValue(-1);
-            java.nio.IntBuffer index = slot.prelimIndex().asIntBuffer();
-            java.nio.IntBuffer columns = slot.prelimColumns().asIntBuffer();
-            int window = dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler.PRELIM_WINDOW;
-            int origin = dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler.PRELIM_ORIGIN;
+            IntBuffer index = slot.prelimIndex().asIntBuffer();
+            IntBuffer columns = slot.prelimColumns().asIntBuffer();
+            int window = FusedNoiseCompiler.PRELIM_WINDOW;
+            int origin = FusedNoiseCompiler.PRELIM_ORIGIN;
             for (int i = 0; i < requests.size(); i++) {
                 ChunkPos pos = requests.get(i).chunk().getPos();
                 int q0x = pos.x * 4 + origin, q0z = pos.z * 4 + origin;
@@ -659,14 +747,14 @@ public final class FastNoiseEngine {
         }
     }
 
-    private final java.util.concurrent.atomic.AtomicInteger debugReports = new java.util.concurrent.atomic.AtomicInteger();
+    private final AtomicInteger debugReports = new AtomicInteger();
 
     /** Compares GPU flat columns and interpolation corners with the CPU reference interpreter for one chunk. */
     private void debugCompare(Request r, double[][] debug, int mismatchY) {
         var compiled = r.program().program().compiled();
         var g = r.program().geometry();
         var snapshot = r.program().snapshot();
-        var reference = new dev.worldgennext.compiler.jvm.worldgen.DenseNoiseGenerator();
+        var reference = new DenseNoiseGenerator();
         int cx = r.chunk().getPos().x, cz = r.chunk().getPos().z;
         int baseX = cx * 16, baseZ = cz * 16, cols = g.columnsPerAxis();
         StringBuilder out = new StringBuilder("Fast GPU NOISE debug chunk " + r.chunk().getPos() + ":");
@@ -731,7 +819,7 @@ public final class FastNoiseEngine {
             verifyMismatches.incrementAndGet();
             LOG.warn("Fast GPU NOISE verify mismatch {} at chunk {}: {} blocks, first {} pieces={} junctions={} beard={}",
                     r.program().dimension(), vanilla.getPos(), mismatches, first, r.pieces(), r.junctions(),
-                    java.util.Arrays.toString(java.util.Arrays.copyOf(r.beard(), Math.min(r.beard().length, 24))));
+                    Arrays.toString(Arrays.copyOf(r.beard(), Math.min(r.beard().length, 24))));
         }
     }
 

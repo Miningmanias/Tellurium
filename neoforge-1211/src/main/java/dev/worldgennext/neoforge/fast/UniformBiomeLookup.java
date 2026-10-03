@@ -11,6 +11,8 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.PalettedContainerRO;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.function.Consumer;
 
 /**
@@ -59,10 +61,10 @@ public final class UniformBiomeLookup {
     }
 
     /** Verify mode only: why the shortcut did not apply (no chunk, other height, no section, several biomes, sections differ). */
-    private static final java.util.concurrent.atomic.AtomicLongArray MISSES = new java.util.concurrent.atomic.AtomicLongArray(5);
+    private static final AtomicLongArray MISSES = new AtomicLongArray(5);
 
     /** Verify mode only: shortcut answers that were compared with the original. */
-    public static final java.util.concurrent.atomic.AtomicLong VERIFIED = new java.util.concurrent.atomic.AtomicLong();
+    public static final AtomicLong VERIFIED = new AtomicLong();
 
     static {
         if (VERIFY) {

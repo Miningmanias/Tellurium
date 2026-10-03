@@ -5,7 +5,7 @@ import dev.worldgennext.engine.ExecutionRoute;
 import dev.worldgennext.engine.worldgen.BackendResult;
 import dev.worldgennext.engine.worldgen.CommitCoordinator;
 import dev.worldgennext.material.chunk.ChunkNoiseResult;
-import dev.worldgennext.neoforge.WorldgenNextMod;
+import dev.worldgennext.neoforge.legacy.StagedRoute;
 import dev.worldgennext.runtime.vulkan.production.VulkanWorldgenExecutor;
 import dev.worldgennext.semantic.execution.ExecutionReceipt;
 import dev.worldgennext.semantic.identity.ContextIdentity;
@@ -16,9 +16,10 @@ import net.minecraft.server.level.GenerationChunkHolder;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.StaticCache2D;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.status.ChunkStep;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.chunk.status.ChunkStep;
 import net.minecraft.world.level.chunk.status.WorldGenContext;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.Set;
@@ -28,7 +29,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import org.slf4j.LoggerFactory;
 
 /**
  * Qualified GPU composition for the version-pinned NOISE boundary.
@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
  * creates or registers this class; an independently qualified evidence
  * receipt is still required at the static registration boundary.</p>
  */
-public final class MinecraftGpuNoiseProvider implements WorldgenNextMod.QualifiedNoiseProvider, AutoCloseable {
+public final class MinecraftGpuNoiseProvider implements StagedRoute.QualifiedNoiseProvider, AutoCloseable {
     public static final String RESULT_ABI = "chunk-result-v4";
     public static final String COMPILER_VERSION = "worldgennext-gpu-live-v0.2";
 

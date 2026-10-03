@@ -6,7 +6,9 @@ import net.minecraft.Util;
 import net.minecraft.world.level.ChunkPos;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
@@ -71,7 +73,7 @@ public final class FeatureRegionScheduler {
     }
 
     private void release(int x, int z) {
-        java.util.List<Pending<?>> ready = new java.util.ArrayList<>();
+        List<Pending<?>> ready = new ArrayList<>();
         synchronized (this) {
             mark(x, z, false);
             Iterator<Pending<?>> it = waiting.iterator();

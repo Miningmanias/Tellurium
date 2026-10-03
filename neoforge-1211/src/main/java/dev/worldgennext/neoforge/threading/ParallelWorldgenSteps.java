@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.threading;
 
+import com.mojang.math.OctahedralGroup;
 import net.minecraft.Util;
+import net.minecraft.core.Direction;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
@@ -21,8 +23,8 @@ public final class ParallelWorldgenSteps {
         // concurrent reader can observe the half-filled map (null rotation, NPE in
         // jigsaw placement).  Build every table once on this thread, before any
         // structure step is offloaded, so later parallel calls are read-only.
-        for (com.mojang.math.OctahedralGroup group : com.mojang.math.OctahedralGroup.values()) {
-            for (net.minecraft.core.Direction direction : net.minecraft.core.Direction.values()) {
+        for (OctahedralGroup group : OctahedralGroup.values()) {
+            for (Direction direction : Direction.values()) {
                 group.rotate(direction);
             }
         }

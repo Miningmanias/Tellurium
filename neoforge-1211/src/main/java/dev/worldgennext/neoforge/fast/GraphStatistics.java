@@ -2,10 +2,12 @@
 package dev.worldgennext.neoforge.fast;
 
 import dev.worldgennext.semantic.program.ProgramNode;
+import dev.worldgennext.semantic.program.WorldgenProgram;
 import dev.worldgennext.semantic.snapshot.WorldgenSnapshot;
 
 import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -29,15 +31,15 @@ public final class GraphStatistics {
                 if (!seen.add(node)) continue;
                 for (ProgramNode child : node.children()) stack.push(child);
             }
-            Set<String> fingerprints = new java.util.HashSet<>();
-            for (ProgramNode node : seen) fingerprints.add(dev.worldgennext.semantic.program.WorldgenProgram.nodeFingerprint(node));
+            Set<String> fingerprints = new HashSet<>();
+            for (ProgramNode node : seen) fingerprints.add(WorldgenProgram.nodeFingerprint(node));
             out.append(String.format("root %-34s identityNodes=%5d semanticNodes=%5d%n",
                     entry.getKey(), seen.size(), fingerprints.size()));
             all.addAll(seen);
         }
-        Set<String> allFingerprints = new java.util.HashSet<>();
+        Set<String> allFingerprints = new HashSet<>();
         for (ProgramNode node : all) {
-            allFingerprints.add(dev.worldgennext.semantic.program.WorldgenProgram.nodeFingerprint(node));
+            allFingerprints.add(WorldgenProgram.nodeFingerprint(node));
             String kind = node.getClass().getSimpleName();
             if (node instanceof ProgramNode.Marker marker) kind += ":" + marker.marker() + ":" + marker.cacheMode();
             else if (node instanceof ProgramNode.Unary || node instanceof ProgramNode.Binary || node instanceof ProgramNode.Ap2

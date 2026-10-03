@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.mixin;
 
+import dev.worldgennext.neoforge.threading.IdleUnloads;
 import it.unimi.dsi.fastutil.longs.Long2ByteMap;
 import it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap;
 import net.minecraft.server.level.ChunkMap;
@@ -11,9 +12,15 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.Queue;
+import java.util.function.BooleanSupplier;
 
 /**
  * NeoForge drops a chunk's entry from ChunkMap.chunkTypeCache right before the
@@ -28,7 +35,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * original read.</p>
  */
 @Mixin(ChunkMap.class)
-public abstract class ChunkMapUnloadTypeMixin implements dev.worldgennext.neoforge.threading.IdleUnloads {
+public abstract class ChunkMapUnloadTypeMixin implements IdleUnloads {
     /** Runs one queued unload (the save of one chunk that already left the holder map); false when none is queued. */
     @Override
     public boolean worldgenNext$runIdleUnload() {
@@ -68,29 +75,29 @@ public abstract class ChunkMapUnloadTypeMixin implements dev.worldgennext.neofor
     @Unique private boolean worldgenNext$inTick;
     @Unique private int worldgenNext$unloadBudget;
 
-    @Shadow @Final private java.util.Queue<Runnable> unloadQueue;
+    @Shadow @Final private Queue<Runnable> unloadQueue;
 
     @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V", at = @At("HEAD"))
-    private void worldgenNext$enterTick(java.util.function.BooleanSupplier hasTime, CallbackInfo callback) {
+    private void worldgenNext$enterTick(BooleanSupplier hasTime, CallbackInfo callback) {
         worldgenNext$inTick = worldgenNext$STEADY_UNLOADS;
         worldgenNext$unloadBudget = -1;
     }
 
     @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V", at = @At("RETURN"))
-    private void worldgenNext$leaveTick(java.util.function.BooleanSupplier hasTime, CallbackInfo callback) {
+    private void worldgenNext$leaveTick(BooleanSupplier hasTime, CallbackInfo callback) {
         worldgenNext$inTick = false;
     }
 
-    @org.spongepowered.asm.mixin.injection.Redirect(method = "processUnloads", at = @At(value = "INVOKE",
+    @Redirect(method = "processUnloads", at = @At(value = "INVOKE",
             target = "Ljava/util/function/BooleanSupplier;getAsBoolean()Z", ordinal = 1))
-    private boolean worldgenNext$pacedUnloads(java.util.function.BooleanSupplier hasTime) {
+    private boolean worldgenNext$pacedUnloads(BooleanSupplier hasTime) {
         if (!worldgenNext$inTick) return hasTime.getAsBoolean();
         if (worldgenNext$unloadBudget < 0) worldgenNext$unloadBudget = Math.max(128, unloadQueue.size() / 4);
         return worldgenNext$unloadBudget-- > 0;
     }
 
-    @org.spongepowered.asm.mixin.injection.ModifyConstant(method = "processUnloads",
-            constant = @org.spongepowered.asm.mixin.injection.Constant(intValue = 2000, ordinal = 1))
+    @ModifyConstant(method = "processUnloads",
+            constant = @Constant(intValue = 2000, ordinal = 1))
     private int worldgenNext$unloadQueueAllowance(int vanilla) {
         return worldgenNext$inTick ? Integer.MAX_VALUE : vanilla;
     }

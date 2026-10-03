@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.mixin;
 
+import dev.worldgennext.neoforge.fast.FastSurfaceState;
+import dev.worldgennext.neoforge.threading.FeatureRegionScheduler;
 import dev.worldgennext.neoforge.threading.ParallelWorldgenSteps;
 import net.minecraft.server.level.GenerationChunkHolder;
 import net.minecraft.util.StaticCache2D;
@@ -75,7 +77,7 @@ public abstract class ChunkStatusTasksStructureMixin {
     private static void worldgenNext$parallelSurface(
             WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> cache, ChunkAccess chunk,
             CallbackInfoReturnable<CompletableFuture<ChunkAccess>> callback) {
-        if (dev.worldgennext.neoforge.fast.FastSurfaceState.applied(chunk)) {
+        if (FastSurfaceState.applied(chunk)) {
             // The fused kernels already produced this chunk's surface together with NOISE.
             callback.setReturnValue(CompletableFuture.completedFuture(chunk));
             return;
@@ -83,9 +85,9 @@ public abstract class ChunkStatusTasksStructureMixin {
         if (ParallelWorldgenSteps.shouldOffloadTerrain()) {
             CompletableFuture<ChunkAccess> result = ParallelWorldgenSteps.offload("surface",
                     () -> generateSurface(context, step, cache, chunk));
-            if (dev.worldgennext.neoforge.fast.FastSurfaceState.VERIFY) {
+            if (FastSurfaceState.VERIFY) {
                 result = result.thenApply(done -> {
-                    dev.worldgennext.neoforge.fast.FastSurfaceState.verify(done);
+                    FastSurfaceState.verify(done);
                     return done;
                 });
             }
@@ -116,7 +118,7 @@ public abstract class ChunkStatusTasksStructureMixin {
             WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> cache, ChunkAccess chunk,
             CallbackInfoReturnable<CompletableFuture<ChunkAccess>> callback) {
         if (ParallelWorldgenSteps.shouldOffloadFeatures()) {
-            callback.setReturnValue(dev.worldgennext.neoforge.threading.FeatureRegionScheduler.forLevel(context.level())
+            callback.setReturnValue(FeatureRegionScheduler.forLevel(context.level())
                     .submit(chunk.getPos(), () -> ParallelWorldgenSteps.original(
                             () -> generateFeatures(context, step, cache, chunk))));
         }

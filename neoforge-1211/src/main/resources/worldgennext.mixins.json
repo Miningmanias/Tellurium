@@ -3,6 +3,7 @@
   "minVersion": "0.8.5",
   "package": "dev.worldgennext.neoforge.mixin",
   "compatibilityLevel": "JAVA_21",
+  "plugin": "dev.worldgennext.neoforge.mixin.WorldgenNextMixinPlugin",
   "mixins": [],
   "client": [],
   "server": [
@@ -21,6 +22,7 @@
     "LevelChunkSectionAccessor",
     "RegionFileStorageAccessor",
     "IOWorkerOldChunkMixin",
+    "IOWorkerHeaderFlushMixin",
     "BlockShapeCacheMixin",
     "BlockableEventLoopAccessor",
     "MinecraftServerIdleUnloadMixin",

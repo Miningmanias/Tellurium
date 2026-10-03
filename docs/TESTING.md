@@ -107,7 +107,7 @@ validation, authoritative commit and terminal completion. The one-case
 `build/coordinator-smoke/noise.snap` server run is a wiring smoke for that path;
 it does not replace the independent oracle, GPU, FULL/SAVED or stability gates.
 The coordinator also exposes an immutable diagnostic snapshot. The live
-`/worldgennext status-json` command reports its queue/admission dimensions and
+`/worldgennext dev status-json` command reports its queue/admission dimensions and
 all distinct work counters, but that report is operational telemetry rather
 than qualification evidence.
 

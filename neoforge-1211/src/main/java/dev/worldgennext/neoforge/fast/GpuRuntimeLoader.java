@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
@@ -63,12 +64,12 @@ final class GpuRuntimeLoader {
         Object backend;
         try {
             backend = entry.getMethod("openIsolated", String.class).invoke(null, natives.toString());
-        } catch (java.lang.reflect.InvocationTargetException failure) {
+        } catch (InvocationTargetException failure) {
             Throwable cause = failure.getCause();
             if (cause instanceof Exception exception) throw exception;
             throw new IllegalStateException(cause);
         }
-        LOG.info("Fast GPU NOISE runtime loaded from {} bundled jars in {}", names.size(), directory);
+        LOG.debug("Fast GPU NOISE runtime loaded from {} bundled jars in {}", names.size(), directory);
         return (FusedGpuBackend) backend;
     }
 

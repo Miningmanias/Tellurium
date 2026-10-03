@@ -1,15 +1,21 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.mixin;
 
+import dev.worldgennext.neoforge.fast.ClimateColumnCache;
 import dev.worldgennext.neoforge.fast.FastNoiseEngine;
 import net.minecraft.world.level.StructureManager;
+import net.minecraft.world.level.biome.BiomeResolver;
+import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.levelgen.BelowZeroRetrogen;
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.blending.Blender;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.concurrent.CompletableFuture;
@@ -30,23 +36,23 @@ public abstract class NoiseBasedChunkGeneratorFastMixin {
     /** BIOMES: where the cache wrappers provably do not change sampled values, skip building the NoiseChunk. */
     @Inject(method = "doCreateBiomes", at = @At("HEAD"), cancellable = true)
     private void worldgenNext$biomesWithoutNoiseChunk(Blender blender, RandomState randomState, StructureManager structures,
-                                                      ChunkAccess chunk, org.spongepowered.asm.mixin.injection.callback.CallbackInfo callback) {
-        net.minecraft.world.level.biome.Climate.Sampler sampler =
-                dev.worldgennext.neoforge.fast.ClimateColumnCache.unwrappedSampler(blender, randomState, chunk);
+                                                      ChunkAccess chunk, CallbackInfo callback) {
+        Climate.Sampler sampler =
+                ClimateColumnCache.unwrappedSampler(blender, randomState, chunk);
         if (sampler == null) return;
         NoiseBasedChunkGenerator self = (NoiseBasedChunkGenerator) (Object) this;
-        net.minecraft.world.level.biome.BiomeResolver resolver = net.minecraft.world.level.levelgen.BelowZeroRetrogen.getBiomeResolver(
+        BiomeResolver resolver = BelowZeroRetrogen.getBiomeResolver(
                 blender.getBiomeResolver(self.getBiomeSource()), chunk);
         chunk.fillBiomesFromNoise(resolver, sampler);
         callback.cancel();
     }
 
     /** BIOMES: evaluate provably Y-independent climate functions once per quart column. */
-    @org.spongepowered.asm.mixin.injection.Redirect(method = "doCreateBiomes", at = @At(value = "INVOKE",
+    @Redirect(method = "doCreateBiomes", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/chunk/ChunkAccess;fillBiomesFromNoise(Lnet/minecraft/world/level/biome/BiomeResolver;Lnet/minecraft/world/level/biome/Climate$Sampler;)V"))
-    private void worldgenNext$columnCachedClimate(ChunkAccess target, net.minecraft.world.level.biome.BiomeResolver resolver,
-                                                  net.minecraft.world.level.biome.Climate.Sampler sampler,
+    private void worldgenNext$columnCachedClimate(ChunkAccess target, BiomeResolver resolver,
+                                                  Climate.Sampler sampler,
                                                   Blender blender, RandomState randomState, StructureManager structures, ChunkAccess chunk) {
-        target.fillBiomesFromNoise(resolver, dev.worldgennext.neoforge.fast.ClimateColumnCache.wrap(sampler, blender, randomState, chunk));
+        target.fillBiomesFromNoise(resolver, ClimateColumnCache.wrap(sampler, blender, randomState, chunk));
     }
 }
