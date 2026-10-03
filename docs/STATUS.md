@@ -1,5 +1,28 @@
 # WorldgenNext status — 2026-10-01
 
+## 2026-10-02 — throughput path and frozen-matrix outcome
+
+Two updates supersede the paragraphs below where they conflict.
+
+**Frozen `GPU_IEEE_BITS` matrix.** The six-context replay at
+`build/gpu-six-context-matrix-frozen-20261001a` is no longer running. It ended
+`FAIL`: vanilla Overworld, Nether, End and Terralith each passed 250/250 cases
+with independent comparison; Tectonic (34 receipts) and combined (31 receipts)
+hit the 25-minute seed-group deadline in their first group, with no mismatch
+reported and no independent comparison run. G6 remains open.
+
+**Throughput path.** At the owner's direction, optimization was pulled forward.
+A separate fused native-FP64 GPU NOISE path and parallel worldgen steps now
+exist and are on by default for qualified routers. Per-chunk digests are
+identical to serial vanilla on 8,281 chunks in each of eight contexts (three
+vanilla Overworld seeds, Nether, End, Terralith, Tectonic, combined). Timed
+NOISE throughput: about 2,700–2,930 chunks/s on vanilla Overworld against
+about 720 for vanilla, and about 800 on the combined pack against about 490.
+FULL: about 896 against about 119. Scope, method and limits are in
+[the throughput evidence](evidence/throughput-fused-gpu.md). This does not
+close any G0–G12 gate: it has not run in an installed server or client, it is
+not `oracle-1211` corpus evidence, and nothing is claimed exact past CARVERS.
+
 The frozen 250-case Terralith run failed after 237 passing device/CPU receipts:
 `Long.MAX_VALUE (32,32)` differed by one water/stone state. A retained-shader
 probe identified undefined negative signed remainder in the aquifer grid.

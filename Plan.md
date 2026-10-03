@@ -1,5 +1,15 @@
 # WorldgenNext implementation plan
 
+2026-10-02 owner decision: throughput work was pulled forward ahead of the
+remaining v0.2 gates. The mod now ships a fused native-FP64 GPU NOISE path
+(default-on only for routers on a qualified list, with per-chunk fallback to
+the original generator) and runs the vanilla structure, surface, carver and
+feature steps off the single worldgen mailbox. Measured results, the digest
+method and what is not yet qualified are in
+[docs/evidence/throughput-fused-gpu.md](docs/evidence/throughput-fused-gpu.md).
+The `GPU_IEEE_BITS` route and gates G0–G12 below are unchanged and still open;
+the frozen six-context matrix ended FAIL on Tectonic/combined time budgets.
+
 Current runtime: **0.2.0 correctness-first checkpoint**. The v0.2 plan is implemented in focused pure/runtime slices; real same-stack Minecraft/GPU/FULL/SAVED qualification remains explicitly open. Independent repository; no CUDA.
 
 2026-10-01 continuation: the first GPU FULL verifier failed on 80 blocks

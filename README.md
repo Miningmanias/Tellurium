@@ -8,6 +8,31 @@ Start with [Plan.md](Plan.md), [architecture](docs/ARCHITECTURE.md), [file map](
 
 The [detailed v0.2 plan](docs/V0.2-PLAN.md) covers the complete functional product, including the real Minecraft oracle, exact GPU route, live generation, FULL and saved-world verification. Focused portions are implemented; release qualification remains fail-closed. Optimization starts in v0.3.
 
+## Throughput path (2026-10-02)
+
+The mod now accelerates generation by default:
+
+- NOISE runs on the GPU for routers whose generated kernel structure is on the
+  shipped qualified list (vanilla Overworld/Nether/End, Terralith, Tectonic and
+  their combination at the pinned versions). Anything else, and any chunk the
+  kernels flag, uses the original generator.
+- Structure starts/references, surface, carvers and features run on the
+  worldgen worker pool instead of one thread.
+
+Measured on the reference host: about 2,700–2,930 NOISE chunks/s on vanilla
+Overworld (vanilla: about 720) and about 800 on the combined pack (vanilla:
+about 490); FULL about 896 against about 119. GPU output is digest-identical to
+vanilla through CARVERS in the tested contexts. See
+[throughput evidence](docs/evidence/throughput-fused-gpu.md) for method and
+limits; it has not yet been exercised in an installed server or client.
+
+```powershell
+# Timed benchmark (fresh world, 8,281 chunks); add -ModsDir for a terrain pack
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\bench-cps.ps1 -Status NOISE
+# Digest matrix against serial vanilla for every context
+bash scripts/verify-fast-matrix.sh 45
+```
+
 ## Build and test
 
 Use JDK21, including for the Gradle launcher. The wrapper downloads pinned Gradle8.14.2 with checksum verification; initial dependency downloads require internet access.

@@ -1,5 +1,26 @@
 # WorldgenNext configuration
 
+## Throughput path settings (JVM system properties)
+
+| Property | Default | Meaning |
+| --- | --- | --- |
+| `worldgennext.fast.gpu` | `auto` | `auto`: GPU NOISE only for routers on the qualified list; `force`: any router that compiles (unqualified); `off`: never. |
+| `worldgennext.fast.batch` | `64` | Maximum chunks per GPU batch. |
+| `worldgennext.fast.slots` | `4` | Batches that may be in flight. |
+| `worldgennext.fast.maxDelayMicros` | `1500` | Longest a request waits for a batch to fill. |
+| `worldgennext.fast.pipelineCacheDir` | `worldgennext-cache` | Directory for the Vulkan pipeline cache; `NONE` disables it. |
+| `worldgennext.parallelStructureSteps` | `true` | Run structure starts/references on the worker pool. |
+| `worldgennext.parallelSurfaceCarvers` | `true` | Run surface and carvers on the worker pool. |
+| `worldgennext.parallelFeatures` | `true` | Run features in parallel where 3×3 neighbourhoods are disjoint. |
+
+Diagnostics: `worldgennext.fast.verify=true` generates each chunk with both the
+original generator and the GPU and logs block mismatches (the original result
+is kept); `worldgennext.fast.profile=true` reports per-kernel GPU time;
+`worldgennext.fast.debugBuffers=true` with verify compares GPU intermediates
+with the CPU interpreter; `worldgennext.fast.dumpSourceDir=<dir>` writes the
+generated GLSL. The GPU runtime and its LWJGL bindings are nested in the mod
+jar and unpacked to `worldgennext-cache/gpu-runtime-*` in the game directory.
+
 The v0.2 checkpoint exposes three explicit modes:
 
 - `CPU_ONLY` never initializes the Vulkan or Shaderc boundary.

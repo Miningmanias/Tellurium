@@ -144,8 +144,9 @@ public final class WorldgenNextMod {
         NeoForge.EVENT_BUS.addListener(WorldgenNextMod::serverStopped);
         NeoForge.EVENT_BUS.addListener(WorldgenNextMod::candidateCapture);
         LoggerFactory.getLogger(MOD_ID).info(
-                "WorldgenNext {} loaded: mode={}, configFile={}, configPresent={}, native={}, live generation hook remains disabled until real oracle qualification",
-                VERSION, RUNTIME.config().mode(), loadedConfig.file(), loadedConfig.filePresent(), RUNTIME.nativeBootstrap().state());
+                "WorldgenNext {} loaded: mode={}, configFile={}, configPresent={}, native={}, fastGpu={}, parallelStructures={}; the staged GPU_IEEE_BITS hook stays disabled until its oracle qualification",
+                VERSION, RUNTIME.config().mode(), loadedConfig.file(), loadedConfig.filePresent(), RUNTIME.nativeBootstrap().state(),
+                dev.worldgennext.neoforge.fast.FastNoiseEngine.MODE, dev.worldgennext.neoforge.threading.ParallelWorldgenSteps.enabled());
     }
 
     /**
