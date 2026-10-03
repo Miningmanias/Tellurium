@@ -56,4 +56,57 @@ public abstract class ChunkStatusTasksStructureMixin {
                     () -> generateStructureReferences(context, step, cache, chunk)));
         }
     }
+
+    @Shadow
+    static CompletableFuture<ChunkAccess> generateSurface(
+            WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> cache, ChunkAccess chunk) {
+        throw new AssertionError();
+    }
+
+    @Shadow
+    static CompletableFuture<ChunkAccess> generateCarvers(
+            WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> cache, ChunkAccess chunk) {
+        throw new AssertionError();
+    }
+
+    // SURFACE and CARVERS declare blockStateWriteRadius(0): each writes only its own
+    // chunk and reads neighbour state whose required statuses already completed.
+    @Inject(method = "generateSurface", at = @At("HEAD"), cancellable = true)
+    private static void worldgenNext$parallelSurface(
+            WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> cache, ChunkAccess chunk,
+            CallbackInfoReturnable<CompletableFuture<ChunkAccess>> callback) {
+        if (ParallelWorldgenSteps.shouldOffloadTerrain()) {
+            callback.setReturnValue(ParallelWorldgenSteps.offload("surface",
+                    () -> generateSurface(context, step, cache, chunk)));
+        }
+    }
+
+    @Inject(method = "generateCarvers", at = @At("HEAD"), cancellable = true)
+    private static void worldgenNext$parallelCarvers(
+            WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> cache, ChunkAccess chunk,
+            CallbackInfoReturnable<CompletableFuture<ChunkAccess>> callback) {
+        if (ParallelWorldgenSteps.shouldOffloadTerrain()) {
+            callback.setReturnValue(ParallelWorldgenSteps.offload("carvers",
+                    () -> generateCarvers(context, step, cache, chunk)));
+        }
+    }
+
+    @Shadow
+    static CompletableFuture<ChunkAccess> generateFeatures(
+            WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> cache, ChunkAccess chunk) {
+        throw new AssertionError();
+    }
+
+    // FEATURES writes within one chunk of its centre; the scheduler only overlaps
+    // steps whose 3x3 neighbourhoods are disjoint.
+    @Inject(method = "generateFeatures", at = @At("HEAD"), cancellable = true)
+    private static void worldgenNext$parallelFeatures(
+            WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> cache, ChunkAccess chunk,
+            CallbackInfoReturnable<CompletableFuture<ChunkAccess>> callback) {
+        if (ParallelWorldgenSteps.shouldOffloadFeatures()) {
+            callback.setReturnValue(dev.worldgennext.neoforge.threading.FeatureRegionScheduler.forLevel(context.level())
+                    .submit(chunk.getPos(), () -> ParallelWorldgenSteps.original(
+                            () -> generateFeatures(context, step, cache, chunk))));
+        }
+    }
 }

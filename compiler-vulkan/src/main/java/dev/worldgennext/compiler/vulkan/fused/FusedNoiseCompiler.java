@@ -84,7 +84,8 @@ public final class FusedNoiseCompiler {
 
     public record Compiled(String source, double[] doubleTable, int[] permTable, int flatChannels,
                            int interpolatedChannels, Geometry geometry, String fingerprint,
-                           List<ProgramNode> flatChildren, List<ProgramNode> interpolatedChildren) {}
+                           List<ProgramNode> flatChildren, List<ProgramNode> interpolatedChildren,
+                           String structureFingerprint) {}
 
     public static final class UnsupportedFusedProgramException extends RuntimeException {
         public UnsupportedFusedProgramException(String message) { super(message); }
@@ -194,7 +195,8 @@ public final class FusedNoiseCompiler {
             List<ProgramNode> interpChildren = new ArrayList<>();
             for (ProgramNode.Interpolated interp : interps) interpChildren.add(interp.child());
             return new Compiled(source, tables.doubleTable(), tables.permTable(), flats.size(), interps.size(),
-                    geometry, fingerprint, List.copyOf(flatChildren), List.copyOf(interpChildren));
+                    geometry, fingerprint, List.copyOf(flatChildren), List.copyOf(interpChildren),
+                    structureFingerprint(source));
         }
 
         private String header() {
@@ -632,6 +634,21 @@ public final class FusedNoiseCompiler {
             interpIds.put(node, id);
             return id;
         }
+    }
+
+    /**
+     * Identity of the generated kernel code without world-seed constants: the
+     * positional-random seeds are the only seed-derived values in the source
+     * (noise tables live in buffers).  Two worlds of the same stack and
+     * settings share this value regardless of seed.
+     */
+    static String structureFingerprint(String source) {
+        StringBuilder kept = new StringBuilder(source.length());
+        for (String line : source.split("\n")) {
+            if (line.startsWith("const int64_t AQ_") || line.startsWith("const int64_t ORE_")) continue;
+            kept.append(line).append('\n');
+        }
+        return sha256(kept.toString());
     }
 
     static String dlit(double value) {

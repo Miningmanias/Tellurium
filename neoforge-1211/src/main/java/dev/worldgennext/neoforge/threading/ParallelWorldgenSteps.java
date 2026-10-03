@@ -37,6 +37,31 @@ public final class ParallelWorldgenSteps {
         return ENABLED && !RUNNING_ORIGINAL.get();
     }
 
+    private static final boolean TERRAIN_ENABLED =
+            Boolean.parseBoolean(System.getProperty("worldgennext.parallelSurfaceCarvers", "true"));
+
+    /** SURFACE/CARVERS offload gate; same re-entrancy rule as {@link #shouldOffload()}. */
+    public static boolean shouldOffloadTerrain() {
+        return TERRAIN_ENABLED && !RUNNING_ORIGINAL.get();
+    }
+
+    private static final boolean FEATURES_ENABLED =
+            Boolean.parseBoolean(System.getProperty("worldgennext.parallelFeatures", "true"));
+
+    public static boolean shouldOffloadFeatures() {
+        return FEATURES_ENABLED && !RUNNING_ORIGINAL.get();
+    }
+
+    /** Runs the vanilla body on the current thread with the offload guard set. */
+    public static <T> T original(Supplier<T> body) {
+        RUNNING_ORIGINAL.set(Boolean.TRUE);
+        try {
+            return body.get();
+        } finally {
+            RUNNING_ORIGINAL.set(Boolean.FALSE);
+        }
+    }
+
     public static <T> CompletableFuture<T> offload(String name, Supplier<CompletableFuture<T>> original) {
         return CompletableFuture.supplyAsync(Util.wrapThreadWithTaskName("wgen_" + name, () -> {
             RUNNING_ORIGINAL.set(Boolean.TRUE);

@@ -1,6 +1,6 @@
 param(
     [string]$JavaHome = 'C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot',
-    [ValidateSet('NOISE', 'FULL')]
+    [ValidateSet('BIOMES', 'NOISE', 'SURFACE', 'CARVERS', 'FEATURES', 'FULL')]
     [string]$Status = 'NOISE',
     [int]$RadiusChunks = 45,
     [int]$WarmupRadiusChunks = 5,

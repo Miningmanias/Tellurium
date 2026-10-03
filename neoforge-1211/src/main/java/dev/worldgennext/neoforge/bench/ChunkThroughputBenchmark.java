@@ -47,6 +47,7 @@ public final class ChunkThroughputBenchmark {
                 case "BIOMES" -> ChunkStatus.BIOMES;
                 case "NOISE" -> ChunkStatus.NOISE;
                 case "SURFACE" -> ChunkStatus.SURFACE;
+                case "CARVERS" -> ChunkStatus.CARVERS;
                 case "FEATURES" -> ChunkStatus.FEATURES;
                 case "FULL" -> ChunkStatus.FULL;
                 default -> throw new IllegalArgumentException("Unknown worldgennext.bench.status: " + statusName);
@@ -128,6 +129,8 @@ public final class ChunkThroughputBenchmark {
     }
 
     void run(String routeDescription) throws Exception {
+        var engine = dev.worldgennext.neoforge.fast.FastNoiseEngine.instance();
+        if (engine != null) engine.awaitCompiled();
         int warmOffset = settings.radiusChunks() + settings.warmupRadiusChunks() + 64;
         LOG.info("WorldgenNext benchmark: status={} radius={} warmupRadius={} center=({},{}) inFlight={} route={}",
                 settings.status(), settings.radiusChunks(), settings.warmupRadiusChunks(),

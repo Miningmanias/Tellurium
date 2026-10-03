@@ -47,7 +47,35 @@ import java.util.concurrent.locks.LockSupport;
  */
 public final class FastNoiseEngine {
     private static final Logger LOG = LoggerFactory.getLogger("worldgennext-fast");
-    public static final boolean ENABLED = Boolean.parseBoolean(System.getProperty("worldgennext.fast.gpu", "false"));
+    /** OFF: never; AUTO: only routers whose kernel structure passed qualification; FORCE: any router that compiles. */
+    public enum GpuMode { OFF, AUTO, FORCE }
+    public static final GpuMode MODE = parseMode(System.getProperty("worldgennext.fast.gpu", "auto"));
+    public static final boolean ENABLED = MODE != GpuMode.OFF;
+
+    private static GpuMode parseMode(String value) {
+        return switch (value.trim().toLowerCase(java.util.Locale.ROOT)) {
+            case "off", "false", "none" -> GpuMode.OFF;
+            case "force", "true" -> GpuMode.FORCE;
+            default -> GpuMode.AUTO;
+        };
+    }
+
+    /** Kernel-structure fingerprints that passed the digest matrix against the original generator. */
+    private static final Map<String, String> QUALIFIED = loadQualified();
+
+    private static Map<String, String> loadQualified() {
+        Map<String, String> out = new java.util.HashMap<>();
+        try (var in = FastNoiseEngine.class.getResourceAsStream("/worldgennext/fused-qualified.properties")) {
+            if (in != null) {
+                var properties = new java.util.Properties();
+                properties.load(in);
+                for (String key : properties.stringPropertyNames()) out.put(key, properties.getProperty(key));
+            }
+        } catch (java.io.IOException ignored) {
+            // no allowlist: AUTO admits nothing
+        }
+        return Map.copyOf(out);
+    }
     public static final boolean VERIFY = Boolean.getBoolean("worldgennext.fast.verify");
     private static final int BATCH = Integer.getInteger("worldgennext.fast.batch", 64);
     private static final int SLOTS = Integer.getInteger("worldgennext.fast.slots", 4);
@@ -80,7 +108,13 @@ public final class FastNoiseEngine {
 
     public static FastNoiseEngine instance() { return INSTANCE; }
 
-    /** Opens the device and compiles every NoiseBasedChunkGenerator level; failures leave that level on vanilla. */
+    private final java.util.concurrent.CountDownLatch compiled = new java.util.concurrent.CountDownLatch(1);
+
+    /**
+     * Opens the device and compiles every NoiseBasedChunkGenerator level on a
+     * background thread.  A level generates with the original code until its
+     * program is ready; failures and unqualified routers leave it there.
+     */
     public static void start(MinecraftServer server) {
         if (!ENABLED || INSTANCE != null) return;
         FusedNoiseDevice device;
@@ -92,14 +126,31 @@ public final class FastNoiseEngine {
         }
         FastNoiseEngine engine = new FastNoiseEngine(device);
         INSTANCE = engine;
-        LOG.info("Fast GPU NOISE device: {}", device.deviceName());
+        LOG.info("Fast GPU NOISE device: {} (mode {})", device.deviceName(), MODE);
+        // Captures read live registries and the seeded router; take them on the server thread.
+        List<Runnable> jobs = new ArrayList<>();
         for (ServerLevel level : server.getAllLevels()) {
             try {
-                engine.compile(level);
+                Runnable job = engine.prepare(level);
+                if (job != null) jobs.add(job);
             } catch (Throwable failure) {
                 LOG.warn("Fast GPU NOISE disabled for {}: {}", level.dimension().location(), failure.toString());
             }
         }
+        Thread compiler = new Thread(() -> {
+            try {
+                for (Runnable job : jobs) job.run();
+            } finally {
+                engine.compiled.countDown();
+            }
+        }, "worldgennext-fast-compile");
+        compiler.setDaemon(true);
+        compiler.start();
+    }
+
+    /** Blocks until every level's compile attempt finished (benchmarks and tests only). */
+    public void awaitCompiled() throws InterruptedException {
+        compiled.await();
     }
 
     public static void stop() {
@@ -120,8 +171,9 @@ public final class FastNoiseEngine {
         engine.device.close();
     }
 
-    private void compile(ServerLevel level) throws Exception {
-        if (!(level.getChunkSource().getGenerator() instanceof NoiseBasedChunkGenerator generator)) return;
+    /** Captures on the calling (server) thread; the returned job compiles and installs off-thread. */
+    private Runnable prepare(ServerLevel level) throws Exception {
+        if (!(level.getChunkSource().getGenerator() instanceof NoiseBasedChunkGenerator generator)) return null;
         long start = System.nanoTime();
         WorldgenSnapshot snapshot = FastRouterCapture.capture(level);
         NoiseGeneratorSettings settings = generator.generatorSettings().value();
@@ -143,13 +195,33 @@ public final class FastNoiseEngine {
         var request = new FusedNoiseCompiler.Request(snapshot.router().roots(), snapshot.generatorSettings(),
                 snapshot.randomState().aquiferRandom(), snapshot.randomState().oreRandom(), materialPalette, beardKernel());
         FusedNoiseCompiler.Compiled compiled = new FusedNoiseCompiler().compile(request);
+        String dimension = level.dimension().location().toString();
+        RandomState randomState = level.getChunkSource().randomState();
+        String qualifiedAs = QUALIFIED.get(compiled.structureFingerprint());
+        LOG.info("Fast GPU NOISE {}: kernel structure {} ({})", dimension, compiled.structureFingerprint(),
+                qualifiedAs == null ? "not in the qualified list" : "qualified as " + qualifiedAs);
+        if (qualifiedAs == null && MODE == GpuMode.AUTO) {
+            LOG.warn("Fast GPU NOISE not enabled for {}: this generator's kernel structure has not passed qualification; "
+                    + "using vanilla generation (set -Dworldgennext.fast.gpu=force to override)", dimension);
+            return null;
+        }
+        return () -> {
+            try {
+                install(level, dimension, randomState, compiled, palette, snapshot, start);
+            } catch (Throwable failure) {
+                LOG.warn("Fast GPU NOISE disabled for {}: {}", dimension, failure.toString());
+            }
+        };
+    }
+
+    private void install(ServerLevel level, String dimension, RandomState randomState, FusedNoiseCompiler.Compiled compiled,
+                         BlockState[] palette, WorldgenSnapshot snapshot, long start) {
         dumpSource(level, compiled);
         if (Boolean.getBoolean("worldgennext.fast.dumpSourceOnly")) {
             throw new IllegalStateException("source dumped; pipeline build skipped by worldgennext.fast.dumpSourceOnly");
         }
         FusedNoiseDevice.Program program = device.load(compiled, BATCH, SLOTS);
-        programs.put(level.getChunkSource().randomState(),
-                new LevelProgram(level.dimension().location().toString(), program, palette, compiled.geometry(), snapshot));
+        programs.put(randomState, new LevelProgram(dimension, program, palette, compiled.geometry(), snapshot));
         LOG.info("Fast GPU NOISE ready for {}: flat={} interp={} source={} chars, compile {} ms (pipelines {} ms)",
                 level.dimension().location(), compiled.flatChannels(), compiled.interpolatedChannels(), compiled.source().length(),
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), TimeUnit.NANOSECONDS.toMillis(program.compileNanos));
