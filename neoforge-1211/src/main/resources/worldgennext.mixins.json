@@ -27,7 +27,11 @@
     "ChunkTaskPriorityQueueMixin",
     "WorldGenRegionChunkCacheMixin",
     "RegionFileHeaderMixin",
-    "OreFeatureMixin"
+    "OreFeatureMixin",
+    "NoiseChunkLazyWrapMixin",
+    "LevelChunkSectionUniformBiomeMixin",
+    "BiomeManagerUniformMixin",
+    "ProcessorMailboxIoBatchMixin"
   ],
   "injectors": {
     "defaultRequire": 1

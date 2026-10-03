@@ -89,7 +89,7 @@ tasks.register('prepareCandidateRun') {
         new File(directory, 'eula.txt').text = 'eula=true\n'
         def port = Integer.parseInt(System.getProperty('worldgennext.prototype.port', '25565'))
         if (port < 1 || port > 65535) throw new GradleException('Prototype port must be between 1 and 65535')
-        new File(directory, 'server.properties').text = "level-seed=${seed}\nlevel-name=candidate-world\nlevel-type=minecraft\\:normal\ngenerate-structures=${System.getProperty('worldgennext.run.generateStructures', 'true')}\nonline-mode=false\nserver-ip=127.0.0.1\nserver-port=${port}\nspawn-protection=0\nmax-tick-time=-1\nenable-command-block=true\n"
+        new File(directory, 'server.properties').text = "level-seed=${seed}\nlevel-name=candidate-world\nlevel-type=minecraft\\:normal\ngenerate-structures=${System.getProperty('worldgennext.run.generateStructures', 'true')}\nsync-chunk-writes=${System.getProperty('worldgennext.run.syncChunkWrites', 'true')}\nonline-mode=false\nserver-ip=127.0.0.1\nserver-port=${port}\nspawn-protection=0\nmax-tick-time=-1\nenable-command-block=true\n"
     }
 }
 

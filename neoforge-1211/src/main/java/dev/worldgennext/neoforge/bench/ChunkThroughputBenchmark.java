@@ -223,12 +223,19 @@ public final class ChunkThroughputBenchmark {
         java.util.concurrent.ConcurrentLinkedQueue<Integer> requests = new java.util.concurrent.ConcurrentLinkedQueue<>();
         java.util.concurrent.ConcurrentLinkedQueue<ChunkPos> releases = new java.util.concurrent.ConcurrentLinkedQueue<>();
         java.util.concurrent.atomic.AtomicBoolean drainQueued = new java.util.concurrent.atomic.AtomicBoolean();
+        // worldgennext.bench.completionDigest=true: digest every measured chunk the moment it completes, while
+        // tickets are released as usual.  The chunks then unload and are saved during the run, so a reopened
+        // world's digest compared with this one checks the unload save path.
+        String[] completionDigests = Boolean.getBoolean("worldgennext.bench.completionDigest") && label.equals("measured")
+                && !settings.releaseAtEnd() ? new String[order.size()] : null;
         java.util.function.IntConsumer request = index -> {
             ChunkPos pos = order.get(index);
             CompletableFuture<?> done = futures[index];
             cache.getChunkFuture(pos.x, pos.z, settings.status(), true).handle((result, error) -> {
-                if (error == null && result != null && result.isSuccess()) completed.incrementAndGet();
-                else failed.incrementAndGet();
+                if (error == null && result != null && result.isSuccess()) {
+                    completed.incrementAndGet();
+                    if (completionDigests != null) completionDigests[index] = ChunkDigest.line(level, result.orElse(null));
+                } else failed.incrementAndGet();
                 long now = System.nanoTime();
                 lastCompletion.set(now);
                 completionNanos.set(finished.getAndIncrement(), now - start);
@@ -297,6 +304,17 @@ public final class ChunkThroughputBenchmark {
         }
         long elapsed = lastCompletion.get() - start;
         if (digest) writeDigest(order);
+        if (completionDigests != null) {
+            StringBuilder text = new StringBuilder();
+            for (int i = 0; i < completionDigests.length; i++) {
+                ChunkPos pos = order.get(i);
+                text.append(completionDigests[i] == null ? pos.x + " " + pos.z + " MISSING" : completionDigests[i]).append(System.lineSeparator());
+            }
+            Path digestPath = settings.output().resolveSibling(settings.output().getFileName().toString()
+                    .replaceFirst("[.]json$", "") + ".digest.txt");
+            writeQuietly(digestPath, text.toString());
+            LOG.info("WorldgenNext benchmark completion digest written: {}", digestPath);
+        }
         if (settings.releaseAtEnd()) {
             server.execute(() -> {
                 for (ChunkPos pos : order) cache.removeRegionTicket(BENCH_TICKET, pos, ticketDistance, pos);
