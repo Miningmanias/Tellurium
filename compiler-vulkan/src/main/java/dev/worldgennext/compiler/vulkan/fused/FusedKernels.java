@@ -52,7 +52,7 @@ final class FusedKernels {
     }
 
     /** Aquifer, ore, material and the five kernel entry points; placed after generated functions. */
-    static String kernels(int flatCount, int interpCount) {
+    static String kernels(int flatCount, int interpCount, int xzCount) {
         StringBuilder s = new StringBuilder();
         StringBuilder columnStores = new StringBuilder();
         for (int f = 0; f < flatCount; f++) {
@@ -64,7 +64,13 @@ final class FusedKernels {
             cornerStores.append("corners[(((int(slot) * INTERPS + ").append(k).append(") * CNY + iy) * CNX + ix) * CNX + iz] = interp_")
                     .append(k).append("_corner(p);").append(System.lineSeparator()).append("            ");
         }
-        s.append(KERNEL_BODY.replace("COLUMN_STORES", columnStores.toString()).replace("CORNER_STORES", cornerStores.toString()));
+        StringBuilder xzStores = new StringBuilder();
+        for (int k = 0; k < xzCount; k++) {
+            xzStores.append("xzcache[(int(slot) * XZS + ").append(k).append(") * 256 + col] = xz_").append(k)
+                    .append("_col(p);").append(System.lineSeparator()).append("            ");
+        }
+        s.append(KERNEL_BODY.replace("COLUMN_STORES", columnStores.toString()).replace("CORNER_STORES", cornerStores.toString())
+                .replace("XZ_STORES", xzStores.toString()));
         return s.toString();
     }
 
@@ -170,9 +176,12 @@ final class FusedKernels {
 
         #ifdef K_AQUIFER
         int preliminarySurface(int x, int z) {
-            int sx = (x >> 2) << 2;
-            int sz = (z >> 2) << 2;
-            return prelim_scan(sx, sz);
+            int qx = (x >> 2) - (gFirstQX - 16);
+            int qz = (z >> 2) - (gFirstQZ - 16);
+            if (qx < 0 || qz < 0 || qx >= 31 || qz >= 31) { bail(BAIL_RANGE); return 0; }
+            int value = prelimOut[prelimIndex[int(gChunk) * 961 + qx * 31 + qz]];
+            if (value == -2147483647 - 1) { bail(BAIL_RANGE); return 0; }
+            return value;
         }
 
         const int OFFS_X[13] = int[](0, -2, -1, 0, 1, -3, -2, -1, 1, -2, -1, 0, 1);
@@ -393,6 +402,18 @@ final class FusedKernels {
         }
         #endif
 
+        #ifdef K_XZ
+        void main() {
+            uint id = gl_GlobalInvocationID.x;
+            uint slot = id / 256u;
+            if (slot >= pc.chunkCount) return;
+            setupChunk(slot);
+            int col = int(id % 256u);
+            ivec3 p = ivec3(gBaseX + (col & 15), 0, gBaseZ + (col >> 4));
+            XZ_STORES
+        }
+        #endif
+
         #ifdef K_CORNER
         void main() {
             uint id = gl_GlobalInvocationID.x;
@@ -406,6 +427,18 @@ final class FusedKernels {
             int ix = rem / CNX, iz = rem % CNX;
             ivec3 p = ivec3(gBaseX + ix * CELL_W, (MIN_CELL_Y + iy) * CELL_H, gBaseZ + iz * CELL_W);
             CORNER_STORES
+        }
+        #endif
+
+        #ifdef K_PRELIM
+        void main() {
+            uint id = gl_GlobalInvocationID.x;
+            if (id >= pc.prelimCount) return;
+            gChunk = 0u;
+            gShared = true;
+            int value = prelim_scan(prelimCols[2u * id], prelimCols[2u * id + 1u]);
+            // A bail here cannot be charged to one chunk: poison the column so every reader bails.
+            prelimOut[id] = gBailed ? (-2147483647 - 1) : value;
         }
         #endif
 

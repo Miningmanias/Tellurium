@@ -30,13 +30,13 @@ public final class FusedCompileProbe {
         System.out.println("shaderc " + kernel + ": " + spirv.length + " bytes in " + shaderc / 1_000_000 + " ms");
         try (FusedNoiseDevice device = FusedNoiseDevice.open(); MemoryStack stack = MemoryStack.stackPush()) {
             VkDevice vk = device.vkDevice();
-            var bindings = VkDescriptorSetLayoutBinding.calloc(10, stack);
-            for (int i = 0; i < 10; i++) bindings.get(i).binding(i).descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER).descriptorCount(1).stageFlags(VK_SHADER_STAGE_COMPUTE_BIT);
+            var bindings = VkDescriptorSetLayoutBinding.calloc(14, stack);
+            for (int i = 0; i < 14; i++) bindings.get(i).binding(i).descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER).descriptorCount(1).stageFlags(VK_SHADER_STAGE_COMPUTE_BIT);
             LongBuffer handle = stack.mallocLong(1);
             vkCreateDescriptorSetLayout(vk, VkDescriptorSetLayoutCreateInfo.calloc(stack).sType$Default().pBindings(bindings), null, handle);
             long setLayout = handle.get(0);
             var push = VkPushConstantRange.calloc(1, stack);
-            push.get(0).stageFlags(VK_SHADER_STAGE_COMPUTE_BIT).offset(0).size(4);
+            push.get(0).stageFlags(VK_SHADER_STAGE_COMPUTE_BIT).offset(0).size(8);
             vkCreatePipelineLayout(vk, VkPipelineLayoutCreateInfo.calloc(stack).sType$Default().pSetLayouts(stack.longs(setLayout)).pPushConstantRanges(push), null, handle);
             long layout = handle.get(0);
             ByteBuffer code = MemoryUtil.memAlloc(spirv.length);

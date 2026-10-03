@@ -40,7 +40,7 @@ import java.util.Objects;
 public final class FusedNoiseCompiler {
     public static final String VERSION = "worldgennext-fused-noise-v1";
 
-    public enum Mode { COLUMN, CORNER, CELL, VALUE, POINT, POINT_IN, POINT_OUT }
+    public enum Mode { COLUMN, XZ, CORNER, CELL, VALUE, POINT, POINT_IN, POINT_OUT }
 
     /** Palette indices of the states the material rule can produce, plus fluid predicates. */
     public record MaterialPalette(int air, int defaultBlock, int defaultFluid, int lava,
@@ -71,6 +71,10 @@ public final class FusedNoiseCompiler {
     }
 
     /** Fixed per-chunk geometry shared by host and kernels. */
+    /** Quart columns an aquifer cell of one chunk can sample: [chunkQuart - 16, chunkQuart + 14] per axis. */
+    public static final int PRELIM_WINDOW = 31;
+    public static final int PRELIM_ORIGIN = -16;
+
     public record Geometry(int minY, int storageHeight, int genHeight, int cellWidth, int cellHeight,
                            int cellsXZ, int cellsY, int minCellY, int columnsPerAxis,
                            int aquiferCellsY, int aquiferMinGridYOffset) {
@@ -85,7 +89,7 @@ public final class FusedNoiseCompiler {
     public record Compiled(String source, double[] doubleTable, int[] permTable, int flatChannels,
                            int interpolatedChannels, Geometry geometry, String fingerprint,
                            List<ProgramNode> flatChildren, List<ProgramNode> interpolatedChildren,
-                           String structureFingerprint) {}
+                           String structureFingerprint, int xzChannels) {}
 
     public static final class UnsupportedFusedProgramException extends RuntimeException {
         public UnsupportedFusedProgramException(String message) { super(message); }
@@ -177,6 +181,11 @@ public final class FusedNoiseCompiler {
             emitFunction("root_flood_point", roots.get("fluidLevelFloodedness"), Mode.POINT);
             emitFunction("root_spread_point", roots.get("fluidLevelSpread"), Mode.POINT);
             emitFunction("root_lava_point", roots.get("lava"), Mode.POINT);
+            // Y-independent subgraphs hoisted out of the block kernel: one value per block column.
+            xzHoisting = false;
+            for (int i = 0; i < xzNodes.size(); i++) {
+                emitFunction("xz_" + i + "_col", xzNodes.get(i), Mode.XZ);
+            }
             // Interpolated children (corner fill) may discover more flat channels.
             for (int k = 0; k < interps.size(); k++) {
                 emitFunction("interp_" + k + "_corner", interps.get(k).child(), Mode.CORNER);
@@ -188,7 +197,7 @@ public final class FusedNoiseCompiler {
 
             String source = header() + FusedNoiseCompiler.library() + "\n" + accessors()
                     + FusedKernels.prelude(geometry, request, beardKernelIndex) + functions
-                    + FusedKernels.kernels(flats.size(), interps.size());
+                    + FusedKernels.kernels(flats.size(), interps.size(), xzNodes.size());
             String fingerprint = sha256(source);
             List<ProgramNode> flatChildren = new ArrayList<>();
             for (ProgramNode.Marker flat : flats) flatChildren.add(flat.child());
@@ -196,7 +205,7 @@ public final class FusedNoiseCompiler {
             for (ProgramNode.Interpolated interp : interps) interpChildren.add(interp.child());
             return new Compiled(source, tables.doubleTable(), tables.permTable(), flats.size(), interps.size(),
                     geometry, fingerprint, List.copyOf(flatChildren), List.copyOf(interpChildren),
-                    structureFingerprint(source));
+                    structureFingerprint(source), xzNodes.size());
         }
 
         private String header() {
@@ -216,7 +225,11 @@ public final class FusedNoiseCompiler {
                     + "layout(std430, binding = 7) readonly buffer Beard { int beard[]; };\n"
                     + "layout(std430, binding = 8) buffer Flags { uint flags[]; };\n"
                     + "layout(std430, binding = 9) buffer Heights { int heights[]; };\n"
-                    + "layout(push_constant) uniform Push { uint chunkCount; } pc;\n";
+                    + "layout(std430, binding = 10) buffer XzCache { double xzcache[]; };\n"
+                    + "layout(std430, binding = 11) readonly buffer PrelimIndex { int prelimIndex[]; };\n"
+                    + "layout(std430, binding = 12) readonly buffer PrelimCols { int prelimCols[]; };\n"
+                    + "layout(std430, binding = 13) buffer PrelimOut { int prelimOut[]; };\n"
+                    + "layout(push_constant) uniform Push { uint chunkCount; uint prelimCount; } pc;\n";
         }
 
         private String accessors() {
@@ -225,6 +238,9 @@ public final class FusedNoiseCompiler {
             int interpCount = Math.max(1, interps.size()), flatCount = Math.max(1, flats.size());
             StringBuilder out = new StringBuilder();
             out.append("const int FLATS = ").append(flatCount).append(";\n");
+            out.append("const int XZS = ").append(Math.max(1, xzNodes.size())).append(";\n");
+            out.append("double xzv(int c, ivec3 p) {\n")
+                    .append("    return xzcache[(int(gChunk) * XZS + c) * 256 + (((p.z - gBaseZ) << 4) | (p.x - gBaseX))];\n}\n");
             out.append("const int INTERPS = ").append(interpCount).append(";\n");
             out.append("const int COLS = ").append(cols).append(";\n");
             out.append("const int CNX = ").append(nx).append(";\n");
@@ -281,6 +297,7 @@ public final class FusedNoiseCompiler {
         private void emitFunction(String name, ProgramNode root, Mode mode) {
             String guard = switch (mode) {
                 case COLUMN -> "defined(K_COLUMN)";
+                case XZ -> "defined(K_XZ)";
                 case CORNER -> "defined(K_CORNER)";
                 case CELL, VALUE -> "defined(K_BLOCK)";
                 case POINT, POINT_IN, POINT_OUT -> "defined(K_AQUIFER)";
@@ -308,6 +325,62 @@ public final class FusedNoiseCompiler {
             String name = "v" + (counter++);
             block.line("precise double " + name + " = " + expression + ";");
             return name;
+        }
+
+        private boolean xzHoisting = true;
+        private final Map<ProgramNode, Integer> xzIds = new IdentityHashMap<>();
+        private final List<ProgramNode> xzNodes = new ArrayList<>();
+        private final Map<ProgramNode, Boolean> blockYDependence = new IdentityHashMap<>();
+        private final Map<ProgramNode, Boolean> expensiveNodes = new IdentityHashMap<>();
+
+        private int xzId(ProgramNode node) {
+            Integer id = xzIds.get(node);
+            if (id != null) return id;
+            id = xzNodes.size();
+            xzNodes.add(node);
+            xzIds.put(node, id);
+            return id;
+        }
+
+        /** Block-context Y dependence: interpolators and the beardifier vary with Y; a FlatCache is a column lookup. */
+        private boolean blockYDependent(ProgramNode node) {
+            Boolean known = blockYDependence.get(node);
+            if (known != null) return known;
+            boolean result;
+            if (node instanceof ProgramNode.Interpolated) result = true;
+            else if (node instanceof ProgramNode.Marker marker && isFlat(marker)) result = false;
+            else if (node.children().isEmpty() || node instanceof ProgramNode.ShiftedNoise
+                    || node instanceof ProgramNode.WeirdScaledSampler) result = yDependent(node) || childrenBlockYDependent(node);
+            else result = childrenBlockYDependent(node);
+            blockYDependence.put(node, result);
+            return result;
+        }
+
+        private boolean childrenBlockYDependent(ProgramNode node) {
+            for (ProgramNode child : node.children()) if (blockYDependent(child)) return true;
+            return false;
+        }
+
+        /** True when the subgraph contains noise or spline work worth one evaluation per column. */
+        private boolean expensive(ProgramNode node) {
+            Boolean known = expensiveNodes.get(node);
+            if (known != null) return known;
+            boolean result;
+            if (node instanceof ProgramNode.Marker marker && isFlat(marker)) result = false;
+            else if (node instanceof ProgramNode.Noise || node instanceof ProgramNode.ShiftedNoise
+                    || node instanceof ProgramNode.Shift || node instanceof ProgramNode.Spline
+                    || node instanceof ProgramNode.EndIsland || node instanceof ProgramNode.BlendedNoise
+                    || node instanceof ProgramNode.WeirdScaledSampler) result = true;
+            else {
+                result = false;
+                for (ProgramNode child : node.children()) result |= expensive(child);
+            }
+            expensiveNodes.put(node, result);
+            return result;
+        }
+
+        private static boolean isFlat(ProgramNode.Marker marker) {
+            return marker.cacheMode().toUpperCase(java.util.Locale.ROOT).replace("_", "").equals("FLATCACHE");
         }
 
         /** When non-null, Y-independent nodes are emitted here (once per column scan) instead of in the Y loop. */
@@ -353,14 +426,30 @@ public final class FusedNoiseCompiler {
          * re-evaluates nodes that depend on Y.  Values are pure, so hoisting
          * changes cost only.
          */
+        /**
+         * The preliminary surface of a quart column is shared by every aquifer
+         * cell and chunk that samples it, so it is computed once per batch in
+         * K_PRELIM.  That is only valid when the value does not depend on which
+         * chunk asks: inside a chunk's FlatCache range vanilla substitutes the
+         * table value computed at y=0, outside it evaluates the child at the
+         * scan Y, and the two agree exactly when every reachable FlatCache
+         * child ignores Y (the column X/Z are already quart aligned).
+         */
         private void emitPrelimScan(ProgramNode root) {
-            functions.append("#if defined(K_AQUIFER)\n");
-            functions.append("int prelim_scan(int sx, int sz) {\n    ivec3 p = ivec3(sx, 0, sz);\n");
-            functions.append("    if (flatInBounds(p)) {\n");
-            emitPrelimVariant(root, Mode.POINT_IN);
-            functions.append("    } else {\n");
+            requireYIndependentFlats(root, java.util.Collections.newSetFromMap(new IdentityHashMap<>()));
+            functions.append("#if defined(K_PRELIM)\n");
+            functions.append("int prelim_scan(int sx, int sz) {\n    ivec3 p = ivec3(sx, 0, sz);\n    {\n");
             emitPrelimVariant(root, Mode.POINT_OUT);
             functions.append("    }\n    return 2147483647;\n}\n#endif\n");
+        }
+
+        private void requireYIndependentFlats(ProgramNode node, java.util.Set<ProgramNode> seen) {
+            if (!seen.add(node)) return;
+            if (node instanceof ProgramNode.Marker marker && isFlat(marker) && yDependent(marker.child())) {
+                throw new UnsupportedFusedProgramException(
+                        "initialDensityWithoutJaggedness reads a FlatCache whose child depends on Y; shared preliminary surfaces are not exact");
+            }
+            for (ProgramNode child : node.children()) requireYIndependentFlats(child, seen);
         }
 
         private void emitPrelimVariant(ProgramNode root, Mode mode) {
@@ -383,6 +472,11 @@ public final class FusedNoiseCompiler {
         private String value(ProgramNode node, Block block, Mode mode) {
             String existing = block.lookup(node);
             if (existing != null) return existing;
+            if (xzHoisting && (mode == Mode.CELL || mode == Mode.VALUE) && expensive(node) && !blockYDependent(node)) {
+                String name = fresh(block, "xzv(" + xzId(node) + ", p)");
+                block.values.put(node, name);
+                return name;
+            }
             if (hoistBlock != null && inLoop(block) && !yDependent(node)) {
                 existing = hoistBlock.lookup(node);
                 if (existing != null) return existing;
@@ -543,7 +637,7 @@ public final class FusedNoiseCompiler {
                 case VALUE -> fresh(block, "interpValue(" + interpId(node) + ", p)");
                 case POINT_IN, POINT_OUT, COLUMN -> value(node.child(), block, mode);
                 case POINT -> throw new AssertionError("POINT is split before emission");
-                case CORNER -> throw new UnsupportedFusedProgramException("Nested interpolation is not supported");
+                case CORNER, XZ -> throw new UnsupportedFusedProgramException("Nested interpolation is not supported");
             };
         }
 
@@ -561,7 +655,7 @@ public final class FusedNoiseCompiler {
             }
             return switch (mode) {
                 case COLUMN, POINT_OUT -> value(marker.child(), block, mode);
-                case CORNER, CELL, VALUE, POINT_IN -> fresh(block, "colv(" + flatId(marker) + ", p)");
+                case CORNER, XZ, CELL, VALUE, POINT_IN -> fresh(block, "colv(" + flatId(marker) + ", p)");
                 case POINT -> throw new AssertionError("POINT is split before emission");
             };
         }

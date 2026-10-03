@@ -25,19 +25,19 @@ import static org.lwjgl.vulkan.VK10.*;
  * lost: no buffer of an unproven submission is ever reused or freed.
  */
 public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.fused.FusedGpuBackend {
-    private static final int BINDINGS = 10;
-    private static final String[] KERNELS = {"K_COLUMN", "K_CORNER", "K_AQUIFER", "K_BLOCK", "K_HEIGHT"};
+    private static final int BINDINGS = 14;
+    private static final String[] KERNELS = {"K_COLUMN", "K_XZ", "K_CORNER", "K_PRELIM", "K_AQUIFER", "K_BLOCK", "K_HEIGHT"};
     /** Diagnostic: keep intermediate buffers host-visible so they can be compared with a CPU reference. */
     public static final boolean DEBUG_BUFFERS = Boolean.getBoolean("worldgennext.fast.debugBuffers");
     public static final boolean PROFILE = Boolean.getBoolean("worldgennext.fast.profile");
-    private static final java.util.concurrent.atomic.AtomicLong[] PROFILE_NANOS = new java.util.concurrent.atomic.AtomicLong[5];
+    private static final java.util.concurrent.atomic.AtomicLong[] PROFILE_NANOS = new java.util.concurrent.atomic.AtomicLong[7];
     private static final java.util.concurrent.atomic.AtomicLong PROFILE_CHUNKS = new java.util.concurrent.atomic.AtomicLong();
-    static { for (int i = 0; i < 5; i++) PROFILE_NANOS[i] = new java.util.concurrent.atomic.AtomicLong(); }
+    static { for (int i = 0; i < 7; i++) PROFILE_NANOS[i] = new java.util.concurrent.atomic.AtomicLong(); }
 
     public static String summary() {
         long chunks = Math.max(1, PROFILE_CHUNKS.get());
         StringBuilder out = new StringBuilder("chunks=" + PROFILE_CHUNKS.get());
-        for (int i = 0; i < 5; i++) out.append(' ').append(KERNELS[i]).append('=')
+        for (int i = 0; i < 7; i++) out.append(' ').append(KERNELS[i]).append('=')
                 .append(String.format(java.util.Locale.ROOT, "%.3f", PROFILE_NANOS[i].get() / 1e6 / chunks)).append("ms/chunk");
         return out.toString();
     }
@@ -251,7 +251,7 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
                         .pBindings(bindings), null, handle), "vkCreateDescriptorSetLayout");
                 descriptorSetLayout = handle.get(0);
                 var push = VkPushConstantRange.calloc(1, stack);
-                push.get(0).stageFlags(VK_SHADER_STAGE_COMPUTE_BIT).offset(0).size(4);
+                push.get(0).stageFlags(VK_SHADER_STAGE_COMPUTE_BIT).offset(0).size(8);
                 check(vkCreatePipelineLayout(device, VkPipelineLayoutCreateInfo.calloc(stack).sType$Default()
                         .pSetLayouts(stack.longs(descriptorSetLayout)).pPushConstantRanges(push), null, handle), "vkCreatePipelineLayout");
                 pipelineLayout = handle.get(0);
@@ -317,7 +317,8 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
         /** One in-flight batch: all buffers are owned until its fence signals. */
         public final class Slot implements dev.worldgennext.compiler.vulkan.fused.FusedGpuBackend.Slot {
             public static final int CHUNK_INFO_INTS = 8;
-            private final Buffer chunks, columns, corners, aquifer, blocks, beard, flags, heights;
+            private final Buffer chunks, columns, corners, aquifer, blocks, beard, flags, heights, xzcache, prelimIndex, prelimCols, prelimOut;
+            private final int prelimCapacity;
             private final long descriptorSet;
             private final VkCommandBuffer commands;
             private final long fence;
@@ -337,12 +338,17 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
                 beard = new Buffer((long) beardCapacityInts * 4, true);
                 flags = new Buffer((long) n * 4, true);
                 heights = new Buffer((long) n * 2 * 256 * 4, true);
+                prelimCapacity = n * 961;
+                prelimIndex = new Buffer((long) prelimCapacity * 4, true);
+                prelimCols = new Buffer((long) prelimCapacity * 8, true);
+                prelimOut = new Buffer((long) prelimCapacity * 4, false);
+                xzcache = new Buffer((long) n * Math.max(1, compiled.xzChannels()) * 256 * 8, false);
                 try (MemoryStack stack = MemoryStack.stackPush()) {
                     LongBuffer handle = stack.mallocLong(1);
                     check(vkAllocateDescriptorSets(device, VkDescriptorSetAllocateInfo.calloc(stack).sType$Default()
                             .descriptorPool(descriptorPool).pSetLayouts(stack.longs(descriptorSetLayout)), handle), "vkAllocateDescriptorSets");
                     descriptorSet = handle.get(0);
-                    Buffer[] bound = {chunks, permBuffer, dtabBuffer, columns, corners, aquifer, blocks, beard, flags, heights};
+                    Buffer[] bound = {chunks, permBuffer, dtabBuffer, columns, corners, aquifer, blocks, beard, flags, heights, xzcache, prelimIndex, prelimCols, prelimOut};
                     var infos = VkDescriptorBufferInfo.calloc(BINDINGS, stack);
                     var writes = VkWriteDescriptorSet.calloc(BINDINGS, stack);
                     for (int i = 0; i < BINDINGS; i++) {
@@ -368,13 +374,21 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
             public ByteBuffer beardData() { return beard.mapped; }
 
             /** Records and submits all kernels for {@code count} chunks already written to the mapped inputs. */
-            public void submit(int count) {
+            @Override public ByteBuffer prelimIndex() { return prelimIndex.mapped; }
+            @Override public ByteBuffer prelimColumns() { return prelimCols.mapped; }
+            @Override public int prelimColumnCapacity() { return prelimCapacity; }
+
+            @Override
+            public void submit(int count, int prelimCount) {
+                if (prelimCount < 0 || prelimCount > prelimCapacity) throw new IllegalArgumentException("Invalid preliminary column count");
                 if (pending) throw new IllegalStateException("Slot is still in flight");
                 if (lost) throw new IllegalStateException("Fused NOISE device is lost: " + lostReason);
                 if (count <= 0 || count > maxBatchChunks) throw new IllegalArgumentException("Invalid batch size " + count);
                 var g = compiled.geometry();
                 for (int i = 0; i < count; i++) flags.mapped.putInt(i * 4, 0);
-                long[] threads = {(long) count * g.columnCount(), (long) count * g.cornerCount(),
+                long[] threads = {(long) count * g.columnCount(),
+                        compiled.xzChannels() > 0 ? (long) count * 256 : 0L, (long) count * g.cornerCount(),
+                        compiledAquifers() ? (long) prelimCount : 0L,
                         compiledAquifers() ? (long) count * g.aquiferCellCount() : 0L,
                         (long) count * 64 * g.storageHeight(), (long) count * 256};
                 if (PROFILE) {
@@ -382,7 +396,7 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
                     for (int k = 0; k < KERNELS.length; k++) {
                         if (threads[k] == 0) continue;
                         long start = System.nanoTime();
-                        record(count, threads, k, k + 1);
+                        record(count, prelimCount, threads, k, k + 1);
                         int status = vkWaitForFences(device, new long[]{fence}, true, 60_000_000_000L);
                         if (status != VK_SUCCESS) { lost = true; lostReason = "profile fence VkResult=" + status; throw new IllegalStateException(lostReason); }
                         PROFILE_NANOS[k].addAndGet(System.nanoTime() - start);
@@ -392,19 +406,19 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
                     pendingChunks = count;
                     return;
                 }
-                record(count, threads, 0, KERNELS.length);
+                record(count, prelimCount, threads, 0, KERNELS.length);
                 pending = true;
                 pendingChunks = count;
             }
 
-            private void record(int count, long[] threads, int from, int to) {
+            private void record(int count, int prelimCount, long[] threads, int from, int to) {
                 try (MemoryStack stack = MemoryStack.stackPush()) {
                     vkResetCommandBuffer(commands, 0);
                     check(vkBeginCommandBuffer(commands, VkCommandBufferBeginInfo.calloc(stack).sType$Default()
                             .flags(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)), "vkBeginCommandBuffer");
                     vkCmdBindDescriptorSets(commands, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0,
                             stack.longs(descriptorSet), null);
-                    vkCmdPushConstants(commands, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, stack.ints(count));
+                    vkCmdPushConstants(commands, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, stack.ints(count, prelimCount));
                     for (int k = from; k < to; k++) if (threads[k] > 0) dispatch(stack, k, threads[k]);
                     var hostBarrier = VkMemoryBarrier.calloc(1, stack).sType$Default()
                             .srcAccessMask(VK_ACCESS_SHADER_WRITE_BIT).dstAccessMask(VK_ACCESS_HOST_READ_BIT);
@@ -466,7 +480,7 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
             void destroy() {
                 if (pending) return; // never free storage of an unproven submission
                 vkDestroyFence(device, fence, null);
-                for (Buffer b : new Buffer[]{chunks, columns, corners, aquifer, blocks, beard, flags, heights}) b.destroy();
+                for (Buffer b : new Buffer[]{chunks, columns, corners, aquifer, blocks, beard, flags, heights, xzcache, prelimIndex, prelimCols, prelimOut}) b.destroy();
             }
         }
 

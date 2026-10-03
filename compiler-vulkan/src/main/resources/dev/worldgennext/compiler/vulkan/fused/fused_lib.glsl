@@ -10,7 +10,9 @@ int gBaseZ;       // chunk min block Z
 int gFirstQX;     // NoiseChunk FlatCache firstNoiseX (quart)
 int gFirstQZ;
 
-void bail(uint code) { atomicOr(flags[gChunk], code); }
+bool gBailed = false;  // set by any bail in this invocation
+bool gShared = false;  // true in kernels whose work is shared by several chunks
+void bail(uint code) { gBailed = true; if (!gShared) atomicOr(flags[gChunk], code); }
 
 const uint BAIL_DIV = 1u, BAIL_SQRT = 2u, BAIL_CAST = 4u, BAIL_NONFINITE = 8u, BAIL_RANGE = 16u, BAIL_FLOAT = 32u;
 

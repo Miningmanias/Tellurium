@@ -32,7 +32,12 @@ public interface FusedGpuBackend extends AutoCloseable {
         boolean pending();
         ByteBuffer chunkInfo();
         ByteBuffer beardData();
-        void submit(int count);
+        /** Per chunk, 31x31 indices into the batch's unique preliminary-surface column list. */
+        ByteBuffer prelimIndex();
+        /** Unique quart-aligned column block coordinates (x, z pairs) for this batch. */
+        ByteBuffer prelimColumns();
+        int prelimColumnCapacity();
+        void submit(int count, int prelimCount);
         boolean poll();
         ByteBuffer blocks();
         ByteBuffer heights();

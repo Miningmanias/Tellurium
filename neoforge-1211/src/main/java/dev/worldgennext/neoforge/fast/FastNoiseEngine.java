@@ -93,7 +93,7 @@ public final class FastNoiseEngine {
             verifiedChunks = new AtomicLong(), verifyMismatches = new AtomicLong(), batches = new AtomicLong();
 
     record LevelProgram(String dimension, FusedGpuBackend.Program program, BlockState[] palette,
-                        FusedNoiseCompiler.Geometry geometry, WorldgenSnapshot snapshot) {}
+                        FusedNoiseCompiler.Geometry geometry, WorldgenSnapshot snapshot, boolean aquifers) {}
 
     record Request(LevelProgram program, ChunkAccess chunk, NoiseBasedChunkGenerator generator, Blender blender,
                    RandomState randomState, StructureManager structures, int[] beard, int pieces, int junctions,
@@ -221,7 +221,8 @@ public final class FastNoiseEngine {
             throw new IllegalStateException("source dumped; pipeline build skipped by worldgennext.fast.dumpSourceOnly");
         }
         FusedGpuBackend.Program program = device.load(compiled, BATCH, SLOTS);
-        programs.put(randomState, new LevelProgram(dimension, program, palette, compiled.geometry(), snapshot));
+        programs.put(randomState, new LevelProgram(dimension, program, palette, compiled.geometry(), snapshot,
+                snapshot.generatorSettings().aquifersEnabled()));
         LOG.info("Fast GPU NOISE ready for {}: flat={} interp={} source={} chars, compile {} ms (pipelines {} ms)",
                 level.dimension().location(), compiled.flatChannels(), compiled.interpolatedChannels(), compiled.source().length(),
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), TimeUnit.NANOSECONDS.toMillis(program.compileNanos()));
@@ -400,7 +401,34 @@ public final class FastNoiseEngine {
             info.putInt(base + 16, r.junctions());
             for (int v : r.beard()) { beard.putInt(beardOffset * 4, v); beardOffset++; }
         }
-        slot.submit(requests.size());
+        int prelimCount = 0;
+        if (requests.get(0).program().aquifers()) {
+            // Unique preliminary-surface columns of the whole batch, and each chunk's 31x31 index window.
+            var ids = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(requests.size() * 256);
+            ids.defaultReturnValue(-1);
+            java.nio.IntBuffer index = slot.prelimIndex().asIntBuffer();
+            java.nio.IntBuffer columns = slot.prelimColumns().asIntBuffer();
+            int window = dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler.PRELIM_WINDOW;
+            int origin = dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler.PRELIM_ORIGIN;
+            for (int i = 0; i < requests.size(); i++) {
+                ChunkPos pos = requests.get(i).chunk().getPos();
+                int q0x = pos.x * 4 + origin, q0z = pos.z * 4 + origin;
+                for (int a = 0; a < window; a++) {
+                    for (int b = 0; b < window; b++) {
+                        long key = ChunkPos.asLong(q0x + a, q0z + b);
+                        int id = ids.get(key);
+                        if (id < 0) {
+                            id = prelimCount++;
+                            ids.put(key, id);
+                            columns.put(2 * id, (q0x + a) << 2);
+                            columns.put(2 * id + 1, (q0z + b) << 2);
+                        }
+                        index.put((i * window + a) * window + b, id);
+                    }
+                }
+            }
+        }
+        slot.submit(requests.size(), prelimCount);
     }
 
     private void complete(InFlight batch) {
