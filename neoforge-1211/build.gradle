@@ -100,7 +100,7 @@ tasks.matching { it.name == 'runServer' }.configureEach {
     }
     // Throughput benchmark settings are forwarded verbatim (output resolved at the Gradle boundary).
     System.properties.each { key, value ->
-        if (['worldgennext.bench.', 'worldgennext.parallel', 'worldgennext.fast.'].any { key.toString().startsWith(it) }) {
+        if (['worldgennext.bench.', 'worldgennext.parallel', 'worldgennext.fast.', 'worldgennext.async'].any { key.toString().startsWith(it) }) {
             def forwarded = key == 'worldgennext.bench.output' && !value.toString().trim().isEmpty()
                     ? project.file(value.toString().trim()).absolutePath : value.toString()
             systemProperty key.toString(), forwarded

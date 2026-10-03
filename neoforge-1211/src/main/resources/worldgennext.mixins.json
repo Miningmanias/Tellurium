@@ -8,7 +8,10 @@
   "server": [
     "ChunkStatusTasksMixin",
     "ChunkStatusTasksStructureMixin",
-    "NoiseBasedChunkGeneratorFastMixin"
+    "NoiseBasedChunkGeneratorFastMixin",
+    "ChunkSerializerAsyncMixin",
+    "ChunkStorageAsyncMixin",
+    "ChunkMapAsyncSaveMixin"
   ],
   "injectors": {
     "defaultRequire": 1
