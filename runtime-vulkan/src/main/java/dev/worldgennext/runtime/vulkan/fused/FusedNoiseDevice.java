@@ -81,6 +81,10 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
         if (nativeDirectory != null && !nativeDirectory.isBlank()) {
             org.lwjgl.system.Configuration.SHARED_LIBRARY_EXTRACT_PATH.set(nativeDirectory);
         }
+        // This LWJGL copy is private to the isolated loader, so its thread-local stack
+        // size can be set here instead of requiring a JVM flag (the default 64 KiB is
+        // too small for the descriptor and pipeline setup).  Value is in KiB.
+        org.lwjgl.system.Configuration.STACK_SIZE.set(16384);
         return open();
     }
     /** Raw device handle for developer probes in this package. */

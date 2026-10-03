@@ -16,11 +16,13 @@ A separate fused native-FP64 GPU NOISE path and parallel worldgen steps now
 exist and are on by default for qualified routers. Per-chunk digests are
 identical to serial vanilla on 8,281 chunks in each of eight contexts (three
 vanilla Overworld seeds, Nether, End, Terralith, Tectonic, combined). Timed
-NOISE throughput: about 2,700–2,930 chunks/s on vanilla Overworld against
-about 720 for vanilla, and about 800 on the combined pack against about 490.
-FULL: about 896 against about 119. Scope, method and limits are in
+NOISE throughput (2026-10-03, after requalification): about 3,330–3,480
+chunks/s on vanilla Overworld against about 720 for vanilla, and about
+2,340–2,480 on the combined pack against about 490. FULL: about 660 against
+about 110 on vanilla, 506 against 64 on the combined pack. The release jar was
+also run in an installed NeoForge dedicated server with a matching digest. Scope, method and limits are in
 [the throughput evidence](evidence/throughput-fused-gpu.md). This does not
-close any G0–G12 gate: it has not run in an installed server or client, it is
+close any G0–G12 gate: it has not run in a client, it is
 not `oracle-1211` corpus evidence, and nothing is claimed exact past CARVERS.
 
 The frozen 250-case Terralith run failed after 237 passing device/CPU receipts:

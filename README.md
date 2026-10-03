@@ -19,12 +19,12 @@ The mod now accelerates generation by default:
 - Structure starts/references, surface, carvers and features run on the
   worldgen worker pool instead of one thread.
 
-Measured on the reference host: about 2,700–2,930 NOISE chunks/s on vanilla
-Overworld (vanilla: about 720) and about 800 on the combined pack (vanilla:
-about 490); FULL about 896 against about 119. GPU output is digest-identical to
+Measured on the reference host: about 3,330–3,480 NOISE chunks/s on vanilla
+Overworld (vanilla: about 720) and about 2,340–2,480 on the combined pack
+(vanilla: about 490); FULL about 660 against about 110. GPU output is digest-identical to
 vanilla through CARVERS in the tested contexts. See
 [throughput evidence](docs/evidence/throughput-fused-gpu.md) for method and
-limits; it has not yet been exercised in an installed server or client.
+limits; it has run in an installed dedicated server but not in a client.
 
 ```powershell
 # Timed benchmark (fresh world, 8,281 chunks); add -ModsDir for a terrain pack

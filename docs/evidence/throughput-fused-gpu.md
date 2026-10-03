@@ -1,4 +1,4 @@
-# Throughput path: fused GPU NOISE and parallel worldgen steps — 2026-10-02
+# Throughput path: fused GPU NOISE and parallel worldgen steps — 2026-10-03
 
 This records the throughput work that the project owner pulled forward from the
 v0.3 plan on 2026-10-02. It is separate from the `GPU_IEEE_BITS` staged route
@@ -6,6 +6,52 @@ and its G0–G12 gates, none of which this document closes.
 
 Host: Windows 11, 24 logical cores, RTX 5070 Ti, JDK 21.0.12, NeoForge 21.1.176,
 Minecraft 1.21.1, 16 GB heap, dev server (`:neoforge-1211:runServer`).
+
+## 2026-10-03 update (supersedes the numbers below where they differ)
+
+Two kernel optimizations were added and every context was requalified:
+
+- **K_XZ**: expensive Y-independent subgraphs the block kernel needs (2D noise
+  and splines outside interpolation) are evaluated once per block column.
+- **K_PRELIM**: each unique preliminary-surface quart column of a batch is
+  scanned once and looked up by the aquifer kernel. The compiler rejects a
+  router unless every FlatCache reachable from
+  `initialDensityWithoutJaggedness` has a Y-independent child; that is the
+  condition under which the value does not depend on the asking chunk.
+
+Requalification (`scripts/verify-fast-matrix.sh 45`, GPU forced, run
+2026-10-03): 8/8 contexts digest-identical to serial vanilla on 8,281 chunks
+each, 8,400+ GPU-generated chunks per run, no bail-outs. The script now fails
+closed; an earlier revision printed `MATRIX PASS` after an evaluation error
+without comparing anything, and that output was discarded.
+
+Timed NOISE, default mode, 8,281 chunks, structures on:
+
+| Context | Vanilla | Mod | Ratio |
+| --- | --- | --- | --- |
+| Vanilla Overworld | 702–753 | 3,334–3,476 | about 4.6x |
+| Terralith | 666–692 (digest mode) | 2,839–2,916 | about 4.2x |
+| Tectonic | 592 (digest mode) | 2,536–2,650 | about 4.4x |
+| Combined | 487–494 | 2,338–2,476 | about 4.9x |
+
+Digest-mode NOISE (tickets held to the end): Nether 5,936 vs 4,047; End 6,406
+vs 3,352.
+
+FULL, 3,721 chunks, timed (tickets released as chunks complete, so saving is
+inside the interval): vanilla Overworld 657–671 vs 110; combined pack 506 vs 64.
+
+Kernel cost per chunk (profiled): vanilla Overworld 0.21 ms total; combined
+pack 0.35 ms total. Cold kernel compilation for the combined pack fell to about
+2.6 minutes.
+
+**Installed server.** The release jar was run in a NeoForge 21.1.176 dedicated
+server installed with the official installer (`build/installed-server`), with
+default settings and no WorldgenNext flags other than the benchmark. The nested
+GPU runtime loaded through `GpuRuntimeLoader`, the GPU generated 8,401 chunks,
+and the digest equals the dev-server vanilla reference on all 8,281 chunks
+(3,563 chunks/s in digest mode). The first attempt fell back to vanilla with
+LWJGL "Out of stack space"; the isolated runtime now sets its own LWJGL stack
+size. Not run: a Minecraft client, Linux, other GPUs.
 
 ## What was built
 
@@ -115,9 +161,8 @@ pack. It runs on a background thread and is cached by the driver and by a
 
 ## Not done
 
-- No run in an installed NeoForge server or client; packaging is verified only
-  in the dev server, where the nested GPU runtime loads through
-  `GpuRuntimeLoader`.
+- No run in a Minecraft client, on Linux or on another GPU; the installed
+  dedicated server run above is the only non-dev execution.
 - Lighting is still vanilla's single light thread and now limits FULL.
 - No sustained or multi-run statistics beyond the ranges above; no measurement
   on other hardware.
