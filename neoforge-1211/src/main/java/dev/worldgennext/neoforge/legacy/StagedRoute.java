@@ -506,7 +506,16 @@ public final class StagedRoute {
                 ISOLATED_CANDIDATE_PROVIDER == null ? "NONE" : ISOLATED_CANDIDATE_PROVIDER.route());
     }
 
+    /** True once a server has stopped and closed {@link #RUNTIME}. */
+    private static volatile boolean RUNTIME_CLOSED;
+
     public static void serverAboutToStart(ServerAboutToStartEvent event) {
+        // Singleplayer opens several worlds in one JVM: each gets a runtime of its own.
+        if (RUNTIME_CLOSED) {
+            RUNTIME = new RuntimeComposition(WorldgenNextConfigLoader.load(FMLPaths.CONFIGDIR.get()).config(), new CompatibilityRegistry());
+            QUALIFIED_EVIDENCE_STATUS = "NOT_CONFIGURED";
+            RUNTIME_CLOSED = false;
+        }
         // NeoForge constructs the spawn region from this callback before it
         // emits ServerStarted.  The explicit draft CPU-live route therefore
         // cannot queue its completion onto the server mailbox yet: the server
@@ -538,6 +547,7 @@ public final class StagedRoute {
             shutdownIsolatedComputeExecutor();
             shutdownQualifiedComputeExecutor();
             closeRuntimeCoordinator(RUNTIME);
+            RUNTIME_CLOSED = true;
         }
     }
 

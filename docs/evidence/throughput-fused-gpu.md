@@ -82,6 +82,18 @@ that start) and `sync-chunk-writes=true`: the built-in pregenerator
 cold start (1,958 chunks/s by its own clock, which includes JIT warm-up);
 33,760 chunks' terrain came from the GPU and 4 from the CPU. One run.
 
+**Singleplayer (dev client, integrated server).** `scripts/run-client-pregen.sh`
+opens a world with `--quickPlaySingleplayer`. `DIGEST=... scripts/run-client-pregen.sh 45`:
+8,281 vanilla Overworld chunks at SURFACE, GPU forced, identical to the
+dedicated-server vanilla reference digest (3,029 chunks/s in digest mode).
+`scripts/run-client-pregen.sh 60`: 14,641 chunks to FULL in 13 s from a cold
+start with an 8 GB heap (682 in flight), 15,501 chunks' terrain from the GPU,
+no errors in the log. One run each. The shutdown-during-compile crash and the
+per-start runtime class loader were found here and fixed; the fix was
+exercised with `-Dworldgennext.fast.restartCheck=true` (engine started,
+stopped mid-compile and started again in one process) on the dedicated dev
+server, not by opening two worlds in a client.
+
 **Limits found.** With `sync-chunk-writes=true` (the dedicated-server default)
 each chunk write is synchronous; the IO thread then wrote about 2,700 chunks/s
 while about 3,300 were produced, pending writes held their chunk data, and a

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.pregen;
 
+import dev.worldgennext.neoforge.command.StatusReport;
 import dev.worldgennext.neoforge.config.UserSettings;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.TicketType;
@@ -80,10 +80,13 @@ public final class Pregenerator {
                 "Pregenerating %,d chunks in %s (%,d blocks across, centred on chunk %d, %d)%s.",
                 area.chunks(), area.dimension().location(), (2L * area.radius() + 1) * 16, area.centerX(), area.centerZ(),
                 firstIndex > 0 ? String.format(Locale.ROOT, ", continuing at %,d", firstIndex) : ""));
-        if (server instanceof DedicatedServer dedicated && dedicated.getProperties().syncChunkWrites) {
-            message.append(" Tip: sync-chunk-writes=true in server.properties makes every chunk write wait for the disk, which"
-                    + " limits sustained speed; set it to false for the pregeneration if you accept unsynchronised writes.");
+        if (job.inFlight < UserSettings.get().pregenInFlight()) {
+            message.append(String.format(Locale.ROOT, " Working on %,d chunks at a time instead of %,d because the heap is %,d MB;"
+                    + " give the game more memory for more speed.", job.inFlight, UserSettings.get().pregenInFlight(),
+                    Runtime.getRuntime().maxMemory() >> 20));
         }
+        String syncWrites = StatusReport.syncWritesTip(server);
+        if (syncWrites != null) message.append(" Tip: ").append(syncWrites);
         return message.toString();
     }
 
@@ -191,7 +194,7 @@ public final class Pregenerator {
             this.total = order.size();
             this.firstIndex = Math.min(firstIndex, total);
             this.submitted = this.firstIndex;
-            this.inFlight = UserSettings.get().pregenInFlight();
+            this.inFlight = InFlightWindow.size(UserSettings.get().pregenInFlight(), Runtime.getRuntime().maxMemory());
             this.feedback = feedback;
             this.thread = new Thread(this::run, "worldgennext-pregen");
             this.thread.setDaemon(true);

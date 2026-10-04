@@ -4,9 +4,7 @@
   "package": "dev.worldgennext.neoforge.mixin",
   "compatibilityLevel": "JAVA_21",
   "plugin": "dev.worldgennext.neoforge.mixin.WorldgenNextMixinPlugin",
-  "mixins": [],
-  "client": [],
-  "server": [
+  "mixins": [
     "ChunkStatusTasksMixin",
     "ChunkStatusTasksStructureMixin",
     "NoiseBasedChunkGeneratorFastMixin",
@@ -35,6 +33,8 @@
     "BiomeManagerUniformMixin",
     "ProcessorMailboxDispatchMixin"
   ],
+  "client": [],
+  "server": [],
   "injectors": {
     "defaultRequire": 1
   }

@@ -17,6 +17,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.NeoForge;
@@ -69,6 +70,12 @@ public final class WorldgenNextMod {
     private static void serverStarted(ServerStartedEvent event) {
         MinecraftServer server = event.getServer();
         StagedRoute.serverStarted(event);
+        // Developer check of what a client does when a world is closed right after opening and another is
+        // opened: the engine stops while its kernels are still compiling, then starts again in the same JVM.
+        if (Boolean.getBoolean("worldgennext.fast.restartCheck")) {
+            FastNoiseEngine.start(server);
+            FastNoiseEngine.stop();
+        }
         FastNoiseEngine.start(server);
         ClimateColumnCache.start(server);
         if (GraphDump.runIfRequested(server)) return;
@@ -114,7 +121,7 @@ public final class WorldgenNextMod {
     }
 
     private static void registerCommands(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal(MOD_ID).requires(source -> source.hasPermission(2))
+        event.getDispatcher().register(Commands.literal(MOD_ID).requires(WorldgenNextMod::mayUse)
                 .then(Commands.literal("status").executes(context -> {
                     for (String line : StatusReport.lines(context.getSource().getServer())) say(context, line);
                     return 1;
@@ -142,6 +149,12 @@ public final class WorldgenNextMod {
                             return say(context, status == null ? "No pregeneration is running." : "Pregeneration: " + status);
                         })))
                 .then(StagedRoute.developerCommands()));
+    }
+
+    /** Operators, the console, and the owner of a singleplayer world (who has no operator level without cheats). */
+    private static boolean mayUse(CommandSourceStack source) {
+        if (source.hasPermission(2)) return true;
+        return source.getEntity() instanceof ServerPlayer player && source.getServer().isSingleplayerOwner(player.getGameProfile());
     }
 
     /** Radius is in chunks; the centre is given in blocks, like every other coordinate a player types. */

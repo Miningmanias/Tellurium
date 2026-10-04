@@ -16,8 +16,16 @@ Supersedes the FULL figures further down.
   `/worldgennext pregen ...` (region-ordered, resumable). The staged route's
   commands moved to `/worldgennext dev ...`, and its code from
   `WorldgenNextMod` to `legacy/StagedRoute`; behaviour unchanged.
-- **Open**: client/singleplayer (mixins are registered for dedicated servers
-  only), Linux, other GPUs; group commit for `sync-chunk-writes=true`;
+- **Singleplayer**: the mixins now apply on the client's integrated server too.
+  Checked in a dev client: SURFACE digests of 8,281 chunks equal the dedicated
+  vanilla reference; a 14,641-chunk pregeneration ran next to rendering with no
+  errors (1,092 chunks/s from a cold start, 8 GB heap). Two defects found on the
+  way and fixed: stopping a server while kernels were still compiling closed
+  the Vulkan device under the compile thread (JVM crash, dedicated servers
+  too), and the GPU runtime's class loader was created per server start, which
+  a second world in one client session could not have loaded natives for.
+- **Open**: a second world in one real client session (covered only by an
+  in-process engine restart), LAN play, Linux, other GPUs; group commit for `sync-chunk-writes=true`;
   off-thread chunk loading; vanilla FULL references for the terrain packs. The
   staged `GPU_IEEE_BITS` gates below are unchanged by any of this.
 

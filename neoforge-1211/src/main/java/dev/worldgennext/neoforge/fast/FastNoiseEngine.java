@@ -213,13 +213,37 @@ public final class FastNoiseEngine {
         }
         Thread compiler = new Thread(() -> {
             try {
-                for (Runnable job : jobs) job.run();
+                for (Runnable job : jobs) {
+                    if (!engine.running) break;
+                    job.run();
+                }
             } finally {
                 engine.compiled.countDown();
+                engine.compilerFinished();
             }
         }, "worldgennext-fast-compile");
         compiler.setDaemon(true);
         compiler.start();
+    }
+
+    // The compile thread may be inside the driver, building a pipeline, when the server stops; that call cannot
+    // be interrupted and can take minutes on a cold cache.  The device is closed by whichever comes last:
+    // stop() or the end of the compile thread.  Both fields are guarded by this.
+    private boolean compileFinished;
+    private boolean closeRequested;
+
+    private synchronized void compilerFinished() {
+        compileFinished = true;
+        if (closeRequested) device.close();
+    }
+
+    private synchronized void closeDevice() {
+        if (compileFinished) {
+            device.close();
+        } else {
+            closeRequested = true;
+            LOG.info("GPU kernels were still being built at shutdown; the GPU device is released when the current build ends");
+        }
     }
 
     /** Blocks until every level's compile attempt finished (benchmarks and tests only). */
@@ -248,7 +272,7 @@ public final class FastNoiseEngine {
         if (FastSurfaceState.VERIFY) LOG.info("Fast GPU SURFACE verify: chunks={} mismatched={}",
                 FastSurfaceState.verified.get(), FastSurfaceState.mismatched.get());
         if (engine.device.profiling()) LOG.info("Fast GPU NOISE kernel profile: {}", engine.device.profileSummary());
-        engine.device.close();
+        engine.closeDevice();
     }
 
     /** Captures on the calling (server) thread; the returned job compiles and installs off-thread. */
@@ -324,10 +348,12 @@ public final class FastNoiseEngine {
             try {
                 install(level, dimension, randomState, compiled, fuseSurface ? surface.palette() : palette, snapshot, start,
                         fuseSurface ? surface : null, palette.length);
+                if (!running) return; // the server stopped meanwhile; nothing to announce
                 report(dimension, true, fuseSurface, tested);
                 LOG.info("{}: {} on the GPU ({}; kernels ready in {} ms)", dimension, fuseSurface ? "terrain and surface" : "terrain",
                         tested, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
             } catch (Throwable failure) {
+                if (!running) return;
                 report(dimension, false, false, "vanilla generation: the GPU kernels failed to build (" + reason(failure) + ")");
                 LOG.warn("{} generates with vanilla code: the GPU kernels failed to build ({})", dimension, reason(failure));
                 LOG.debug("Kernel build failure for {}", dimension, failure);

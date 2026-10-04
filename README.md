@@ -15,9 +15,9 @@ world. No CUDA: the GPU part runs on Vulkan.
 
 ## Install
 
-1. A dedicated NeoForge 21.1.176+ server for Minecraft 1.21.1, on Java 21.
-   The mod's generation changes apply on dedicated servers only; a client or
-   singleplayer world has not been tested and is not accelerated.
+1. NeoForge 21.1.176+ for Minecraft 1.21.1, on Java 21: a dedicated server, or
+   the client for singleplayer worlds. On a multiplayer server only the server
+   needs the mod.
 2. A GPU with Vulkan and 64-bit float support for the GPU part. Without one
    the mod logs why and keeps the CPU-side improvements.
 3. Put `worldgennext-neoforge-1.21.1-0.2.0.jar` in `mods/`.
@@ -25,7 +25,8 @@ world. No CUDA: the GPU part runs on Vulkan.
    Lighting is not part of this mod, and every throughput figure below was
    measured with ScalableLux installed.
 
-Start the server and run `/worldgennext status`. It names the GPU, says what
+Start the server (or open a world) and run `/worldgennext status`. In
+singleplayer the world's owner can use the commands without cheats enabled. It names the GPU, says what
 each dimension is generated with (and why, if that is vanilla code), and lists
 anything worth changing.
 
@@ -61,9 +62,11 @@ progress_seconds = 10
 Two things affect sustained pregeneration speed more than anything in that
 file:
 
-- `sync-chunk-writes=true` in `server.properties` (the default) makes every
-  chunk write wait for the disk. The mod leaves it alone and tells you when it
-  is on.
+- `sync-chunk-writes=true` in `server.properties` (the default; in singleplayer
+  `syncChunkWrites:true` in `options.txt`) makes every chunk write wait for the
+  disk. The mod leaves it alone and tells you when it is on.
+- Memory. The pregenerator works on fewer chunks at a time on a small heap
+  (one per 12 MB, so 1,024 needs about 12 GB); it says so when it does.
 - Generation order. The built-in pregenerator works one region file at a time.
   A pregenerator that walks one-chunk-wide rings re-reads its neighbours from
   disk on every lap; in a benchmark with that order, throughput fell from about
@@ -91,9 +94,14 @@ against vanilla generating one chunk at a time with every optimization off:
   after reopening the world (blocks, heightmaps, biomes, post-processing marks
   identical; structure data identical to what vanilla's save path writes).
 
-Not checked: clients and singleplayer, Linux, GPUs other than an RTX 5070 Ti,
-world generators outside the tested list, other mods that change chunk
-generation or saving.
+Singleplayer was checked in the client on the same host: 8,281 vanilla
+Overworld chunks through SURFACE are identical to the dedicated-server vanilla
+reference, and a 14,641-chunk pregeneration ran with the GPU alongside
+rendering without errors. Opening a second world in the same game session was
+only exercised by restarting the GPU engine inside one server process.
+
+Not checked: Linux, GPUs other than an RTX 5070 Ti, world generators outside
+the tested list, other mods that change chunk generation or saving, LAN play.
 
 ## Throughput
 

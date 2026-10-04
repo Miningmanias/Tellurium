@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **580**, plus this generated index.
+Indexed project files: **583**, plus this generated index.
 
 ## semantic-core
 
@@ -460,6 +460,7 @@ Minecraft snapshot/runtime composition and bootstrap tests.
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileStorageCompressMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileStorageCompressMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/WorldgenNextMixinPlugin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/WorldgenNextMixinPlugin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/WorldGenRegionChunkCacheMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/WorldGenRegionChunkCacheMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/pregen/InFlightWindow.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/pregen/InFlightWindow.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/pregen/Pregenerator.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/pregen/Pregenerator.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/pregen/TileOrder.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/pregen/TileOrder.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/ChunkMutationJournal.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/runtime/ChunkMutationJournal.java) | Implementation or explicit public contract |
@@ -518,6 +519,7 @@ Minecraft snapshot/runtime composition and bootstrap tests.
 | [neoforge-1211/src/test/java/dev/worldgennext/neoforge/config/UserSettingsTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/config/UserSettingsTest.java) | Executable CPU test |
 | [neoforge-1211/src/test/java/dev/worldgennext/neoforge/config/WorldgenNextConfigLoaderTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/config/WorldgenNextConfigLoaderTest.java) | Executable CPU test |
 | [neoforge-1211/src/test/java/dev/worldgennext/neoforge/DiagnosticSelfTestTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/DiagnosticSelfTestTest.java) | Executable CPU test |
+| [neoforge-1211/src/test/java/dev/worldgennext/neoforge/pregen/InFlightWindowTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/pregen/InFlightWindowTest.java) | Executable CPU test |
 | [neoforge-1211/src/test/java/dev/worldgennext/neoforge/pregen/TileOrderTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/pregen/TileOrderTest.java) | Executable CPU test |
 | [neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/ChunkMutationJournalTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/ChunkMutationJournalTest.java) | Executable CPU test |
 | [neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/CompletionObservationTest.java](../neoforge-1211/src/test/java/dev/worldgennext/neoforge/runtime/CompletionObservationTest.java) | Executable CPU test |
@@ -640,6 +642,7 @@ Deferred loader frame.
 | [scripts/replay-minecraft-noise-cpu.ps1](../scripts/replay-minecraft-noise-cpu.ps1) | Tooling, data or provenance |
 | [scripts/replay-minecraft-noise-gpu-matrix.ps1](../scripts/replay-minecraft-noise-gpu-matrix.ps1) | Tooling, data or provenance |
 | [scripts/replay-minecraft-noise-gpu.ps1](../scripts/replay-minecraft-noise-gpu.ps1) | Tooling, data or provenance |
+| [scripts/run-client-pregen.sh](../scripts/run-client-pregen.sh) | Tooling, data or provenance |
 | [scripts/run-pregen.sh](../scripts/run-pregen.sh) | Tooling, data or provenance |
 | [scripts/run-prototype-cpu-live.ps1](../scripts/run-prototype-cpu-live.ps1) | Tooling, data or provenance |
 | [scripts/summarize-tests.py](../scripts/summarize-tests.py) | Tooling, data or provenance |

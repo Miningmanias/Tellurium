@@ -13,13 +13,13 @@ log and by `/worldgennext status`, and the default is used.
 | `generation.parallel_steps` | `true` | Structure, surface, carver and feature steps of different chunks run at the same time. |
 | `saving.async` | `true` | Chunks are encoded and compressed on background threads when they unload. |
 | `saving.compression_level` | `1` | Deflate level for those chunks, 1–9. Level 1 files are about 12% larger than vanilla's; 6 matches vanilla's size. |
-| `pregen.in_flight` | `1024` | Chunks `/worldgennext pregen` works on at once (16–16384). |
+| `pregen.in_flight` | `1024` | Chunks `/worldgennext pregen` works on at once (16–16384). Reduced to one per 12 MB of heap (not below 32) on small heaps. |
 | `pregen.progress_seconds` | `10` | Seconds between progress messages. |
 
 Each option stands for one or more of the system properties below. A property
 given on the command line (`-Dworldgennext...`) wins over the file.
 
-## Commands (permission level 2)
+## Commands (permission level 2, or the owner of a singleplayer world)
 
 | Command | Effect |
 | --- | --- |

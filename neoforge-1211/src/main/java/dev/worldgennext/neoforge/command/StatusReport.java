@@ -55,13 +55,18 @@ public final class StatusReport {
             lines.add("Tip: ScalableLux is not installed. Lighting then runs on vanilla's single light thread; the published"
                     + " throughput figures were measured with ScalableLux.");
         }
-        if (server instanceof DedicatedServer dedicated && dedicated.getProperties().syncChunkWrites) {
-            lines.add("Tip: sync-chunk-writes=true (server.properties) makes every chunk write wait for the disk and limits"
-                    + " sustained generation speed.");
-        }
+        String syncWrites = syncWritesTip(server);
+        if (syncWrites != null) lines.add("Tip: " + syncWrites);
         for (String problem : settings.problems()) lines.add("Config: " + problem);
         lines.add("Config file: " + settings.file());
         return lines;
+    }
+
+    /** Where synchronous chunk writes are switched on, or null when they are off. */
+    public static String syncWritesTip(MinecraftServer server) {
+        if (!server.forceSynchronousWrites()) return null;
+        return (server instanceof DedicatedServer ? "sync-chunk-writes=true in server.properties" : "syncChunkWrites:true in options.txt")
+                + " makes every chunk write wait for the disk, which limits sustained generation speed.";
     }
 
     private static String onOff(boolean value) {

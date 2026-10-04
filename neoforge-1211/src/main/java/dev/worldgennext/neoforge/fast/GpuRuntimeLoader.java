@@ -37,7 +37,24 @@ final class GpuRuntimeLoader {
 
     private GpuRuntimeLoader() {}
 
-    static FusedGpuBackend open(Path gameDirectory) throws Exception {
+    /** The runtime's entry class and natives directory, loaded once per JVM. */
+    private static Class<?> ENTRY;
+    private static Path NATIVES;
+
+    static synchronized FusedGpuBackend open(Path gameDirectory) throws Exception {
+        if (ENTRY == null) load(gameDirectory);
+        Object backend;
+        try {
+            backend = ENTRY.getMethod("openIsolated", String.class).invoke(null, NATIVES.toString());
+        } catch (InvocationTargetException failure) {
+            Throwable cause = failure.getCause();
+            if (cause instanceof Exception exception) throw exception;
+            throw new IllegalStateException(cause);
+        }
+        return (FusedGpuBackend) backend;
+    }
+
+    private static void load(Path gameDirectory) throws Exception {
         List<String> names = index();
         if (names.isEmpty()) throw new IllegalStateException("GPU runtime jars are not bundled in this build");
         String fingerprint = Integer.toHexString(String.join("|", names).hashCode());
@@ -61,16 +78,9 @@ final class GpuRuntimeLoader {
         Files.createDirectories(natives);
         ClassLoader loader = new ChildFirstLoader(urls.toArray(URL[]::new), GpuRuntimeLoader.class.getClassLoader());
         Class<?> entry = Class.forName(ENTRY_CLASS, true, loader);
-        Object backend;
-        try {
-            backend = entry.getMethod("openIsolated", String.class).invoke(null, natives.toString());
-        } catch (InvocationTargetException failure) {
-            Throwable cause = failure.getCause();
-            if (cause instanceof Exception exception) throw exception;
-            throw new IllegalStateException(cause);
-        }
         LOG.debug("Fast GPU NOISE runtime loaded from {} bundled jars in {}", names.size(), directory);
-        return (FusedGpuBackend) backend;
+        NATIVES = natives;
+        ENTRY = entry;
     }
 
     private static List<String> index() throws IOException {

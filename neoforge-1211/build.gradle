@@ -48,6 +48,14 @@ neoForge {
             jvmArgument "-Dorg.lwjgl.system.stackSize=${lwjglStackSize}"
             programArgument '--nogui'
         }
+        client {
+            client()
+            loadedMods = [mods.worldgennext]
+            gameDirectory = project.file(System.getProperty('worldgennext.candidate.runDir', layout.buildDirectory.dir('run/client').get().asFile.absolutePath))
+            // Straight into an existing singleplayer world (a folder under <gameDirectory>/saves).
+            def quickPlay = System.getProperty('worldgennext.client.quickPlay', '').trim()
+            if (!quickPlay.isEmpty()) programArguments.addAll '--quickPlaySingleplayer', quickPlay
+        }
         gameTestServer {
             type = 'gameTestServer'
             sourceSet = sourceSets.gameTest
@@ -93,7 +101,7 @@ tasks.register('prepareCandidateRun') {
     }
 }
 
-tasks.matching { it.name == 'runServer' }.configureEach {
+tasks.matching { it.name == 'runServer' || it.name == 'runClient' }.configureEach {
     dependsOn tasks.named('prepareCandidateRun')
     if (Boolean.parseBoolean(System.getProperty('worldgennext.prototype.cpuLive', 'false'))) {
         standardInput = System.in
