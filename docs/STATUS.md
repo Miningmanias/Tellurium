@@ -27,8 +27,11 @@ Supersedes the FULL figures further down.
 - **Group commit**: with `sync-chunk-writes=true` the saves of a batch share one
   disk flush and complete only after it. 90,601 chunks: 2,660–2,700 chunks/s
   against 2,389 without. Save/reopen and a kill-and-resume check pass.
+- **Off-thread chunk loading**: loaded chunks are deserialized on the worker
+  pool. Ring-order 90,601-chunk run: 2,367 chunks/s against 1,524 without.
+  Save/reopen passes with it.
 - **Open**: a second world in one real client session (covered only by an
-  in-process engine restart), LAN play, Linux, other GPUs; off-thread chunk loading; vanilla FULL references for the terrain packs. The
+  in-process engine restart), LAN play, Linux, other GPUs; vanilla FULL references for the terrain packs. The
   staged `GPU_IEEE_BITS` gates below are unchanged by any of this.
 
 ## 2026-10-02 — throughput path and frozen-matrix outcome

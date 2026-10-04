@@ -109,6 +109,19 @@ validated again. A process kill keeps the operating system's file cache, so
 this shows the files are consistent at an arbitrary instant; power loss was
 not simulated.
 
+**Off-thread chunk loading (added after the measurements under "Limits
+found").** `ChunkSerializer.read` runs on a worker; the server thread runs the
+recorded point-of-interest checks and takes the chunk. 90,601 chunks FULL in
+ring order, 1,024 in flight, 6,561-chunk warm-up: 2,367 chunks/s with it and
+1,524 without (one run each; the 200 chunks/s collapse below was measured
+before the scheduling-thread and IO changes). Reopening 8,281 saved FULL
+chunks: 3,519 chunks/s against 1,990 before. `scripts/verify-save-reopen.sh 45`
+passes for vanilla and the combined pack with it; that run loads every chunk
+through the new path and compares blocks, heightmaps, biomes and
+post-processing marks with the chunks as generated, and structure data with a
+run that has the change off. Stored light is not part of the digest and was
+not compared.
+
 **Limits found.** With `sync-chunk-writes=true` (the dedicated-server default)
 each chunk write is synchronous; the IO thread then wrote about 2,700 chunks/s
 while about 3,300 were produced, pending writes held their chunk data, and a
@@ -117,7 +130,7 @@ before the mailbox-thread change). With ring-by-ring request order, once a
 ring is longer than the in-flight window (radius above 128 at 1,024 in
 flight) every completed chunk needs about 24 chunk loads on the server thread
 and throughput fell to about 200 chunks/s. The built-in pregenerator uses
-region order for that reason. Off-thread chunk loading is not built.
+region order for that reason.
 
 ## 2026-10-03 update (supersedes the numbers below where they differ)
 

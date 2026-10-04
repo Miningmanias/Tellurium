@@ -79,6 +79,7 @@ in the last column of the second table restores the original code path.
 | `worldgennext.asyncChunkCompressLevel` | `1` | — | Deflate level for precompressed chunks. |
 | `worldgennext.regionHeaderBatch` | `true` | `false` | Region headers are written when the IO worker runs dry instead of after every chunk. |
 | `worldgennext.asyncIoMailboxBatch` | `256` | `1` | Messages an IO worker handles per dispatch. |
+| `worldgennext.asyncChunkLoad` | `true` | `false` | Chunks read from disk are deserialized on the worker pool; the server thread only runs the point-of-interest consistency check and takes the finished chunk. |
 | `worldgennext.asyncGroupCommit` | `true` | `false` | With synchronous chunk writes on, region files are opened without DSYNC; the IO worker forces the files of a batch once (at most `worldgennext.asyncGroupCommitWrites` = 256 saves or 50 ms, or when it runs dry) and only then completes those saves. No effect when synchronous writes are off. |
 | `worldgennext.parallelMailboxThreads` | `true` | `false` | The chunk system's "worldgen" and "sorter" mailboxes run on their own threads (`worldgennext.parallelMailboxBatch`, default 64 messages per dispatch). |
 | `worldgennext.unloadTypeCache` | `true` | `false` | Remembers chunk types so unload saves do not re-read the region file. |

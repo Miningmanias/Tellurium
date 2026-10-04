@@ -69,10 +69,12 @@ file:
   2,660–2,700 chunks/s over 90,601 chunks).
 - Memory. The pregenerator works on fewer chunks at a time on a small heap
   (one per 12 MB, so 1,024 needs about 12 GB); it says so when it does.
-- Generation order. The built-in pregenerator works one region file at a time.
-  A pregenerator that walks one-chunk-wide rings re-reads its neighbours from
-  disk on every lap; in a benchmark with that order, throughput fell from about
-  2,400 to about 200 chunks/s once the radius passed 128 chunks.
+- Generation order. The built-in pregenerator works one region file at a time,
+  which needs the fewest chunk reloads. A pregenerator that walks outward ring
+  by ring reloads its neighbours from disk on every lap; the mod deserializes
+  those chunks off the server thread, and a 90,601-chunk ring-order benchmark
+  reached 2,367 chunks/s (1,524 with that switched off) against 2,660-2,700
+  in region order.
 
 All options, commands and developer switches: [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
