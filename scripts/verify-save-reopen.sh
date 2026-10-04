@@ -54,7 +54,7 @@ case "$comparison" in
   *"compared=0 "*|*missing=[1-9]*|*extra=[1-9]*|*blocks:*|*heightmaps:*|*post:*|*biomes:*) echo "SAVE-REOPEN FAIL"; exit 1 ;;
 esac
 
-ORIGINAL="worldgennext.asyncChunkSave=false;worldgennext.asyncChunkCompress=false;worldgennext.regionHeaderBatch=false;worldgennext.asyncIoMailboxBatch=1;worldgennext.asyncGroupCommit=false;worldgennext.parallelMailboxThreads=false"
+ORIGINAL="worldgennext.asyncChunkSave=false;worldgennext.asyncChunkCompress=false;worldgennext.regionHeaderBatch=false;worldgennext.asyncIoMailboxBatch=1;worldgennext.asyncGroupCommit=false;worldgennext.asyncChunkLoad=false;worldgennext.parallelMailboxThreads=false"
 out=$(powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/bench-cps.ps1 -Status "$STATUS" -Label sr-orig -RadiusChunks "$RADIUS" \
     -ModsDir "$MODS" -Properties "$G;$ORIGINAL;$EXTRA" 2>&1)
 run2=$(printf '%s\n' "$out" | grep -m1 '^RUNDIR' | sed 's/^RUNDIR //' | tr -d '\r')
