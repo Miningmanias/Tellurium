@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="480" viewBox="0 0 40 40" shape-rendering="crispEdges" role="img" aria-labelledby="title desc">
+  <title id="title">Tellurium</title>
+  <desc id="desc">Pixel-art GPU chip whose dark face reads Te 52 above blocky grass, dirt and stone terrain.</desc>
+
+  <!-- Tile, 40x40 pixel grid with stepped corners -->
+  <g fill="#14162B">
+    <rect x="3" y="0" width="34" height="40"/>
+    <rect x="0" y="3" width="40" height="34"/>
+    <rect x="1" y="1" width="38" height="38"/>
+  </g>
+
+  <!-- Chip pins -->
+  <g fill="#8B93B8">
+    <rect x="12" y="6" width="2" height="3"/>
+    <rect x="19" y="6" width="2" height="3"/>
+    <rect x="26" y="6" width="2" height="3"/>
+    <rect x="12" y="31" width="2" height="3"/>
+    <rect x="19" y="31" width="2" height="3"/>
+    <rect x="26" y="31" width="2" height="3"/>
+    <rect x="6" y="12" width="3" height="2"/>
+    <rect x="6" y="19" width="3" height="2"/>
+    <rect x="6" y="26" width="3" height="2"/>
+    <rect x="31" y="12" width="3" height="2"/>
+    <rect x="31" y="19" width="3" height="2"/>
+    <rect x="31" y="26" width="3" height="2"/>
+  </g>
+
+  <!-- Chip face -->
+  <rect x="9" y="9" width="22" height="22" fill="#2A3060"/>
+
+  <!-- Terrain: stone, dirt, grass -->
+  <rect x="9" y="29" width="22" height="2" fill="#6B7280"/>
+  <rect x="9" y="28" width="22" height="1" fill="#C8782E"/>
+  <g fill="#5BD15B">
+    <rect x="9" y="27" width="22" height="1"/>
+    <rect x="12" y="26" width="6" height="1"/>
+    <rect x="24" y="26" width="7" height="1"/>
+    <rect x="28" y="25" width="3" height="1"/>
+  </g>
+
+  <!-- Chip face corners -->
+  <g fill="#14162B">
+    <rect x="9" y="9" width="1" height="1"/>
+    <rect x="30" y="9" width="1" height="1"/>
+    <rect x="9" y="30" width="1" height="1"/>
+    <rect x="30" y="30" width="1" height="1"/>
+  </g>
+
+  <!-- 52 -->
+  <g fill="#FFD54F">
+    <rect x="11" y="10" width="3" height="1"/>
+    <rect x="11" y="11" width="1" height="1"/>
+    <rect x="11" y="12" width="3" height="1"/>
+    <rect x="13" y="13" width="1" height="1"/>
+    <rect x="11" y="14" width="3" height="1"/>
+    <rect x="15" y="10" width="3" height="1"/>
+    <rect x="17" y="11" width="1" height="1"/>
+    <rect x="15" y="12" width="3" height="1"/>
+    <rect x="15" y="13" width="1" height="1"/>
+    <rect x="15" y="14" width="3" height="1"/>
+  </g>
+
+  <!-- Te -->
+  <g fill="#FFFFFF">
+    <rect x="12" y="16" width="8" height="2"/>
+    <rect x="15" y="18" width="2" height="7"/>
+    <rect x="23" y="18" width="4" height="1"/>
+    <rect x="22" y="19" width="2" height="5"/>
+    <rect x="26" y="19" width="2" height="2"/>
+    <rect x="24" y="21" width="4" height="1"/>
+    <rect x="26" y="23" width="2" height="1"/>
+    <rect x="23" y="24" width="4" height="1"/>
+  </g>
+</svg>

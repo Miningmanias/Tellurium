@@ -67,6 +67,7 @@ in the last column of the second table restores the original code path.
 | `worldgennext.fast.aquiferPrefill` | `true` | `false` | Carvers reuse aquifer cell results the GPU already computed. |
 | `worldgennext.fast.lazyNoiseWrap` | `true` | `false` | NoiseChunk maps its router on first use instead of in its constructor. |
 | `worldgennext.fast.orePlacement` | `true` | `false` | Ore veins use the row-mask scan (`worldgennext.fast.oreRows=false` keeps the hoisted terms but the original visited index). |
+| `worldgennext.fast.cavePlans` | `true` | `false` | The cave systems of a starting chunk are walked once and replayed for each chunk they can reach, skipping tunnels whose bounding box misses the chunk. |
 | `worldgennext.fast.uniformBiome` | `true` | `false` | Biome lookups skip the seeded cell choice when all eight candidate cells hold one biome. |
 | `worldgennext.fast.biomeIndex` | `true` | `false` | Exact per-column replacement for the climate R-tree search. |
 | `worldgennext.fast.rtreeStoreSkip` | `true` | `false` | The climate R-tree does not re-store a lookup result that is already the stored one. |

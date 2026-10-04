@@ -35,7 +35,7 @@ public final class UserSettings {
             {"worldgennext.biomeColumnCache", "false"}, {"worldgennext.unloadTypeCache", "false"},
             {"worldgennext.fast.rtreeStoreSkip", "false"}, {"worldgennext.fast.biomeIndex", "false"},
             {"worldgennext.fast.aquiferPrefill", "false"}, {"worldgennext.fast.orePlacement", "false"},
-            {"worldgennext.fast.lazyNoiseWrap", "false"}, {"worldgennext.fast.uniformBiome", "false"},
+            {"worldgennext.fast.lazyNoiseWrap", "false"}, {"worldgennext.fast.uniformBiome", "false"}, {"worldgennext.fast.cavePlans", "false"},
             {"worldgennext.asyncIoMailboxBatch", "1"}, {"worldgennext.asyncGroupCommit", "false"}, {"worldgennext.asyncChunkLoad", "false"}, {"worldgennext.parallelMailboxThreads", "false"},
             {"worldgennext.fast.regionChunkCache", "false"}, {"worldgennext.regionHeaderBatch", "false"},
             {"worldgennext.fast.freshRegionShortcut", "false"}, {"worldgennext.fast.shapeCache", "false"},

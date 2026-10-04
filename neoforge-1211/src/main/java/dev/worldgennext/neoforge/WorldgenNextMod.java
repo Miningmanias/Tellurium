@@ -6,6 +6,7 @@ import com.mojang.brigadier.context.CommandContext;
 import dev.worldgennext.neoforge.bench.ChunkThroughputBenchmark;
 import dev.worldgennext.neoforge.command.StatusReport;
 import dev.worldgennext.neoforge.config.UserSettings;
+import dev.worldgennext.neoforge.fast.CavePlans;
 import dev.worldgennext.neoforge.fast.ClimateColumnCache;
 import dev.worldgennext.neoforge.fast.FastNoiseEngine;
 import dev.worldgennext.neoforge.fast.GraphDump;
@@ -113,6 +114,7 @@ public final class WorldgenNextMod {
         }
         FastNoiseEngine.stop();
         ClimateColumnCache.stop();
+        CavePlans.clear();
         StagedRoute.serverStopping(event);
     }
 

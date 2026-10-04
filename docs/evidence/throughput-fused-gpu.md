@@ -122,6 +122,14 @@ post-processing marks with the chunks as generated, and structure data with a
 run that has the change off. Stored light is not part of the digest and was
 not compared.
 
+**Cave plans.** The tunnels of a cave system depend only on its starting
+chunk, yet every chunk within eight chunks walks them again. They are now
+recorded once per starting chunk and replayed. Carving fell from 10.8% to 9.3%
+of worker CPU samples (one profiled run each); FULL throughput is unchanged
+within noise (2,767-2,860 chunks/s with, 2,775-2,837 without, three runs
+each). `STATUS=CARVERS scripts/verify-fast-matrix.sh 45`: 15/15 contexts
+identical to serial vanilla with it on.
+
 **Limits found.** With `sync-chunk-writes=true` (the dedicated-server default)
 each chunk write is synchronous; the IO thread then wrote about 2,700 chunks/s
 while about 3,300 were produced, pending writes held their chunk data, and a
