@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **583**, plus this generated index.
+Indexed project files: **588**, plus this generated index.
 
 ## semantic-core
 
@@ -445,6 +445,7 @@ Minecraft snapshot/runtime composition and bootstrap tests.
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkTaskPriorityQueueMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ChunkTaskPriorityQueueMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ClimateParameterListMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ClimateParameterListMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ClimateRTreeMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ClimateRTreeMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerGroupCommitMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerGroupCommitMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerHeaderFlushMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerHeaderFlushMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerOldChunkMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerOldChunkMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/LevelChunkSectionAccessor.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/LevelChunkSectionAccessor.java) | Implementation or explicit public contract |
@@ -455,6 +456,7 @@ Minecraft snapshot/runtime composition and bootstrap tests.
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/OreFeatureMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/OreFeatureMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ProcessorMailboxDispatchMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ProcessorMailboxDispatchMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileAccessor.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileAccessor.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileGroupCommitMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileGroupCommitMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileHeaderMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileHeaderMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileStorageAccessor.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileStorageAccessor.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileStorageCompressMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/RegionFileStorageCompressMixin.java) | Implementation or explicit public contract |
@@ -505,6 +507,7 @@ Minecraft snapshot/runtime composition and bootstrap tests.
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/AsyncSectionEncoding.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/AsyncSectionEncoding.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/DeferredRegionHeaders.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/DeferredRegionHeaders.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/FeatureRegionScheduler.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/FeatureRegionScheduler.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/GroupCommit.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/GroupCommit.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/IdleUnloads.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/IdleUnloads.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/MailboxThreads.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/MailboxThreads.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/ParallelWorldgenSteps.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/ParallelWorldgenSteps.java) | Implementation or explicit public contract |
@@ -626,6 +629,7 @@ Deferred loader frame.
 | [scripts/capture-original-endpoint-matrix.ps1](../scripts/capture-original-endpoint-matrix.ps1) | Tooling, data or provenance |
 | [scripts/capture-original-full.ps1](../scripts/capture-original-full.ps1) | Tooling, data or provenance |
 | [scripts/capture-original-saved.ps1](../scripts/capture-original-saved.ps1) | Tooling, data or provenance |
+| [scripts/check-region-files.py](../scripts/check-region-files.py) | Tooling, data or provenance |
 | [scripts/check.ps1](../scripts/check.ps1) | Tooling, data or provenance |
 | [scripts/compare-digests.py](../scripts/compare-digests.py) | Tooling, data or provenance |
 | [scripts/CompiledReplayInputs.ps1](../scripts/CompiledReplayInputs.ps1) | Tooling, data or provenance |
@@ -657,6 +661,7 @@ Deferred loader frame.
 | [scripts/tests/test_capture_baseline.py](../scripts/tests/test_capture_baseline.py) | Tooling, data or provenance |
 | [scripts/update-file-map.py](../scripts/update-file-map.py) | Tooling, data or provenance |
 | [scripts/verify-fast-matrix.sh](../scripts/verify-fast-matrix.sh) | Tooling, data or provenance |
+| [scripts/verify-kill-recovery.sh](../scripts/verify-kill-recovery.sh) | Tooling, data or provenance |
 | [scripts/verify-save-reopen.sh](../scripts/verify-save-reopen.sh) | Tooling, data or provenance |
 | [scripts/write-qualification-bundle.ps1](../scripts/write-qualification-bundle.ps1) | Tooling, data or provenance |
 | [scripts/write-qualification-evidence.ps1](../scripts/write-qualification-evidence.ps1) | Tooling, data or provenance |

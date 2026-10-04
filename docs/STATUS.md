@@ -24,9 +24,11 @@ Supersedes the FULL figures further down.
   the Vulkan device under the compile thread (JVM crash, dedicated servers
   too), and the GPU runtime's class loader was created per server start, which
   a second world in one client session could not have loaded natives for.
+- **Group commit**: with `sync-chunk-writes=true` the saves of a batch share one
+  disk flush and complete only after it. 90,601 chunks: 2,660–2,700 chunks/s
+  against 2,389 without. Save/reopen and a kill-and-resume check pass.
 - **Open**: a second world in one real client session (covered only by an
-  in-process engine restart), LAN play, Linux, other GPUs; group commit for `sync-chunk-writes=true`;
-  off-thread chunk loading; vanilla FULL references for the terrain packs. The
+  in-process engine restart), LAN play, Linux, other GPUs; off-thread chunk loading; vanilla FULL references for the terrain packs. The
   staged `GPU_IEEE_BITS` gates below are unchanged by any of this.
 
 ## 2026-10-02 — throughput path and frozen-matrix outcome

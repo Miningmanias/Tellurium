@@ -38,9 +38,12 @@ and `-Dworldgennext.statusOnStop=true` writes the status report to the log at
 shutdown.
 
 `sync-chunk-writes=true` in `server.properties` (the dedicated-server default)
-makes every chunk write wait for the disk. A 90,601-chunk run reached about
-2,000–2,130 chunks/s with it and 2,372 without (2026-10-03, before the
-scheduling-thread change); the mod does not change the setting.
+makes every chunk write wait for the disk. The mod keeps that guarantee but
+shares one disk flush between the saves of a batch (group commit): a save is
+reported complete only after its data and the header pointing at it have been
+forced. A 90,601-chunk run with the setting on reached 2,660–2,700 chunks/s
+with group commit and 2,389 without (2026-10-03); with the setting off it
+reached 2,734.
 
 ## Throughput path settings (JVM system properties)
 
@@ -76,6 +79,7 @@ in the last column of the second table restores the original code path.
 | `worldgennext.asyncChunkCompressLevel` | `1` | — | Deflate level for precompressed chunks. |
 | `worldgennext.regionHeaderBatch` | `true` | `false` | Region headers are written when the IO worker runs dry instead of after every chunk. |
 | `worldgennext.asyncIoMailboxBatch` | `256` | `1` | Messages an IO worker handles per dispatch. |
+| `worldgennext.asyncGroupCommit` | `true` | `false` | With synchronous chunk writes on, region files are opened without DSYNC; the IO worker forces the files of a batch once (at most `worldgennext.asyncGroupCommitWrites` = 256 saves or 50 ms, or when it runs dry) and only then completes those saves. No effect when synchronous writes are off. |
 | `worldgennext.parallelMailboxThreads` | `true` | `false` | The chunk system's "worldgen" and "sorter" mailboxes run on their own threads (`worldgennext.parallelMailboxBatch`, default 64 messages per dispatch). |
 | `worldgennext.unloadTypeCache` | `true` | `false` | Remembers chunk types so unload saves do not re-read the region file. |
 | `worldgennext.unloadPacing` | `true` | `false` | Spreads unload saves over ticks and idle time. |

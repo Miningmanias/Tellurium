@@ -36,7 +36,7 @@ public final class UserSettings {
             {"worldgennext.fast.rtreeStoreSkip", "false"}, {"worldgennext.fast.biomeIndex", "false"},
             {"worldgennext.fast.aquiferPrefill", "false"}, {"worldgennext.fast.orePlacement", "false"},
             {"worldgennext.fast.lazyNoiseWrap", "false"}, {"worldgennext.fast.uniformBiome", "false"},
-            {"worldgennext.asyncIoMailboxBatch", "1"}, {"worldgennext.parallelMailboxThreads", "false"},
+            {"worldgennext.asyncIoMailboxBatch", "1"}, {"worldgennext.asyncGroupCommit", "false"}, {"worldgennext.parallelMailboxThreads", "false"},
             {"worldgennext.fast.regionChunkCache", "false"}, {"worldgennext.regionHeaderBatch", "false"},
             {"worldgennext.fast.freshRegionShortcut", "false"}, {"worldgennext.fast.shapeCache", "false"},
             {"worldgennext.unloadPacing", "false"}, {"worldgennext.promptTaskRelease", "false"}};

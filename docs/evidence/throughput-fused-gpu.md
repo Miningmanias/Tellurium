@@ -94,6 +94,21 @@ exercised with `-Dworldgennext.fast.restartCheck=true` (engine started,
 stopped mid-compile and started again in one process) on the dedicated dev
 server, not by opening two worlds in a client.
 
+**Group commit for synchronous writes (added after the measurements under
+"Limits found").** With `sync-chunk-writes=true`, region files are opened
+without DSYNC and the IO worker forces the files of a batch once before
+completing that batch's saves. 90,601 chunks, region order, 6,561-chunk
+warm-up, setting on: 2,701 and 2,659 chunks/s with group commit (pending
+writes peaked near 300), 2,389 without (one run). Checks:
+`scripts/verify-save-reopen.sh 45` passes with it; `scripts/verify-kill-recovery.sh 120`
+killed the server process at 17.7% and at 40.5% of a 58,081-chunk
+pregeneration, after which every chunk referenced by every region, poi and
+entities file header was complete and decompressed (21,426 and 33,214 chunks),
+the resumed job finished with no chunk read errors in the log, and the files
+validated again. A process kill keeps the operating system's file cache, so
+this shows the files are consistent at an arbitrary instant; power loss was
+not simulated.
+
 **Limits found.** With `sync-chunk-writes=true` (the dedicated-server default)
 each chunk write is synchronous; the IO thread then wrote about 2,700 chunks/s
 while about 3,300 were produced, pending writes held their chunk data, and a
@@ -102,8 +117,7 @@ before the mailbox-thread change). With ring-by-ring request order, once a
 ring is longer than the in-flight window (radius above 128 at 1,024 in
 flight) every completed chunk needs about 24 chunk loads on the server thread
 and throughput fell to about 200 chunks/s. The built-in pregenerator uses
-region order for that reason. Group commit for synchronous writes and
-off-thread chunk loading are not built.
+region order for that reason. Off-thread chunk loading is not built.
 
 ## 2026-10-03 update (supersedes the numbers below where they differ)
 

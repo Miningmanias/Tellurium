@@ -27,6 +27,8 @@
     "ChunkTaskPriorityQueueMixin",
     "WorldGenRegionChunkCacheMixin",
     "RegionFileHeaderMixin",
+    "RegionFileGroupCommitMixin",
+    "IOWorkerGroupCommitMixin",
     "OreFeatureMixin",
     "NoiseChunkLazyWrapMixin",
     "LevelChunkSectionUniformBiomeMixin",

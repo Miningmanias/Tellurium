@@ -59,12 +59,14 @@ in_flight = 1024
 progress_seconds = 10
 ```
 
-Two things affect sustained pregeneration speed more than anything in that
+Things that affect sustained pregeneration speed more than anything in that
 file:
 
 - `sync-chunk-writes=true` in `server.properties` (the default; in singleplayer
-  `syncChunkWrites:true` in `options.txt`) makes every chunk write wait for the
-  disk. The mod leaves it alone and tells you when it is on.
+  `syncChunkWrites:true` in `options.txt`) makes chunk writes wait for the
+  disk. The mod keeps that guarantee and shares one disk flush between a batch
+  of saves; turning the setting off is still slightly faster (2,734 against
+  2,660–2,700 chunks/s over 90,601 chunks).
 - Memory. The pregenerator works on fewer chunks at a time on a small heap
   (one per 12 MB, so 1,024 needs about 12 GB); it says so when it does.
 - Generation order. The built-in pregenerator works one region file at a time.
@@ -117,8 +119,8 @@ warm-up. Whole-run figures; one run each unless a range is given.
 | Terralith + Tectonic | not measured | 1,811 |
 
 A cold start (121-chunk warm-up) gives 2,465–2,475 on vanilla Overworld. A
-90,601-chunk run in region order with `sync-chunk-writes=false` sustained
-2,734. Method, history and limits:
+90,601-chunk run in region order sustained 2,660–2,700 with the default
+`sync-chunk-writes=true` and 2,734 with it off. Method, history and limits:
 [docs/evidence/throughput-fused-gpu.md](docs/evidence/throughput-fused-gpu.md).
 
 ```powershell
