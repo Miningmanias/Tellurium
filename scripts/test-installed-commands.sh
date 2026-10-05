@@ -39,6 +39,11 @@ cd "$server"
   echo "worldgennext pregen status"
   echo "worldgennext pregen start 20 0 0"
   for _ in $(seq 1 60); do sleep 1; grep -q "Pregeneration finished: 1,681" logs/latest.log && break; done
+  echo "worldgennext pregen start worldborder"
+  echo "worldborder set 400"
+  sleep 1
+  echo "worldgennext pregen start worldborder"
+  for _ in $(seq 1 60); do sleep 1; grep -q "Pregeneration finished: 729" logs/latest.log && break; done
   echo "worldgennext status"
   echo "worldgennext dev selftest"
   sleep 1

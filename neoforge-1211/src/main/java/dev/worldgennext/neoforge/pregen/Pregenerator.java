@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.pregen;
 
-import dev.worldgennext.neoforge.command.StatusReport;
 import dev.worldgennext.neoforge.config.UserSettings;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -85,8 +84,6 @@ public final class Pregenerator {
                     + " give the game more memory for more speed.", job.inFlight, UserSettings.get().pregenInFlight(),
                     Runtime.getRuntime().maxMemory() >> 20));
         }
-        String syncWrites = StatusReport.syncWritesTip(server);
-        if (syncWrites != null) message.append(" Tip: ").append(syncWrites);
         return message.toString();
     }
 

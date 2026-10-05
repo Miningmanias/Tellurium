@@ -37,6 +37,7 @@ anything worth changing.
 | `/worldgennext status` | What is active, chunk counts, tips |
 | `/worldgennext pregen start <radius>` | Generate a square, `radius` chunks in each direction from where you stand (from the console: the world spawn) |
 | `/worldgennext pregen start <radius> <x> <z>` | Same, centred on block coordinates |
+| `/worldgennext pregen start worldborder` | Generate everything inside the world border |
 | `/worldgennext pregen pause` / `resume` / `stop` / `status` | `resume` also continues a job that a restart interrupted |
 
 Settings live in `config/worldgennext.toml`, written on first start:

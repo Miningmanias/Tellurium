@@ -25,6 +25,7 @@ given on the command line (`-Dworldgennext...`) wins over the file.
 | --- | --- |
 | `/worldgennext status` | GPU in use, what each dimension generates with and why, chunk counts, settings problems, tips. |
 | `/worldgennext pregen start <radius> [<centerX> <centerZ>]` | Generates a square of `(2·radius+1)²` chunks in the caller's dimension. Radius in chunks (max 5000); centre in block coordinates, default the caller's position (the world spawn from the console). |
+| `/worldgennext pregen start worldborder` | Generates the square that covers the dimension's world border (refused while the border is wider than 160,016 blocks). |
 | `/worldgennext pregen pause` / `resume` / `stop` / `status` | Pause keeps progress; `resume` also continues a job a restart cut short; `stop` discards it (generated chunks stay). |
 | `/worldgennext dev status`, `dev status-json`, `dev write-default-config`, `dev selftest` | Staged-route developer diagnostics (formerly directly under `/worldgennext`). |
 

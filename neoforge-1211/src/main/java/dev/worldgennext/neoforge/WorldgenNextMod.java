@@ -19,6 +19,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.border.WorldBorder;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.NeoForge;
@@ -130,6 +132,7 @@ public final class WorldgenNextMod {
                 }))
                 .then(Commands.literal("pregen")
                         .then(Commands.literal("start")
+                                .then(Commands.literal("worldborder").executes(WorldgenNextMod::startPregenInsideBorder))
                                 .then(Commands.argument("radius", IntegerArgumentType.integer(0, Pregenerator.MAX_RADIUS))
                                         .executes(context -> {
                                             CommandSourceStack source = context.getSource();
@@ -162,16 +165,38 @@ public final class WorldgenNextMod {
     /** Radius is in chunks; the centre is given in blocks, like every other coordinate a player types. */
     private static int startPregen(CommandContext<CommandSourceStack> context, int centreBlockX, int centreBlockZ) {
         CommandSourceStack source = context.getSource();
-        var area = new Pregenerator.Area(source.getLevel().dimension(), centreBlockX >> 4, centreBlockZ >> 4,
-                IntegerArgumentType.getInteger(context, "radius"));
+        return startPregen(source, new Pregenerator.Area(source.getLevel().dimension(), centreBlockX >> 4, centreBlockZ >> 4,
+                IntegerArgumentType.getInteger(context, "radius")));
+    }
+
+    private static int startPregen(CommandSourceStack source, Pregenerator.Area area) {
         try {
-            return say(context, Pregenerator.start(source.getServer(), area, 0, feedback(source)));
+            String answer = Pregenerator.start(source.getServer(), area, 0, feedback(source));
+            source.sendSuccess(() -> Component.literal(answer), false);
+            return 1;
         } catch (RuntimeException failure) {
             // Without this the player only sees "An unexpected error occurred" and the log says nothing.
             LOG.error("Could not start the pregeneration", failure);
             source.sendFailure(Component.literal("Could not start the pregeneration: " + failure + " (details are in the server log)"));
             return 0;
         }
+    }
+
+    /** The square of chunks that covers the dimension's world border. */
+    private static int startPregenInsideBorder(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        WorldBorder border = source.getLevel().getWorldBorder();
+        long radius = (long) Math.ceil(border.getSize() / 2.0 / 16.0);
+        if (radius > Pregenerator.MAX_RADIUS) {
+            source.sendFailure(Component.literal(String.format(java.util.Locale.ROOT,
+                    "The world border is %,.0f blocks wide; the pregenerator handles up to %,d. Shrink it first, for example"
+                            + " '/worldborder set 10000', or give a radius: /worldgennext pregen start <radius>.",
+                    border.getSize(), (2L * Pregenerator.MAX_RADIUS + 1) * 16)));
+            return 0;
+        }
+        var area = new Pregenerator.Area(source.getLevel().dimension(), Mth.floor(border.getCenterX()) >> 4,
+                Mth.floor(border.getCenterZ()) >> 4, (int) radius);
+        return startPregen(source, area);
     }
 
     /** Progress messages for whoever started the job; the console already sees them in the log. */

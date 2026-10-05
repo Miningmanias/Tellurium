@@ -5,6 +5,7 @@ import dev.worldgennext.neoforge.WorldgenNextMod;
 import dev.worldgennext.neoforge.config.UserSettings;
 import dev.worldgennext.neoforge.fast.FastNoiseEngine;
 import dev.worldgennext.neoforge.pregen.Pregenerator;
+import dev.worldgennext.neoforge.threading.GroupCommit;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.dedicated.DedicatedServer;
 import net.neoforged.fml.ModList;
@@ -55,18 +56,14 @@ public final class StatusReport {
             lines.add("Tip: ScalableLux is not installed. Lighting then runs on vanilla's single light thread; the published"
                     + " throughput figures were measured with ScalableLux.");
         }
-        String syncWrites = syncWritesTip(server);
-        if (syncWrites != null) lines.add("Tip: " + syncWrites);
+        // Synchronous writes cost about 2% with group commit (measured over 90,601 chunks); only worth a tip without it.
+        if (!GroupCommit.ENABLED && server.forceSynchronousWrites()) {
+            lines.add("Tip: " + (server instanceof DedicatedServer ? "sync-chunk-writes=true in server.properties" : "syncChunkWrites:true in options.txt")
+                    + " makes every chunk write wait for the disk, and group commit is switched off.");
+        }
         for (String problem : settings.problems()) lines.add("Config: " + problem);
         lines.add("Config file: " + settings.file());
         return lines;
-    }
-
-    /** Where synchronous chunk writes are switched on, or null when they are off. */
-    public static String syncWritesTip(MinecraftServer server) {
-        if (!server.forceSynchronousWrites()) return null;
-        return (server instanceof DedicatedServer ? "sync-chunk-writes=true in server.properties" : "syncChunkWrites:true in options.txt")
-                + " makes every chunk write wait for the disk, which limits sustained generation speed.";
     }
 
     private static String onOff(boolean value) {
