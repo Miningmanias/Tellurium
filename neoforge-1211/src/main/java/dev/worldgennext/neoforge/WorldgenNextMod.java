@@ -164,10 +164,19 @@ public final class WorldgenNextMod {
         CommandSourceStack source = context.getSource();
         var area = new Pregenerator.Area(source.getLevel().dimension(), centreBlockX >> 4, centreBlockZ >> 4,
                 IntegerArgumentType.getInteger(context, "radius"));
-        return say(context, Pregenerator.start(source.getServer(), area, 0, feedback(source)));
+        try {
+            return say(context, Pregenerator.start(source.getServer(), area, 0, feedback(source)));
+        } catch (RuntimeException failure) {
+            // Without this the player only sees "An unexpected error occurred" and the log says nothing.
+            LOG.error("Could not start the pregeneration", failure);
+            source.sendFailure(Component.literal("Could not start the pregeneration: " + failure + " (details are in the server log)"));
+            return 0;
+        }
     }
 
+    /** Progress messages for whoever started the job; the console already sees them in the log. */
     private static Consumer<String> feedback(CommandSourceStack source) {
+        if (source.getEntity() == null) return null;
         return text -> source.sendSuccess(() -> Component.literal(text), false);
     }
 

@@ -130,6 +130,16 @@ within noise (2,767-2,860 chunks/s with, 2,775-2,837 without, three runs
 each). `STATUS=CARVERS scripts/verify-fast-matrix.sh 45`: 15/15 contexts
 identical to serial vanilla with it on.
 
+**Commands typed into a server console.** `scripts/test-installed-commands.sh`
+pipes the mod's commands into the installed server running the release jar on
+a fresh world: `status`, `pregen start/status/pause/resume/stop`, a second
+`start` while one is paused (refused), `start` with a centre, and
+`dev selftest`. Four runs answered every command as intended. A fifth, the
+first one made, answered the first `pregen start 100` with Minecraft's
+"An unexpected error occurred" and nothing in the log; it has not recurred,
+its cause is unknown, and the command now logs the exception and reports it
+to the caller.
+
 **Limits found.** With `sync-chunk-writes=true` (the dedicated-server default)
 each chunk write is synchronous; the IO thread then wrote about 2,700 chunks/s
 while about 3,300 were produced, pending writes held their chunk data, and a

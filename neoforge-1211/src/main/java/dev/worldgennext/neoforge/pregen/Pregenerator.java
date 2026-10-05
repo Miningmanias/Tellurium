@@ -136,7 +136,7 @@ public final class Pregenerator {
         if (job == null || job.finished) return hadState ? "Discarded the unfinished pregeneration." : "No pregeneration is running.";
         job.cancelled = true;
         job.thread.interrupt();
-        return "Pregeneration stopped: " + job.progressLine() + ". Chunks generated so far are kept.";
+        return "Pregeneration stopped: " + job.progressLine(false) + ". Chunks generated so far are kept.";
     }
 
     /** One line for the status command, or null when there is nothing to say. */
@@ -205,11 +205,16 @@ public final class Pregenerator {
         }
 
         String progressLine() {
+            return progressLine(true);
+        }
+
+        /** @param withEstimate false for a job that is not going to continue */
+        String progressLine(boolean withEstimate) {
             long done = done();
             StringBuilder line = new StringBuilder(String.format(Locale.ROOT, "%,d of %,d chunks (%.1f%%)", done, total,
                     total == 0 ? 100.0 : 100.0 * done / total));
             double rate = recentRate;
-            if (rate > 0 && !paused) {
+            if (withEstimate && rate > 0 && !paused) {
                 line.append(String.format(Locale.ROOT, ", %,.0f chunks/s, about %s left", rate, duration((long) ((total - done) / rate))));
             }
             if (failed.get() > 0) line.append(String.format(Locale.ROOT, ", %,d failed", failed.get()));
