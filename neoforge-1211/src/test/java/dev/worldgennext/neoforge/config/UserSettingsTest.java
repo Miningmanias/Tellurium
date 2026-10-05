@@ -63,6 +63,24 @@ class UserSettingsTest {
     }
 
     @Test
+    void checkModeRunsTheKernelsForAnyGeneratorAndTurnsTheComparisonOn() throws Exception {
+        UserSettings settings = with("""
+                [gpu]
+                mode = "check"
+                """);
+        assertTrue(settings.problems().isEmpty(), settings.problems().toString());
+        assertEquals("check", settings.gpuMode());
+        assertEquals("force", settings.systemProperties().get("worldgennext.fast.gpu"));
+        assertEquals("true", settings.systemProperties().get("worldgennext.fast.check"));
+        // No other mode asks for the comparison.
+        UserSettings forced = with("""
+                [gpu]
+                mode = "force"
+                """);
+        assertFalse(forced.systemProperties().containsKey("worldgennext.fast.check"));
+    }
+
+    @Test
     void invalidValuesFallBackToDefaultsAndAreReported() throws Exception {
         UserSettings settings = with("""
                 [gpu]

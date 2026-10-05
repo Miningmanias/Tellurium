@@ -54,7 +54,7 @@ Settings live in `config/worldgennext.toml`, written on first start:
 enabled = true            # false: behave exactly as without the mod
 
 [gpu]
-mode = "auto"             # "auto" | "force" (untested generators too) | "off"
+mode = "auto"             # "auto" | "check" | "force" (untested generators too) | "off"
 
 [generation]
 parallel_steps = true
@@ -67,6 +67,16 @@ compression_level = 1     # 1 fastest (files ~12% larger) ... 6 = vanilla size .
 in_flight = 1024
 progress_seconds = 10
 ```
+
+**A world generator that is not on the tested list** (a datapack, another
+terrain mod) generates with vanilla code by default. To find out whether the
+GPU reproduces it, set `gpu.mode = "check"`, generate a few thousand chunks
+across different biomes (`/worldgennext pregen start 40`) and look at
+`/worldgennext status`: it counts the chunks compared with vanilla and the
+chunks that differ. Nothing the GPU computes is kept in that mode, and it is
+slower than vanilla. With no differences, `gpu.mode = "force"` turns the GPU
+on for that world. A check on the chunks you generated is evidence, not
+proof, for the ones you did not.
 
 Things that affect sustained pregeneration speed more than anything in that
 file:

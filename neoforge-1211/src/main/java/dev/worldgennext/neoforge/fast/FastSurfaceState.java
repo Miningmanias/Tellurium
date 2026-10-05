@@ -24,7 +24,7 @@ public final class FastSurfaceState {
     private static final Logger LOG = LoggerFactory.getLogger("worldgennext-fast");
     public static final String TAG = "worldgennext.surface_applied";
     /** Diagnostic: generate NOISE and SURFACE with the original code and compare the kernels' result block by block. */
-    public static final boolean VERIFY = Boolean.getBoolean("worldgennext.fast.surfaceVerify");
+    public static final boolean VERIFY = Boolean.getBoolean("worldgennext.fast.surfaceVerify") || Boolean.getBoolean("worldgennext.fast.check");
 
     private static final Set<ChunkAccess> APPLIED = Collections.newSetFromMap(Collections.synchronizedMap(new WeakHashMap<>()));
     private static final Map<ChunkAccess, Expected> EXPECTED = Collections.synchronizedMap(new WeakHashMap<>());
@@ -39,7 +39,11 @@ public final class FastSurfaceState {
 
     public static boolean applied(ChunkAccess chunk) { return APPLIED.contains(chunk); }
 
+    /** Developer fault injection: corrupt the GPU result of one chunk in eight, to exercise the reporting of differences. */
+    private static final boolean INJECT_DIFFERENCE = Boolean.getBoolean("worldgennext.fast.checkInjectDifference");
+
     static void expect(ChunkAccess chunk, byte[] data, int[] heights, BlockState[] palette) {
+        if (INJECT_DIFFERENCE && (chunk.getPos().x & 7) == 0) data[0] ^= 1;
         EXPECTED.put(chunk, new Expected(data, heights, palette));
     }
 

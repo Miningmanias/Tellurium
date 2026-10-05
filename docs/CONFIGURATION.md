@@ -9,7 +9,7 @@ log and by `/worldgennext status`, and the default is used.
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `enabled` | `true` | Master switch. `false` turns off everything the mod changes (every switch in the developer table below is set to its original-behaviour value). |
-| `gpu.mode` | `"auto"` | `"auto"`: GPU terrain for world generators on the tested list, vanilla code for the rest. `"force"`: GPU for any generator the kernels build for; untested generators are not guaranteed identical. `"off"`: no GPU, CPU-side optimizations stay on. |
+| `gpu.mode` | `"auto"` | `"auto"`: GPU terrain for world generators on the tested list, vanilla code for the rest. `"check"`: generate with vanilla code, run the GPU as well for any generator its kernels build for, and compare block by block (after SURFACE where surface rules are on the GPU, after NOISE otherwise); `/worldgennext status` reports chunks compared and chunks that differ, and the log lists the first differences. `"force"`: GPU for any generator the kernels build for; untested generators are not guaranteed identical. `"off"`: no GPU, CPU-side optimizations stay on. |
 | `generation.parallel_steps` | `true` | Structure, surface, carver and feature steps of different chunks run at the same time. |
 | `saving.async` | `true` | Chunks are encoded and compressed on background threads when they unload. |
 | `saving.compression_level` | `1` | Deflate level for those chunks, 1–9. Level 1 files are about 12% larger than vanilla's; 6 matches vanilla's size. |

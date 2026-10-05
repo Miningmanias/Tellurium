@@ -52,8 +52,13 @@ public final class UserSettings {
             [gpu]
             # "auto"  - use the GPU for world generators on the tested list (vanilla, Terralith,
             #           Tectonic, and both together); anything else generates with vanilla code.
+            # "check" - for a world generator that is not on the tested list (datapacks, other
+            #           terrain mods): generate with vanilla code, also run the GPU, and compare the
+            #           two block by block.  Slower than vanilla.  /worldgennext status shows how
+            #           many chunks were compared and how many differed.
             # "force" - use the GPU for any world generator the kernels can be built for.
-            #           Untested generators are not guaranteed to produce identical terrain.
+            #           Untested generators are not guaranteed to produce identical terrain;
+            #           run "check" first.
             # "off"   - never use the GPU.  The CPU-side optimizations stay on.
             mode = "auto"
 
@@ -183,7 +188,9 @@ public final class UserSettings {
             for (String[] off : ALL_OFF) published.put(off[0], off[1]);
             return published;
         }
-        published.put("worldgennext.fast.gpu", gpuMode());
+        // "check" runs the kernels for any generator, like "force", but keeps the original result and compares.
+        published.put("worldgennext.fast.gpu", gpuMode().equals("check") ? "force" : gpuMode());
+        if (gpuMode().equals("check")) published.put("worldgennext.fast.check", "true");
         String parallel = Boolean.toString(parallelSteps());
         published.put("worldgennext.parallelStructureSteps", parallel);
         published.put("worldgennext.parallelSurfaceCarvers", parallel);
@@ -207,8 +214,8 @@ public final class UserSettings {
 
     public String gpuMode() {
         String mode = values.getOrDefault("gpu.mode", "auto").trim().toLowerCase(Locale.ROOT);
-        if (mode.equals("auto") || mode.equals("force") || mode.equals("off")) return mode;
-        problem("gpu.mode", mode, "\"auto\", \"force\" or \"off\"", "auto");
+        if (mode.equals("auto") || mode.equals("force") || mode.equals("off") || mode.equals("check")) return mode;
+        problem("gpu.mode", mode, "\"auto\", \"check\", \"force\" or \"off\"", "auto");
         return "auto";
     }
 
