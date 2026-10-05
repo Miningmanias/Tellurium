@@ -15,6 +15,8 @@ rm -f "$server"/mods/worldgennext-neoforge-*.jar
 cp "$jar" "$server/mods/"
 [ -d "$server/world" ] && mv "$server/world" "$server/world-prev-$(date +%Y%m%d-%H%M%S)"
 rm -f "$server/config/worldgennext.toml"
+# A log left by an earlier run would satisfy the "server is up" wait below at once.
+rm -f "$server/logs/latest.log"
 printf -- '-Xmx16G\n' > "$server/user_jvm_args.txt"
 export PATH="/c/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot/bin:$PATH"
 
@@ -39,6 +41,8 @@ cd "$server"
   echo "worldgennext pregen status"
   echo "worldgennext pregen start 20 0 0"
   for _ in $(seq 1 60); do sleep 1; grep -q "Pregeneration finished: 1,681" logs/latest.log && break; done
+  echo "execute in minecraft:the_nether run worldgennext pregen start 8"
+  for _ in $(seq 1 60); do sleep 1; grep -q "Pregeneration finished: 289" logs/latest.log && break; done
   echo "worldgennext pregen start worldborder"
   echo "worldborder set 400"
   sleep 1

@@ -167,8 +167,17 @@ public final class WorldgenNextMod {
     /** Radius is in chunks; the centre is given in blocks, like every other coordinate a player types. */
     private static int startPregen(CommandContext<CommandSourceStack> context, int centreBlockX, int centreBlockZ) {
         CommandSourceStack source = context.getSource();
-        return startPregen(source, new Pregenerator.Area(source.getLevel().dimension(), centreBlockX >> 4, centreBlockZ >> 4,
+        return startPregen(source, new Pregenerator.Area(levelOf(source).dimension(), centreBlockX >> 4, centreBlockZ >> 4,
                 IntegerArgumentType.getInteger(context, "radius")));
+    }
+
+    /**
+     * The dimension a command applies to.  A console command typed while the server is still starting is run
+     * with a source that has no level yet; it means the Overworld.
+     */
+    private static ServerLevel levelOf(CommandSourceStack source) {
+        ServerLevel level = source.getLevel();
+        return level != null ? level : source.getServer().overworld();
     }
 
     private static int startPregen(CommandSourceStack source, Pregenerator.Area area) {
@@ -176,7 +185,7 @@ public final class WorldgenNextMod {
             String answer = Pregenerator.start(source.getServer(), area, 0, feedback(source));
             source.sendSuccess(() -> Component.literal(answer), false);
             return 1;
-        } catch (RuntimeException failure) {
+        } catch (Exception failure) {
             // Without this the player only sees "An unexpected error occurred" and the log says nothing.
             LOG.error("Could not start the pregeneration", failure);
             source.sendFailure(Component.literal("Could not start the pregeneration: " + failure + " (details are in the server log)"));
@@ -187,7 +196,7 @@ public final class WorldgenNextMod {
     /** The square of chunks that covers the dimension's world border. */
     private static int startPregenInsideBorder(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
-        WorldBorder border = source.getLevel().getWorldBorder();
+        WorldBorder border = levelOf(source).getWorldBorder();
         long radius = (long) Math.ceil(border.getSize() / 2.0 / 16.0);
         if (radius > Pregenerator.MAX_RADIUS) {
             source.sendFailure(Component.literal(String.format(java.util.Locale.ROOT,
@@ -196,7 +205,7 @@ public final class WorldgenNextMod {
                     border.getSize(), (2L * Pregenerator.MAX_RADIUS + 1) * 16)));
             return 0;
         }
-        var area = new Pregenerator.Area(source.getLevel().dimension(), Mth.floor(border.getCenterX()) >> 4,
+        var area = new Pregenerator.Area(levelOf(source).dimension(), Mth.floor(border.getCenterX()) >> 4,
                 Mth.floor(border.getCenterZ()) >> 4, (int) radius);
         return startPregen(source, area);
     }

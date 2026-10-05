@@ -134,33 +134,13 @@ identical to serial vanilla with it on.
 pipes the mod's commands into the installed server running the release jar on
 a fresh world: `status`, `pregen start/status/pause/resume/stop`, a second
 `start` while one is paused (refused), `start` with a centre, and
-`dev selftest`. Four runs answered every command as intended. A fifth, the
-first one made, answered the first `pregen start 100` with Minecraft's
-"An unexpected error occurred" and nothing in the log; it has not recurred,
-its cause is unknown, and the command now logs the exception and reports it
-to the caller.
-
-**Terrain packs, 2026-10-05 (after group commit, off-thread loading and cave
-plans).** 32,761 chunks FULL, 6,561-chunk warm-up, two runs each: Tectonic
-2,702 and 2,790; Terralith 1,750 and 1,810; Terralith + Tectonic 1,788 and
-1,879; vanilla Overworld 2,619 in the same session. References with every
-switch off, 3,721 chunks, two runs a day apart: Tectonic 90 and 105,
-Terralith 41 and 48, combined 56 and 62 (the higher of each pair was taken
-while another program was using the GPU, which the reference does not use).
-Runs of the mod taken on 2026-10-04 while that program held the GPU at 98%
-were discarded: the combined pack, whose kernels are the heaviest, measured
-1,280 then.
-
-**Terrain-height cache.** A profile of the Terralith + Tectonic pack showed
-11.5% of worker CPU in single-position height queries during structure
-placement, 7.4 points of it from the jigsaw generator Terralith's library
-installs, which asks again for the same positions as it tries candidate
-pieces. The answers are now cached per thread. Combined pack, 32,761 chunks
-FULL: 2,019, 2,020 and 2,042 chunks/s with the cache, 1,842 and 1,894 without
-(runs alternated). Terralith alone and vanilla are unchanged within noise.
-SURFACE matrix with it on: vanilla Overworld, Nether, Terralith, Tectonic and
-combined identical to serial vanilla (structure starts and piece boxes are in
-the digest).
+`dev selftest`, a pregeneration in the Nether through `/execute in`, and
+`pregen start worldborder` with the default and with a 400-block border. One
+defect was found this way: a `pregen start` typed while the server was still
+starting answered with Minecraft's "An unexpected error occurred", because a
+console command queued before the world is loaded runs with a source that has
+no level. It now means the Overworld; typing the commands during start-up was
+re-tested, as was the whole sequence after start-up.
 
 **Limits found.** With `sync-chunk-writes=true` (the dedicated-server default)
 each chunk write is synchronous; the IO thread then wrote about 2,700 chunks/s
