@@ -30,7 +30,8 @@ given on the command line (`-Dworldgennext...`) wins over the file.
 | `/worldgennext dev status`, `dev status-json`, `dev write-default-config`, `dev selftest` | Staged-route developer diagnostics (formerly directly under `/worldgennext`). |
 
 The pregenerator walks one region file (32×32 chunks) at a time, outward from
-the centre. Progress is kept in `worldgennext-pregen.properties` in the world
+the centre. It works in the caller's dimension; `/execute in <dimension> run
+worldgennext pregen ...` selects another. Progress is kept in `worldgennext-pregen.properties` in the world
 folder. Unattended use: `-Dworldgennext.pregen.autostart=<radius>` starts a
 job around the Overworld spawn when the server is up,
 `-Dworldgennext.pregen.autoresume=true` continues an unfinished one instead,
@@ -87,6 +88,10 @@ in the last column of the second table restores the original code path.
 | `worldgennext.unloadTypeCache` | `true` | `false` | Remembers chunk types so unload saves do not re-read the region file. |
 | `worldgennext.unloadPacing` | `true` | `false` | Spreads unload saves over ticks and idle time. |
 | `worldgennext.promptTaskRelease` | `true` | `false` | Cancelled generation tasks release their chunk references at top priority. |
+
+Fault injection: `worldgennext.fast.loseDeviceAfterBatches=<n>` makes the engine
+treat the GPU as lost after n batches, to exercise the fall-back to CPU
+generation and its reporting.
 
 Verification modes compare an optimized result with the original while the
 server runs: `worldgennext.fast.verify` and `worldgennext.fast.surfaceVerify`

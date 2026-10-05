@@ -40,6 +40,14 @@ anything worth changing.
 | `/worldgennext pregen start worldborder` | Generate everything inside the world border |
 | `/worldgennext pregen pause` / `resume` / `stop` / `status` | `resume` also continues a job that a restart interrupted |
 
+The pregenerator works in the dimension the command is run in. From the
+console, or for another dimension, use
+`/execute in minecraft:the_nether run worldgennext pregen start 100`.
+
+If the graphics driver resets or the GPU otherwise stops responding, the mod
+says so once in the log and in `/worldgennext status` and generates on the CPU
+until the next restart; chunks already generated are unaffected.
+
 Settings live in `config/worldgennext.toml`, written on first start:
 
 ```toml
@@ -112,14 +120,15 @@ the tested list, other mods that change chunk generation or saving, LAN play.
 
 Reference host: 24 logical cores, RTX 5070 Ti, 16 GB heap, ScalableLux, dev
 server, chunks generated to FULL and saved, measured after a 6,561-chunk
-warm-up. Whole-run figures; one run each unless a range is given.
+warm-up. Whole-run figures; ranges are the lowest and highest of two or more
+runs. "Vanilla" is the same server with every WorldgenNext switch off.
 
 | World generator | Vanilla | WorldgenNext |
 | --- | --- | --- |
-| Vanilla Overworld | 124 (8,281 chunks) | 2,675–2,802 (32,761 chunks) |
-| Tectonic | not measured | 2,593 |
-| Terralith | not measured | 1,824 |
-| Terralith + Tectonic | not measured | 1,811 |
+| Vanilla Overworld | 124 (8,281 chunks) | 2,620–2,860 (32,761 chunks) |
+| Tectonic | 90–105 (3,721 chunks) | 2,702–2,790 |
+| Terralith | 41–48 (3,721 chunks) | 1,750–1,810 |
+| Terralith + Tectonic | 56–62 (3,721 chunks) | 1,788–1,879 |
 
 A cold start (121-chunk warm-up) gives 2,465–2,475 on vanilla Overworld. A
 90,601-chunk run in region order sustained 2,660–2,700 with the default

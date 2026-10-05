@@ -140,6 +140,17 @@ first one made, answered the first `pregen start 100` with Minecraft's
 its cause is unknown, and the command now logs the exception and reports it
 to the caller.
 
+**Terrain packs, 2026-10-05 (after group commit, off-thread loading and cave
+plans).** 32,761 chunks FULL, 6,561-chunk warm-up, two runs each: Tectonic
+2,702 and 2,790; Terralith 1,750 and 1,810; Terralith + Tectonic 1,788 and
+1,879; vanilla Overworld 2,619 in the same session. References with every
+switch off, 3,721 chunks, two runs a day apart: Tectonic 90 and 105,
+Terralith 41 and 48, combined 56 and 62 (the higher of each pair was taken
+while another program was using the GPU, which the reference does not use).
+Runs of the mod taken on 2026-10-04 while that program held the GPU at 98%
+were discarded: the combined pack, whose kernels are the heaviest, measured
+1,280 then.
+
 **Limits found.** With `sync-chunk-writes=true` (the dedicated-server default)
 each chunk write is synchronous; the IO thread then wrote about 2,700 chunks/s
 while about 3,300 were produced, pending writes held their chunk data, and a
