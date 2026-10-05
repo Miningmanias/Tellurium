@@ -123,6 +123,9 @@ reference, and a 14,641-chunk pregeneration ran with the GPU alongside
 rendering without errors. Opening a second world in the same game session was
 only exercised by restarting the GPU engine inside one server process.
 
+Lithium 0.15.4 alongside the mod: starts cleanly, the same world at SURFACE and
+CARVERS on vanilla Overworld, and about the same speed (within 2%).
+
 Not checked: Linux, GPUs other than an RTX 5070 Ti, world generators outside
 the tested list, other mods that change chunk generation or saving, LAN play.
 

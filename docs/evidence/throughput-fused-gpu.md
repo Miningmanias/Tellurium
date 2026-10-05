@@ -163,6 +163,15 @@ log. With `enabled = false`: 86.9 s, 5.8 ms, 209 ms, 3,022 chunks still
 loaded. One run each; this shows the mod does not break or slow ordinary
 chunk loading, not how play feels on a client.
 
+**With Lithium, 2026-10-05.** Lithium 0.15.4 for NeoForge 1.21.1 (from Modrinth,
+unmodified, default settings) next to ScalableLux and this mod: the server
+starts with no mixin failures, and 8,281 vanilla Overworld chunks are
+identical to the reference generated without either mod at SURFACE and at
+CARVERS. FULL, 32,761 chunks: 2,829, 2,841 and 2,875 chunks/s with Lithium,
+2,753 and 2,796 without in the same session; a difference of about 2%, which
+is the size of the run-to-run spread. Not tried: the terrain packs with
+Lithium, a client, long runs, other optimization mods.
+
 **Limits found.** With `sync-chunk-writes=true` (the dedicated-server default)
 each chunk write is synchronous; the IO thread then wrote about 2,700 chunks/s
 while about 3,300 were produced, pending writes held their chunk data, and a
