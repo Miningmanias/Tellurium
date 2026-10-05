@@ -94,7 +94,8 @@ if [ -d "$MODS/compat/amplified-nether" ]; then pair amplified-nether compat/amp
 if [ -d "$MODS/compat/nullscape" ]; then pair nullscape-end compat/nullscape "" "$END" terrain-only; fi
 EXPECTED_ROWS=15
 [ -n "${ROWS:-}" ] && EXPECTED_ROWS=$total
-if [ "$passed" -eq "$total" ] && [ "$total" -eq "$EXPECTED_ROWS" ]; then
+# The dimension-pack rows are optional, so a full run has at least the 15 core rows.
+if [ "$passed" -eq "$total" ] && [ "$total" -ge "$EXPECTED_ROWS" ]; then
   echo "MATRIX PASS ($passed/$total)"
   exit 0
 fi
