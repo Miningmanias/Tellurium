@@ -77,3 +77,47 @@ which is what the Results table measures. Intermediate point: limit 200 gave
   from its project page; the figures above are what it did here.
 - WorldgenNext's built-in pregenerator was not part of this comparison; on the
   NeoForge 21.1.176 server it did 251,001 chunks at 3,378 chunks/s.
+
+## Moving load ("flying") — 2026-10-05
+
+`scripts/compare-flight.sh`, same server, Java and mods as above (no Chunky).
+A 15×15-chunk force-loaded square is moved 96 blocks per step across
+ungenerated terrain with vanilla console commands, so each step asks for 90
+new chunks and releases 90 behind. `/forceload` generates the newly covered
+chunks on the server thread, one request at a time, before the command
+returns; a server that cannot finish a step in the step's time falls behind
+the schedule. This is the neutral stand-in for the in-mod player tour, which
+needs this mod and a client: it is not a real player and sends nothing to a
+client.
+
+| Configuration | 120 steps, one per 500 ms (60 s schedule) | 300 steps, one per 100 ms (30 s) | 300 steps, one per 50 ms (15 s), two runs |
+| --- | --- | --- | --- |
+| vanilla | 127.0 s | not run | not run |
+| C2ME | 61.9, 62.0 s | 57.0 s | 55.9, 57.5 s |
+| C2ME OpenCL | 61.9, 62.0 s | 46.6 s | 46.2, 46.5 s |
+| WorldgenNext | 62.0, 62.1 s | 74.2 s | 74.5, 75.0 s |
+
+At 180 chunks per second all three mods keep to the schedule and vanilla
+takes twice as long. Pushed past what any of them can sustain, the route's
+27,000 chunks take about 46 s with C2ME OpenCL (about 585 chunks/s), 57 s with
+C2ME (about 480) and 75 s with WorldgenNext (about 365). **For chunks
+requested one at a time on the server thread, WorldgenNext is the slowest of
+the three**, about four times vanilla.
+
+Setting `worldgennext.fast.maxDelayMicros=0`, turning the scheduling threads
+off, or turning the GPU off (85.5 s) did not close the gap, so it is not the
+GPU batching delay. With a single request in flight the work available is
+whatever one chunk's neighbourhood needs, stage by stage; this mod speeds up
+the stages and their hand-offs but keeps vanilla's chunk system, whereas C2ME
+replaces its scheduling. I have not profiled C2ME, so that explanation is an
+inference.
+
+`/tick query` was also sampled, and is not reported as a result: the server
+subtracts time spent waiting for chunks from its tick times, so the figures
+(0.7 ms for vanilla while it was falling a minute behind; 17, 20 and 25 ms
+for C2ME OpenCL, C2ME and WorldgenNext) describe server-thread work, not
+responsiveness. All saved worlds validated with no problems.
+
+The earlier in-client player tour (asynchronous player tickets, many chunks
+requested at once) was run only for WorldgenNext and for the mod disabled;
+no like-for-like tour with C2ME exists.
