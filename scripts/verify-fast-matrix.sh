@@ -26,7 +26,7 @@ passed=0
 total=0
 cps() { grep -E "measured phase" "$1" 2>/dev/null | tail -1 | sed -E 's/.*, ([0-9.]+) cps.*/\1/'; }
 wanted() { [ -z "${ROWS:-}" ] && return 0; for r in $ROWS; do [ "$r" = "$1" ] && return 0; done; return 1; }
-pair() { # name, mods subdirectory, extra script args, extra properties
+pair() { # name, mods subdirectory, extra script args, extra properties, "terrain-only" when the surface rules are expected to stay on the CPU
   local name="$1" mods="$2" args="$3" props="$4"
   wanted "$name" || return 0
   total=$((total + 1))
@@ -61,7 +61,7 @@ pair() { # name, mods subdirectory, extra script args, extra properties
     *PASS*)
       if [ -z "$gpuChunks" ] || [ -z "$expected" ] || [ "$gpuChunks" -lt $((expected * 9 / 10)) ]; then
         verdict="FAIL(gpu generated ${gpuChunks:-0} of ${expected:-?})"
-      elif [ "$STATUS" != "NOISE" ] && [ -z "$EXTRA" ] && { [ -z "$surface" ] || [ "$surface" -lt $((expected * 8 / 10)) ]; }; then
+      elif [ "$STATUS" != "NOISE" ] && [ -z "$EXTRA" ] && [ "${5:-}" != "terrain-only" ] && { [ -z "$surface" ] || [ "$surface" -lt $((expected * 8 / 10)) ]; }; then
         verdict="FAIL(gpu surfaced ${surface:-0} of ${expected:-?})"
       else
         verdict="PASS"
@@ -88,6 +88,10 @@ pair vanilla-mangrove-swamp vanilla "" "worldgennext.bench.centerBiome=minecraft
 pair terralith terralith "" ""
 pair tectonic tectonic "" ""
 pair combined combined "" ""
+# Dimension packs (optional rows: the mods are fetched by scripts/test-worldgen-mods.py into build/test-mods/compat).
+if [ -d "$MODS/compat/incendium" ]; then pair incendium-nether compat/incendium "" "$NETHER"; fi
+if [ -d "$MODS/compat/amplified-nether" ]; then pair amplified-nether compat/amplified-nether "" "$NETHER" terrain-only; fi
+if [ -d "$MODS/compat/nullscape" ]; then pair nullscape-end compat/nullscape "" "$END" terrain-only; fi
 EXPECTED_ROWS=15
 [ -n "${ROWS:-}" ] && EXPECTED_ROWS=$total
 if [ "$passed" -eq "$total" ] && [ "$total" -eq "$EXPECTED_ROWS" ]; then

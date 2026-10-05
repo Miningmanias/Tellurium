@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **611**, plus this generated index.
+Indexed project files: **612**, plus this generated index.
 
 ## semantic-core
 
@@ -428,6 +428,7 @@ Minecraft snapshot/runtime composition and bootstrap tests.
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastRouterCapture.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastRouterCapture.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastSurfaceCapture.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastSurfaceCapture.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastSurfaceState.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/FastSurfaceState.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/ForeignBeardifier.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/ForeignBeardifier.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/GpuRuntimeLoader.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/GpuRuntimeLoader.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/GraphDump.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/GraphDump.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/GraphStatistics.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/GraphStatistics.java) | Implementation or explicit public contract |

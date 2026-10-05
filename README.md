@@ -4,8 +4,8 @@ Faster chunk generation for Minecraft 1.21.1 (NeoForge) that produces the same
 world. No CUDA: the GPU part runs on Vulkan.
 
 - **Terrain and surface on the GPU** for world generators on the tested list:
-  vanilla Overworld, Nether and End, Terralith, Tectonic, and Terralith with
-  Tectonic. Any other generator, and any chunk the GPU flags as unsafe,
+  vanilla Overworld, Nether and End, Terralith, Tectonic, Terralith with
+  Tectonic, and Incendium; terrain for Amplified Nether and Nullscape. Any other generator, and any chunk the GPU flags as unsafe,
   uses vanilla code.
 - **Structure, carver and feature steps in parallel**, with cheaper but
   equivalent versions of the hottest vanilla loops (ore veins, biome lookups).

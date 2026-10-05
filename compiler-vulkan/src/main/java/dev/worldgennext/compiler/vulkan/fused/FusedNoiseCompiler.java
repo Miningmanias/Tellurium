@@ -424,7 +424,11 @@ public final class FusedNoiseCompiler {
          * child ignores Y (the column X/Z are already quart aligned).
          */
         private void emitPrelimScan(ProgramNode root) {
-            requireYIndependentFlats(root, java.util.Collections.newSetFromMap(new IdentityHashMap<>()));
+            // Preliminary surfaces are read by the aquifer and by the surface rules.  A generator with neither on
+            // the GPU never asks K_PRELIM for a column, so the sharing condition does not apply to it.
+            if (settings.aquifersEnabled() || request.surface() != null) {
+                requireYIndependentFlats(root, java.util.Collections.newSetFromMap(new IdentityHashMap<>()));
+            }
             functions.append("#if defined(K_PRELIM)\n");
             functions.append("int prelim_scan(int sx, int sz) {\n    ivec3 p = ivec3(sx, 0, sz);\n    {\n");
             emitPrelimVariant(root, Mode.POINT_OUT);

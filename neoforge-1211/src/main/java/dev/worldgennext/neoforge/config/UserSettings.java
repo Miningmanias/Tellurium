@@ -51,7 +51,8 @@ public final class UserSettings {
 
             [gpu]
             # "auto"  - use the GPU for world generators on the tested list (vanilla, Terralith,
-            #           Tectonic, and both together); anything else generates with vanilla code.
+            #           Tectonic and both together, Incendium, Amplified Nether, Nullscape);
+            #           anything else generates with vanilla code.
             # "check" - for a world generator that is not on the tested list (datapacks, other
             #           terrain mods): generate with vanilla code, also run the GPU, and compare the
             #           two block by block.  Slower than vanilla.  /worldgennext status shows how

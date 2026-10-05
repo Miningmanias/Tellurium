@@ -46,6 +46,10 @@ GROUPS = {
     "the-lost-cities": (["the-lost-cities"], "", 14),
     "nether-mods": (["incendium", "amplified-nether", "yungs-better-nether-fortresses"], "minecraft:the_nether", 14),
     "end-mods": (["nullscape", "yungs-better-end-island"], "minecraft:the_end", 14),
+    "incendium": (["incendium"], "minecraft:the_nether", 14),
+    "amplified-nether": (["amplified-nether"], "minecraft:the_nether", 14),
+    "yungs-nether-fortresses": (["yungs-better-nether-fortresses"], "minecraft:the_nether", 14),
+    "nullscape": (["nullscape"], "minecraft:the_end", 14),
 }
 
 

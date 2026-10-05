@@ -282,6 +282,13 @@ public final class FastNoiseEngine {
         engine.closeDevice();
     }
 
+    private static FusedNoiseCompiler.Compiled compile(WorldgenSnapshot snapshot, FusedNoiseCompiler.MaterialPalette materialPalette,
+                                                       FastSurfaceCapture.Captured surface) throws Exception {
+        return new FusedNoiseCompiler().compile(new FusedNoiseCompiler.Request(snapshot.router().roots(), snapshot.generatorSettings(),
+                snapshot.randomState().aquiferRandom(), snapshot.randomState().oreRandom(), materialPalette, beardKernel(),
+                surface == null ? null : surface.program()));
+    }
+
     /** Captures on the calling (server) thread; the returned job compiles and installs off-thread. */
     private Runnable prepare(ServerLevel level) throws Exception {
         if (!(level.getChunkSource().getGenerator() instanceof NoiseBasedChunkGenerator generator)) {
@@ -316,11 +323,21 @@ public final class FastNoiseEngine {
                 LOG.info("{}: surface rules stay on the CPU ({})", dimension, reason(failure));
             }
         }
-        FastSurfaceCapture.Captured surface = captured;
-        var request = new FusedNoiseCompiler.Request(snapshot.router().roots(), snapshot.generatorSettings(),
-                snapshot.randomState().aquiferRandom(), snapshot.randomState().oreRandom(), materialPalette, beardKernel(),
-                surface == null ? null : surface.program());
-        FusedNoiseCompiler.Compiled compiled = new FusedNoiseCompiler().compile(request);
+        FastSurfaceCapture.Captured candidate = captured;
+        FusedNoiseCompiler.Compiled attempt;
+        try {
+            attempt = compile(snapshot, materialPalette, candidate);
+        } catch (FusedNoiseCompiler.UnsupportedFusedProgramException failure) {
+            if (candidate == null || snapshot.generatorSettings().aquifersEnabled()) throw failure;
+            // Without aquifers only the surface rules need what the compiler objected to; terrain alone may still compile.
+            LOG.info("{}: surface rules stay on the CPU (this dimension's terrain does not allow the GPU surface step's shared"
+                    + " surface estimate); terrain can still use the GPU", dimension);
+            LOG.debug("Surface fallback for {}", dimension, failure);
+            candidate = null;
+            attempt = compile(snapshot, materialPalette, null);
+        }
+        FastSurfaceCapture.Captured surface = candidate;
+        FusedNoiseCompiler.Compiled compiled = attempt;
         RandomState randomState = level.getChunkSource().randomState();
         String qualifiedAs = QUALIFIED.get(compiled.structureFingerprint());
         // The fingerprints identify a generator for the tested list; they only matter to someone adding to it.
@@ -342,6 +359,8 @@ public final class FastNoiseEngine {
             String surfaceKey = "surface." + compiled.structureFingerprint() + "." + compiled.surfaceFingerprint();
             String surfaceQualifiedAs = QUALIFIED.get(surfaceKey);
             surfaceEnabled = surfaceQualifiedAs != null || MODE == GpuMode.FORCE;
+            // Like the kernel structure above: shown only when it is not on the list, for whoever qualifies it.
+            if (surfaceQualifiedAs == null) LOG.info("Fast GPU SURFACE {}: {} (not in the qualified list)", dimension, surfaceKey);
             LOG.debug("Fast GPU SURFACE {}: {} ({}), {} instructions, {} block states, {} noises", dimension, surfaceKey,
                     surfaceQualifiedAs == null ? (surfaceEnabled ? "not in the qualified list, forced" : "not in the qualified list, SURFACE stays vanilla")
                             : "qualified as " + surfaceQualifiedAs,
@@ -455,6 +474,8 @@ public final class FastNoiseEngine {
         int pieces, junctions;
         try {
             Beardifier beardifier = Beardifier.forStructuresInChunk(structures, chunk.getPos());
+            // Terrain adaptation another mod added to Beardifier is not in the two lists read below.
+            if (ForeignBeardifier.affects(beardifier)) return false;
             List<int[]> rigid = new ArrayList<>();
             List<int[]> joints = new ArrayList<>();
             var pieceIterator = (ObjectListIterator<?>) PIECES.get(beardifier);
