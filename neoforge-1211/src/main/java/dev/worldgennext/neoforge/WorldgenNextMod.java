@@ -6,6 +6,7 @@ import com.mojang.brigadier.context.CommandContext;
 import dev.worldgennext.neoforge.bench.ChunkThroughputBenchmark;
 import dev.worldgennext.neoforge.command.StatusReport;
 import dev.worldgennext.neoforge.config.UserSettings;
+import dev.worldgennext.neoforge.fast.BaseHeightCache;
 import dev.worldgennext.neoforge.fast.CavePlans;
 import dev.worldgennext.neoforge.fast.ClimateColumnCache;
 import dev.worldgennext.neoforge.fast.FastNoiseEngine;
@@ -110,6 +111,7 @@ public final class WorldgenNextMod {
             LOG.info(String.format(java.util.Locale.ROOT, "WorldgenNext generated %,d chunks' terrain on the GPU and %,d on the CPU this session",
                     counters.gpu(), counters.cpuFallback() + counters.bail()));
         }
+        LOG.debug("Terrain-height cache: {} hits, {} misses", BaseHeightCache.HITS.sum(), BaseHeightCache.MISSES.sum());
         // Unattended runs: -Dworldgennext.statusOnStop=true writes the status report to the log.
         if (Boolean.getBoolean("worldgennext.statusOnStop")) {
             for (String line : StatusReport.lines(event.getServer())) LOG.info(line);

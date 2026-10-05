@@ -37,6 +37,7 @@
     "LegacyRandomSourceAccessor",
     "CarvingContextAccessor",
     "CaveCarverConfigurationAccessor",
+    "NoiseBasedChunkGeneratorHeightCacheMixin",
     "OreFeatureMixin",
     "NoiseChunkLazyWrapMixin",
     "LevelChunkSectionUniformBiomeMixin",

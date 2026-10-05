@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **606**, plus this generated index.
+Indexed project files: **608**, plus this generated index.
 
 ## semantic-core
 
@@ -417,6 +417,7 @@ Minecraft snapshot/runtime composition and bootstrap tests.
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/config/WorldgenNextConfigLoader.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/config/WorldgenNextConfigLoader.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/DiagnosticSelfTest.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/DiagnosticSelfTest.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/AquiferPrefill.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/AquiferPrefill.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/BaseHeightCache.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/BaseHeightCache.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/CavePlans.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/CavePlans.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/ClimateColumnCache.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/ClimateColumnCache.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/ColumnBiomeIndex.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/ColumnBiomeIndex.java) | Implementation or explicit public contract |
@@ -460,6 +461,7 @@ Minecraft snapshot/runtime composition and bootstrap tests.
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/LevelChunkSectionUniformBiomeMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/LevelChunkSectionUniformBiomeMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/MinecraftServerIdleUnloadMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/MinecraftServerIdleUnloadMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/NoiseBasedChunkGeneratorFastMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/NoiseBasedChunkGeneratorFastMixin.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/NoiseBasedChunkGeneratorHeightCacheMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/NoiseBasedChunkGeneratorHeightCacheMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/NoiseChunkLazyWrapMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/NoiseChunkLazyWrapMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/OreFeatureMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/OreFeatureMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ProcessorMailboxDispatchMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/ProcessorMailboxDispatchMixin.java) | Implementation or explicit public contract |

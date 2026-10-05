@@ -128,7 +128,7 @@ runs. "Vanilla" is the same server with every WorldgenNext switch off.
 | Vanilla Overworld | 124 (8,281 chunks) | 2,620–2,860 (32,761 chunks) |
 | Tectonic | 90–105 (3,721 chunks) | 2,702–2,790 |
 | Terralith | 41–48 (3,721 chunks) | 1,750–1,810 |
-| Terralith + Tectonic | 56–62 (3,721 chunks) | 1,788–1,879 |
+| Terralith + Tectonic | 56–62 (3,721 chunks) | 2,019–2,042 |
 
 A cold start (121-chunk warm-up) gives 2,465–2,475 on vanilla Overworld. A
 90,601-chunk run in region order sustained 2,660–2,700 with the default
