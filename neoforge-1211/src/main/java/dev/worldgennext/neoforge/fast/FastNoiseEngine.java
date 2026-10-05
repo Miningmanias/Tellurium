@@ -398,7 +398,11 @@ public final class FastNoiseEngine {
     /** Hook from NoiseBasedChunkGenerator.fillFromNoise; null means "run vanilla". */
     public CompletableFuture<ChunkAccess> tryGenerate(NoiseBasedChunkGenerator generator, Blender blender, RandomState randomState,
                                                       StructureManager structures, ChunkAccess chunk) {
-        if (ORIGINAL.get() || !running || device.lost()) return null;
+        if (ORIGINAL.get() || !running) return null;
+        if (device.lost()) {
+            fallbackChunks.incrementAndGet();
+            return null;
+        }
         LevelProgram program = programs.get(randomState);
         if (program == null) return null;
         if (blender != Blender.empty() || !(chunk instanceof ProtoChunk proto) || proto.getBelowZeroRetrogen() != null) {
@@ -538,11 +542,39 @@ public final class FastNoiseEngine {
     // ------------------------------------------------------------- GPU loop
     private record InFlight(FusedGpuBackend.Slot slot, List<Request> requests) {}
 
+    private static final long LOSE_DEVICE_AFTER = Long.getLong("worldgennext.fast.loseDeviceAfterBatches", 0);
+    private boolean lostReported;
+
+    /**
+     * The driver gave up the device (a driver reset, a crash in another program using the GPU).  Batches in
+     * flight and every later chunk run the original code; say so once, and in the status report.
+     */
+    private void reportLost() {
+        lostReported = true;
+        String why = device.lostReason();
+        String text = "the GPU stopped responding" + (why == null || why.isBlank() ? "" : " (" + why + ")")
+                + "; terrain generates on the CPU until the server is restarted";
+        LOG.warn("GPU terrain generation stopped: {}. Chunks already generated are unaffected.", text);
+        if (INSTANCE != this) return;
+        DEVICE_NAME = null;
+        UNAVAILABLE = text;
+        synchronized (DIMENSIONS) {
+            for (Map.Entry<String, DimensionStatus> entry : DIMENSIONS.entrySet()) {
+                if (entry.getValue().terrain()) {
+                    entry.setValue(new DimensionStatus(entry.getKey(), false, false, "vanilla generation since the GPU stopped responding"));
+                }
+            }
+        }
+    }
+
     private void loop() {
         List<InFlight> inFlight = new ArrayList<>();
         Map<FusedGpuBackend.Program, Integer> nextSlot = new IdentityHashMap<>();
         while (running || !inFlight.isEmpty()) {
             boolean progress = false;
+            // Developer fault injection: -Dworldgennext.fast.loseDeviceAfterBatches=N
+            if (LOSE_DEVICE_AFTER > 0 && !lostReported && batches.get() >= LOSE_DEVICE_AFTER) device.loseDeviceForTest("simulated for a test");
+            if (!lostReported && device.lost()) reportLost();
             // Complete finished batches.
             for (int i = 0; i < inFlight.size(); i++) {
                 InFlight batch = inFlight.get(i);
@@ -569,7 +601,8 @@ public final class FastNoiseEngine {
                         inFlight.add(new InFlight(slot, taken));
                         batches.incrementAndGet();
                     } catch (Throwable failure) {
-                        LOG.error("Fast GPU NOISE submission failed; using vanilla", failure);
+                        // A lost device is reported once by reportLost(); anything else is unexpected.
+                        if (!device.lost()) LOG.error("Fast GPU NOISE submission failed; using vanilla", failure);
                         for (Request r : taken) runOriginal(r);
                     }
                     progress = true;

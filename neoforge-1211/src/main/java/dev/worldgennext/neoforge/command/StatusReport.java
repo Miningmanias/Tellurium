@@ -43,7 +43,7 @@ public final class StatusReport {
                     + " (" + dimension.detail() + ")" : dimension.detail()));
         }
         FastNoiseEngine.Counters counters = FastNoiseEngine.counters();
-        if (device != null) {
+        if (device != null || counters.gpu() > 0) {
             lines.add(String.format(Locale.ROOT, "Chunks since start: %,d on the GPU, %,d on the CPU, %,d redone on the CPU after a GPU bail-out",
                     counters.gpu(), counters.cpuFallback(), counters.bail()));
         }

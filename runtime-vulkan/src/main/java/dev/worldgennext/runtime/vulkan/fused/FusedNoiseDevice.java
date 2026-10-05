@@ -93,6 +93,7 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
     VkDevice vkDevice() { return device; }
     @Override public boolean lost() { return lost; }
     @Override public String lostReason() { return lostReason; }
+    @Override public void loseDeviceForTest(String reason) { lostReason = reason; lost = true; }
 
     public static FusedNoiseDevice open() {
         try (MemoryStack stack = MemoryStack.stackPush()) {

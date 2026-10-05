@@ -14,6 +14,9 @@ public interface FusedGpuBackend extends AutoCloseable {
     String deviceName();
     boolean lost();
     String lostReason();
+
+    /** Fault injection for tests: from now on behave as if the driver had lost the device. */
+    default void loseDeviceForTest(String reason) {}
     Program load(FusedNoiseCompiler.Compiled compiled, int maxBatchChunks, int slotCount);
     boolean profiling();
     boolean debugBuffers();
