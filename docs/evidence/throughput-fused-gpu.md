@@ -142,6 +142,17 @@ console command queued before the world is loaded runs with a source that has
 no level. It now means the Overworld; typing the commands during start-up was
 re-tested, as was the whole sequence after start-up.
 
+**Soak run, 2026-10-05.** Installed server, release jar, ScalableLux, default
+settings (`sync-chunk-writes=true`, 16 GB heap), built-in pregenerator from a
+cold start: 251,001 chunks to FULL in 74 s, 3,378 chunks/s by the
+pregenerator's own clock; progress lines read 2,082 chunks/s at 8%, 3,345 at
+51% and 3,678 at 93%. No full collections, longest pause 220 ms, 3.0 GB of
+region files. Afterwards `scripts/check-region-files.py` read 273,529 chunks
+from 324 region files with no problems; the only error in the log was
+vanilla's "Failed to fetch mob spawner entity". One run. The rate is higher
+than the 32,761-chunk benchmark because warm-up and the partly generated
+border around the area are a smaller share of a larger job.
+
 **Limits found.** With `sync-chunk-writes=true` (the dedicated-server default)
 each chunk write is synchronous; the IO thread then wrote about 2,700 chunks/s
 while about 3,300 were produced, pending writes held their chunk data, and a

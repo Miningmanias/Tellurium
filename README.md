@@ -140,6 +140,10 @@ runs. "Vanilla" is the same server with every WorldgenNext switch off.
 | Terralith | 41–48 (3,721 chunks) | 1,750–1,810 |
 | Terralith + Tectonic | 56–62 (3,721 chunks) | 2,019–2,042 |
 
+On the installed server with default settings, the built-in pregenerator did
+251,001 chunks in 74 s from a cold start (3,378 chunks/s; one run), and every
+saved chunk read back cleanly.
+
 A cold start (121-chunk warm-up) gives 2,465–2,475 on vanilla Overworld. A
 90,601-chunk run in region order sustained 2,660–2,700 with the default
 `sync-chunk-writes=true` and 2,734 with it off. Method, history and limits:
