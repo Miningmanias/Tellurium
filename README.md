@@ -40,6 +40,10 @@ anything worth changing.
 | `/worldgennext pregen start worldborder` | Generate everything inside the world border |
 | `/worldgennext pregen pause` / `resume` / `stop` / `status` | `resume` also continues a job that a restart interrupted |
 
+Chunky works too. By itself it asks for 50 chunks at a time, which holds any
+fast generator to about 1,000 chunks/s, so this mod raises that limit when
+Chunky is installed (`pregen.tune_chunky = false` leaves it alone).
+
 The pregenerator works in the dimension the command is run in. From the
 console, or for another dimension, use
 `/execute in minecraft:the_nether run worldgennext pregen start 100`.
@@ -151,6 +155,12 @@ runs. "Vanilla" is the same server with every WorldgenNext switch off.
 On the installed server with default settings, the built-in pregenerator did
 251,001 chunks in 74 s from a cold start (3,378 chunks/s; one run), and every
 saved chunk read back cleanly.
+
+Against other chunk-generation mods, same server, same Chunky pregeneration
+(NeoForge 21.1.255, Java 25, vanilla world, 35,721 and 142,129 chunks):
+vanilla 127 chunks/s; C2ME 930 and 1,064; C2ME with its OpenCL module 2,020-2,070
+and 2,140; WorldgenNext 2,960-2,970 and 3,479. Setup and caveats:
+[docs/evidence/comparison-c2me.md](docs/evidence/comparison-c2me.md).
 
 A cold start (121-chunk warm-up) gives 2,465–2,475 on vanilla Overworld. A
 90,601-chunk run in region order sustained 2,660–2,700 with the default

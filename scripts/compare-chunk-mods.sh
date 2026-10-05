@@ -16,10 +16,13 @@ cd "$(dirname "$0")/.."
 config="${1:?configuration}"
 radius="${2:-1500}"
 jvm="${3:-}"
-server=build/installed-server
+# SERVER=<dir> selects the server installation; its NeoForge version is read from its libraries folder.
+server="${SERVER:-build/installed-server}"
+neoforge=$(ls "$server/libraries/net/neoforged/neoforge" | head -1)
 stash=build/_to_delete/compare-worlds
 mkdir -p "$stash" "$server/mods-stash"
-export PATH="/c/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot/bin:$PATH"
+# JDK=<home> selects the Java runtime (C2ME 0.4.0 needs Java 25; default is the project's Java 21).
+export PATH="${JDK:-/c/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot}/bin:$PATH"
 
 mv "$server"/mods/*.jar "$server/mods-stash/" 2>/dev/null
 cp build/test-mods/vanilla/ScalableLux-*.jar build/test-mods/chunky/Chunky-*.jar "$server/mods/"
@@ -38,7 +41,7 @@ printf -- '-Xmx16G\n%s\n' "$(echo $jvm | tr ' ' '\n')" > "$server/user_jvm_args.
 
 cd "$server"
 {
-  for _ in $(seq 1 600); do sleep 1; grep -q "Done (" logs/latest.log 2>/dev/null && break; done
+  for _ in $(seq 1 600); do sleep 1; grep -q "Done (" logs/latest.log 2>/dev/null && break; grep -qE "Failed to start the minecraft server|FATAL\]" logs/latest.log 2>/dev/null && break; done
   if [ "$config" = worldgennext ]; then
     for _ in $(seq 1 600); do sleep 1; grep -qE "the_end: .*(on the GPU|vanilla code)|GPU terrain generation is unavailable" logs/latest.log && break; done
   fi
@@ -48,7 +51,7 @@ cd "$server"
   for _ in $(seq 1 7200); do sleep 1; grep -q "Task finished" logs/latest.log && break; done
   sleep 2
   echo "stop"
-} | java @user_jvm_args.txt @libraries/net/neoforged/neoforge/21.1.176/win_args.txt nogui > console.out 2>&1
+} | java @user_jvm_args.txt "@libraries/net/neoforged/neoforge/$neoforge/win_args.txt" nogui > console.out 2>&1
 cd - >/dev/null
 printf -- '-Xmx16G\n' > "$server/user_jvm_args.txt"
 

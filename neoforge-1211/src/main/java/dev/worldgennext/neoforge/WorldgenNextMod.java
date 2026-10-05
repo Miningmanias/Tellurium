@@ -26,6 +26,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.border.WorldBorder;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.NeoForge;
@@ -62,7 +63,11 @@ public final class WorldgenNextMod {
         NeoForge.EVENT_BUS.addListener(WorldgenNextMod::serverStarted);
         NeoForge.EVENT_BUS.addListener(WorldgenNextMod::serverStopping);
         NeoForge.EVENT_BUS.addListener(WorldgenNextMod::serverStopped);
-        if (settings.created()) LOG.info("WorldgenNext {}: wrote default settings to {}", VERSION, settings.file());
+        if (settings.enabled() && settings.tuneChunky() && ModList.get().isLoaded("chunky")) {
+            LOG.info("Chunky will work on {} chunks at once instead of its default 50 (pregen.tune_chunky in {} turns this off)",
+                    System.getProperty("chunky.maxWorkingCount"), settings.file());
+        }
+                if (settings.created()) LOG.info("WorldgenNext {}: wrote default settings to {}", VERSION, settings.file());
         for (String problem : settings.problems()) LOG.warn("WorldgenNext settings: {}", problem);
         if (!settings.enabled()) {
             LOG.info("WorldgenNext {} is disabled in {}; chunks generate and save as without the mod", VERSION, settings.file());

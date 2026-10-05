@@ -15,6 +15,7 @@ log and by `/worldgennext status`, and the default is used.
 | `saving.compression_level` | `1` | Deflate level for those chunks, 1–9. Level 1 files are about 12% larger than vanilla's; 6 matches vanilla's size. |
 | `pregen.in_flight` | `1024` | Chunks `/worldgennext pregen` works on at once (16–16384). Reduced to one per 12 MB of heap (not below 32) on small heaps. |
 | `pregen.progress_seconds` | `10` | Seconds between progress messages. |
+| `pregen.tune_chunky` | `true` | If Chunky is installed and `chunky.maxWorkingCount` is not set, set it to `pregen.in_flight` (with the same small-heap reduction). Chunky's own default of 50 limits throughput to about 1,000 chunks/s. |
 
 Each option stands for one or more of the system properties below. A property
 given on the command line (`-Dworldgennext...`) wins over the file.

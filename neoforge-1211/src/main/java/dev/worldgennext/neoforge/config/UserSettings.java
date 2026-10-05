@@ -81,6 +81,10 @@ public final class UserSettings {
             in_flight = 1024
             # Seconds between progress messages.
             progress_seconds = 10
+            # If the Chunky pregenerator is installed: let it work on as many chunks at once as
+            # in_flight above (reduced on small heaps) instead of its own default of 50, which
+            # holds this mod to about 1,000 chunks per second.  false leaves Chunky alone.
+            tune_chunky = true
             """;
 
     private static volatile UserSettings LOADED;
@@ -177,7 +181,7 @@ public final class UserSettings {
     Map<String, String> systemProperties() {
         for (String key : values.keySet()) {
             if (!List.of("enabled", "gpu.mode", "generation.parallel_steps", "saving.async", "saving.compression_level",
-                    "pregen.in_flight", "pregen.progress_seconds").contains(key)) {
+                    "pregen.in_flight", "pregen.progress_seconds", "pregen.tune_chunky").contains(key)) {
                 String text = "unknown option '" + key + "' ignored";
                 if (!problems.contains(text)) problems.add(text);
             }
@@ -200,6 +204,8 @@ public final class UserSettings {
         published.put("worldgennext.asyncChunkSave", async);
         published.put("worldgennext.asyncChunkCompress", async);
         published.put("worldgennext.asyncChunkCompressLevel", Integer.toString(compressionLevel()));
+        // Chunky reads this property once, when its generation task class loads.
+        if (tuneChunky()) published.put("chunky.maxWorkingCount", Integer.toString(chunkyInFlight(Runtime.getRuntime().maxMemory())));
         return published;
     }
 
@@ -229,6 +235,13 @@ public final class UserSettings {
     public int pregenInFlight() { return integer("pregen.in_flight", 1024, 16, 16384); }
 
     public int pregenProgressSeconds() { return integer("pregen.progress_seconds", 10, 1, 3600); }
+
+    public boolean tuneChunky() { return bool("pregen.tune_chunky", true); }
+
+    /** pregen.in_flight, held to one chunk per 12 MB of heap (not below 32): the built-in pregenerator's rule. */
+    public int chunkyInFlight(long maxHeapBytes) {
+        return (int) Math.min(pregenInFlight(), Math.max(32, (maxHeapBytes >> 20) / 12));
+    }
 
     private boolean bool(String key, boolean fallback) {
         String value = values.get(key);

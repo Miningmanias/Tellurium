@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **612**, plus this generated index.
+Indexed project files: **614**, plus this generated index.
 
 ## semantic-core
 
@@ -584,6 +584,7 @@ Deferred loader frame.
 | [docs/design/EVIDENCE.md](../docs/design/EVIDENCE.md) | Documentation |
 | [docs/design/performance-model.json](../docs/design/performance-model.json) | Tooling, data or provenance |
 | [docs/design/PROPOSAL.md](../docs/design/PROPOSAL.md) | Documentation |
+| [docs/evidence/comparison-c2me.md](../docs/evidence/comparison-c2me.md) | Documentation |
 | [docs/evidence/throughput-fused-gpu.md](../docs/evidence/throughput-fused-gpu.md) | Documentation |
 | [docs/evidence/v0.1-cpu-replay.json](../docs/evidence/v0.1-cpu-replay.json) | Tooling, data or provenance |
 | [docs/evidence/v0.1-cpu-tests.json](../docs/evidence/v0.1-cpu-tests.json) | Tooling, data or provenance |
@@ -652,6 +653,7 @@ Deferred loader frame.
 | [scripts/capture-original-saved.ps1](../scripts/capture-original-saved.ps1) | Tooling, data or provenance |
 | [scripts/check-region-files.py](../scripts/check-region-files.py) | Tooling, data or provenance |
 | [scripts/check.ps1](../scripts/check.ps1) | Tooling, data or provenance |
+| [scripts/compare-chunk-mods.sh](../scripts/compare-chunk-mods.sh) | Tooling, data or provenance |
 | [scripts/compare-digests.py](../scripts/compare-digests.py) | Tooling, data or provenance |
 | [scripts/CompiledReplayInputs.ps1](../scripts/CompiledReplayInputs.ps1) | Tooling, data or provenance |
 | [scripts/Invoke-ReplayProcess.ps1](../scripts/Invoke-ReplayProcess.ps1) | Tooling, data or provenance |

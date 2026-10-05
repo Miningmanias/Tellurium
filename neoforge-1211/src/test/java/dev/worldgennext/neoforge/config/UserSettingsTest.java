@@ -81,6 +81,24 @@ class UserSettingsTest {
     }
 
     @Test
+    void chunkyIsGivenThePregeneratorsWindowUnlessToldNotTo() throws Exception {
+        UserSettings defaults = UserSettings.read(configDirectory);
+        assertEquals(1024, defaults.chunkyInFlight(16384L << 20));
+        assertEquals(170, defaults.chunkyInFlight(2048L << 20));
+        assertEquals(32, defaults.chunkyInFlight(128L << 20));
+        assertTrue(defaults.systemProperties().containsKey("chunky.maxWorkingCount"));
+
+        UserSettings off = with("""
+                [pregen]
+                in_flight = 300
+                tune_chunky = false
+                """);
+        assertTrue(off.problems().isEmpty(), off.problems().toString());
+        assertFalse(off.systemProperties().containsKey("chunky.maxWorkingCount"));
+        assertEquals(300, off.chunkyInFlight(16384L << 20));
+    }
+
+    @Test
     void invalidValuesFallBackToDefaultsAndAreReported() throws Exception {
         UserSettings settings = with("""
                 [gpu]
