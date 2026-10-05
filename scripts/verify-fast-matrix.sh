@@ -95,7 +95,8 @@ if [ -d "$MODS/compat/nullscape" ]; then pair nullscape-end compat/nullscape "" 
 EXPECTED_ROWS=15
 [ -n "${ROWS:-}" ] && EXPECTED_ROWS=$total
 # The dimension-pack rows are optional, so a full run has at least the 15 core rows.
-if [ "$passed" -eq "$total" ] && [ "$total" -ge "$EXPECTED_ROWS" ]; then
+# A ROWS filter that matches no row has verified nothing.
+if [ "$total" -gt 0 ] && [ "$passed" -eq "$total" ] && [ "$total" -ge "$EXPECTED_ROWS" ]; then
   echo "MATRIX PASS ($passed/$total)"
   exit 0
 fi

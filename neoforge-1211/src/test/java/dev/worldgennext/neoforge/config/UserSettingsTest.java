@@ -99,6 +99,30 @@ class UserSettingsTest {
     }
 
     @Test
+    void distantHorizonsGeneratorIsHybridUnlessSetAndAFileWithoutTheOptionKeepsTheDefault() throws Exception {
+        assertEquals("hybrid", UserSettings.read(configDirectory).systemProperties().get("worldgennext.dh.mode"));
+        // A file written by an earlier version has no such table.
+        UserSettings older = with("""
+                enabled = true
+                """);
+        assertTrue(older.problems().isEmpty(), older.problems().toString());
+        assertEquals("hybrid", older.systemProperties().get("worldgennext.dh.mode"));
+
+        for (String mode : new String[]{"direct", "off", "hybrid"}) {
+            UserSettings chosen = with("[distant_horizons]\ngenerator = \"" + mode + "\"\n");
+            assertTrue(chosen.problems().isEmpty(), chosen.problems().toString());
+            assertEquals(mode, chosen.systemProperties().get("worldgennext.dh.mode"));
+        }
+
+        UserSettings wrong = with("""
+                [distant_horizons]
+                generator = "fastest"
+                """);
+        assertEquals("hybrid", wrong.systemProperties().get("worldgennext.dh.mode"));
+        assertTrue(String.join("\n", wrong.problems()).contains("distant_horizons.generator"), wrong.problems().toString());
+    }
+
+    @Test
     void invalidValuesFallBackToDefaultsAndAreReported() throws Exception {
         UserSettings settings = with("""
                 [gpu]

@@ -38,6 +38,7 @@
     "CarvingContextAccessor",
     "CaveCarverConfigurationAccessor",
     "NoiseBasedChunkGeneratorHeightCacheMixin",
+    "NoiseBasedChunkGeneratorSurfaceOnceMixin",
     "OreFeatureMixin",
     "NoiseChunkLazyWrapMixin",
     "LevelChunkSectionUniformBiomeMixin",

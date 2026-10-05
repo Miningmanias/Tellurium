@@ -16,6 +16,16 @@ log and by `/worldgennext status`, and the default is used.
 | `pregen.in_flight` | `1024` | Chunks `/worldgennext pregen` works on at once (16–16384). Reduced to one per 12 MB of heap (not below 32) on small heaps. |
 | `pregen.progress_seconds` | `10` | Seconds between progress messages. |
 | `pregen.tune_chunky` | `true` | If Chunky is installed and `chunky.maxWorkingCount` is not set, set it to `pregen.in_flight` (with the same small-heap reduction). Chunky's own default of 50 limits throughput to about 1,000 chunks/s. |
+| `distant_horizons.generator` | `"hybrid"` | Only if Distant Horizons is installed. `"hybrid"`: Distant Horizons keeps its own generator and plan (rough surface for far terrain first); the chunks it generates to refine that come from the server's chunk system. `"direct"`: all of its distant terrain is built from finished chunks; fastest to full detail, but nothing is shown for an area until its chunks are done. `"off"`: Distant Horizons is left alone. With `hybrid` and `direct` those chunks are real and are saved in the world. Measurements: `docs/evidence/comparison-distant-horizons.md`. |
+
+Distant Horizons fine-tuning (system properties only): `worldgennext.dh.readAhead`
+(chunks started before Distant Horizons asks for them, default one per 4 MB of
+heap up to 4,096, `0` for none), `worldgennext.dh.readAheadReach` (how far from
+a request, in chunks, default 32), `worldgennext.dh.skipSecondBuild` (default
+`true`; `false` lets Distant Horizons also rebuild each of those chunks from
+its load event) and `worldgennext.dh.log` (`true` writes the bridge's counters
+to the log every ten seconds). `worldgennext.dh.mode` is the property behind
+the option above.
 
 Each option stands for one or more of the system properties below. A property
 given on the command line (`-Dworldgennext...`) wins over the file.

@@ -2,6 +2,7 @@
 package dev.worldgennext.neoforge.command;
 
 import dev.worldgennext.neoforge.WorldgenNextMod;
+import dev.worldgennext.neoforge.compat.DistantHorizonsBridge;
 import dev.worldgennext.neoforge.config.UserSettings;
 import dev.worldgennext.neoforge.fast.FastNoiseEngine;
 import dev.worldgennext.neoforge.pregen.Pregenerator;
@@ -68,6 +69,8 @@ public final class StatusReport {
         }
         lines.add("Parallel generation steps: " + onOff(settings.parallelSteps()) + ". Background saving: "
                 + (settings.asyncSaving() ? "on, compression level " + settings.compressionLevel() : "off") + ".");
+        String distantHorizons = DistantHorizonsBridge.status();
+        if (distantHorizons != null) lines.add(distantHorizons);
         String pregen = Pregenerator.status(server);
         if (pregen != null) lines.add("Pregeneration: " + pregen);
 

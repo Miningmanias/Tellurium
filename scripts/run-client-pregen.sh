@@ -4,6 +4,7 @@
 #
 # The world is created first by a short dedicated-server run and copied into the client's saves folder, so
 # the client can go straight into it with --quickPlaySingleplayer.  A game window opens while this runs.
+# IDLE=<seconds> stands in the world instead; DIGEST= and TOUR= are described below.
 # Usage: scripts/run-client-pregen.sh [radius in chunks] [mods subdirectory] [extra properties, semicolon-separated]
 set -u
 cd "$(dirname "$0")/.."
@@ -21,6 +22,8 @@ mv "$run/logs/latest.log" "$run/logs/server-create.log"
 # A first launch otherwise stops at the accessibility onboarding screen instead of entering the world.
 printf 'onboardAccessibility:false\nskipMultiplayerWarning:true\ntutorialStep:none\npauseOnLostFocus:false\n' > "$run/options.txt"
 
+# CONFIG_TOML=<file>: use that as config/worldgennext.toml in the client (for example one with enabled = false).
+[ -n "${CONFIG_TOML:-}" ] && cp "$CONFIG_TOML" "$run/config/worldgennext.toml"
 args=(":neoforge-1211:runClient" "--no-daemon" "--console=plain" "-Dworldgennext.candidate.runDir=$run" "-Dworldgennext.prototype.resume=true"
       "-Dworldgennext.client.quickPlay=sp-world" "-Dworldgennext.run.maxHeap=${HEAP:-8G}" "-Dworldgennext.statusOnStop=true"
       "-Dworldgennext.fast.pipelineCacheDir=$root/build/fast-cache")
@@ -30,6 +33,10 @@ if [ -n "${DIGEST:-}" ]; then
   args+=("-Dworldgennext.bench.autorun=true" "-Dworldgennext.bench.status=SURFACE" "-Dworldgennext.bench.radiusChunks=$RADIUS"
          "-Dworldgennext.bench.release=end" "-Dworldgennext.bench.digest=true" "-Dworldgennext.bench.output=$root/$DIGEST"
          "-Dworldgennext.fast.gpu=force")
+elif [ -n "${IDLE:-}" ]; then
+  # IDLE=<seconds>: just stand in the world for that long (for mods that work around the player, such as
+  # Distant Horizons), then report.
+  [ -f "$run/config/DistantHorizons.toml" ] && sed -i 's/enableAutoUpdater = true/enableAutoUpdater = false/' "$run/config/DistantHorizons.toml"
 elif [ -n "${TOUR:-}" ]; then
   # TOUR=<steps>: instead of pregenerating, fly the player across fresh terrain (ordinary play path).
   args+=("-Dworldgennext.bench.tour=$TOUR")
@@ -41,8 +48,14 @@ for p in "${extra[@]}"; do [ -n "$p" ] && args+=("-D$p"); done
 ./gradlew.bat "${args[@]}" > "$run/gradle-client.out" 2>&1 &
 
 # The client keeps running after its integrated server stops; close it once the mod reports the stop.
-for _ in $(seq 1 180); do
+for tick in $(seq 1 180); do
   sleep 5
+  if [ -n "${IDLE:-}" ]; then
+    grep -q "joined the game" "$run/logs/latest.log" 2>/dev/null || continue
+    joined=${joined:-$tick}
+    [ $(( (tick - joined) * 5 )) -ge "$IDLE" ] && break
+    continue
+  fi
   grep -qE "Fast GPU NOISE stopped|Stopping singleplayer server|Stopping server|benchmark PASS|benchmark FAIL|player tour (PASS|FAIL)" "$run/logs/latest.log" 2>/dev/null && break
   jobs -r | grep -q . || break
 done
@@ -52,5 +65,6 @@ wait 2>/dev/null
 
 echo "RUNDIR $run"
 grep -E "\[worldgennext(-fast|-bench)?/\]" "$run/logs/latest.log" | sed -E 's/^\[[^]]*\] \[[^]]*\] \[[^]]*\]: //' | cut -c1-260
+[ -n "${IDLE:-}" ] && grep -E "DH is |Distant Horizons will|joined the game" "$run/logs/latest.log" | sed -E 's/^\[[^ ]* ([^]]*)\] \[[^]]*\] \[[^]]*\]: /\1 /' | cut -c1-200 | tail -40
 echo "errors: $(grep -cE "/ERROR\]|/FATAL\]" "$run/logs/latest.log")"
 grep -E "/ERROR\]|/FATAL\]|Mixin apply failed|UnsatisfiedLinkError" "$run/logs/latest.log" | grep -v "MonsterRoomFeature" | head -8 | cut -c1-260

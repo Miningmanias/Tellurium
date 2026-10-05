@@ -39,7 +39,8 @@ public final class UserSettings {
             {"worldgennext.asyncIoMailboxBatch", "1"}, {"worldgennext.asyncGroupCommit", "false"}, {"worldgennext.asyncChunkLoad", "false"}, {"worldgennext.parallelMailboxThreads", "false"},
             {"worldgennext.fast.regionChunkCache", "false"}, {"worldgennext.regionHeaderBatch", "false"},
             {"worldgennext.fast.freshRegionShortcut", "false"}, {"worldgennext.fast.shapeCache", "false"},
-            {"worldgennext.unloadPacing", "false"}, {"worldgennext.promptTaskRelease", "false"}};
+            {"worldgennext.unloadPacing", "false"}, {"worldgennext.promptTaskRelease", "false"},
+            {"worldgennext.dh.mode", "off"}};
 
     private static final String DEFAULT_FILE = """
             # WorldgenNext configuration.  Changes take effect on the next server start.
@@ -85,6 +86,17 @@ public final class UserSettings {
             # in_flight above (reduced on small heaps) instead of its own default of 50, which
             # holds this mod to about 1,000 chunks per second.  false leaves Chunky alone.
             tune_chunky = true
+
+            [distant_horizons]
+            # Only matters if Distant Horizons is installed.
+            # "hybrid" - Distant Horizons keeps its own generator and plan (rough surface for far
+            #            terrain first); the chunks it generates to refine that come from the
+            #            server's own, accelerated chunk generation instead.
+            # "direct" - all of its distant terrain is built from finished chunks.  Fastest way to
+            #            full detail, but nothing is shown for an area until its chunks are done.
+            # "off"    - Distant Horizons is left alone.
+            # With "hybrid" and "direct" those chunks are real and are saved in the world.
+            generator = "hybrid"
             """;
 
     private static volatile UserSettings LOADED;
@@ -181,7 +193,8 @@ public final class UserSettings {
     Map<String, String> systemProperties() {
         for (String key : values.keySet()) {
             if (!List.of("enabled", "gpu.mode", "generation.parallel_steps", "saving.async", "saving.compression_level",
-                    "pregen.in_flight", "pregen.progress_seconds", "pregen.tune_chunky").contains(key)) {
+                    "pregen.in_flight", "pregen.progress_seconds", "pregen.tune_chunky", "distant_horizons.generator")
+                    .contains(key)) {
                 String text = "unknown option '" + key + "' ignored";
                 if (!problems.contains(text)) problems.add(text);
             }
@@ -206,6 +219,7 @@ public final class UserSettings {
         published.put("worldgennext.asyncChunkCompressLevel", Integer.toString(compressionLevel()));
         // Chunky reads this property once, when its generation task class loads.
         if (tuneChunky()) published.put("chunky.maxWorkingCount", Integer.toString(chunkyInFlight(Runtime.getRuntime().maxMemory())));
+        published.put("worldgennext.dh.mode", distantHorizonsGenerator());
         return published;
     }
 
@@ -237,6 +251,12 @@ public final class UserSettings {
     public int pregenProgressSeconds() { return integer("pregen.progress_seconds", 10, 1, 3600); }
 
     public boolean tuneChunky() { return bool("pregen.tune_chunky", true); }
+    public String distantHorizonsGenerator() {
+        String mode = values.getOrDefault("distant_horizons.generator", "hybrid").trim().toLowerCase(Locale.ROOT);
+        if (mode.equals("hybrid") || mode.equals("direct") || mode.equals("off")) return mode;
+        problem("distant_horizons.generator", mode, "\"hybrid\", \"direct\" or \"off\"", "hybrid");
+        return "hybrid";
+    }
 
     /** pregen.in_flight, held to one chunk per 12 MB of heap (not below 32): the built-in pregenerator's rule. */
     public int chunkyInFlight(long maxHeapBytes) {

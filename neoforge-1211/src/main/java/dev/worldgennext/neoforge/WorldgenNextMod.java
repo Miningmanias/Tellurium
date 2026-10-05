@@ -6,6 +6,7 @@ import com.mojang.brigadier.context.CommandContext;
 import dev.worldgennext.neoforge.bench.ChunkThroughputBenchmark;
 import dev.worldgennext.neoforge.bench.PlayerTour;
 import dev.worldgennext.neoforge.command.StatusReport;
+import dev.worldgennext.neoforge.compat.DistantHorizonsBridge;
 import dev.worldgennext.neoforge.config.UserSettings;
 import dev.worldgennext.neoforge.fast.BaseHeightCache;
 import dev.worldgennext.neoforge.fast.CavePlans;
@@ -77,6 +78,7 @@ public final class WorldgenNextMod {
     }
 
     private static void serverAboutToStart(ServerAboutToStartEvent event) {
+        DistantHorizonsBridge.serverStarting(event.getServer());
         StagedRoute.serverAboutToStart(event);
     }
 
@@ -148,6 +150,7 @@ public final class WorldgenNextMod {
     }
 
     private static void serverStopping(ServerStoppingEvent event) {
+        DistantHorizonsBridge.serverStopping();
         Pregenerator.serverStopping();
         FastNoiseEngine.Counters counters = FastNoiseEngine.counters();
         if (counters.gpu() + counters.cpuFallback() > 0) {

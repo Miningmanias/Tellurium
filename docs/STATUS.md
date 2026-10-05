@@ -1,5 +1,33 @@
 # WorldgenNext status — 2026-10-03
 
+## 2026-10-05 — Distant Horizons
+
+With Distant Horizons 3.3.3 installed the mod registers a world generator
+override per level (`compat/DistantHorizonsBridge.java`). `hybrid` (default)
+wraps Distant Horizons' own generator, so its rough surface pass and plan are
+unchanged, and passes its chunk requests on in its `INTERNAL_SERVER` mode so
+that they are served by the chunk system; `direct` answers every request with
+finished chunks itself and uses only the public API. Both start neighbouring
+tiles early and mark the chunks they start in Distant Horizons' ignore set so
+it does not build them a second time from its load event
+(`compat/DistantHorizonsHandover.java`). `hybrid` and the ignore set use
+Distant Horizons classes outside its API, found by name; `hybrid` registers
+nothing if its class is missing.
+
+Measured (`docs/evidence/comparison-distant-horizons.md`): `dh pregen` over
+66,049 chunks on the installed dedicated server, 449 chunks/s for Distant
+Horizons alone, 1,262-1,317 `hybrid`, 1,598-1,686 `direct`; a repeat pass
+asked for no further chunks. Singleplayer dev client, standing still for two
+minutes, one run each: 19,280 chunks refined by Distant Horizons alone,
+36,896 `hybrid`, 72,480 `direct` (which shows no rough terrain). Not measured:
+flying, remote players, frame rate, other world generators. The rough surface
+pass is Distant Horizons' own code and was not made faster.
+
+`NoiseBasedChunkGenerator.buildSurface` now does nothing for a chunk whose
+surface the fused kernels already produced, for callers that drive the
+generator themselves (Distant Horizons' own generator does).
+`scripts/verify-fast-matrix.sh` now fails when `ROWS` selects no row.
+
 ## 2026-10-03 — FULL throughput and user-facing surface
 
 Supersedes the FULL figures further down.
