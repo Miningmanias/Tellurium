@@ -153,6 +153,16 @@ vanilla's "Failed to fetch mob spawner entity". One run. The rate is higher
 than the 32,761-chunk benchmark because warm-up and the partly generated
 border around the area are a smaller share of a larger job.
 
+**Ordinary play (singleplayer, dev client), 2026-10-05.**
+`TOUR=120 scripts/run-client-pregen.sh 1` teleports the player 96 blocks every
+half second across ungenerated terrain, so chunks are generated, sent, ticked
+and unloaded through player tickets rather than the pregenerator. With the mod:
+120 steps (11,520 blocks) in 66.0 s, average server tick 4.9 ms, longest tick
+in the recent window 81 ms, 1,370 chunks loaded at the end, no errors in the
+log. With `enabled = false`: 86.9 s, 5.8 ms, 209 ms, 3,022 chunks still
+loaded. One run each; this shows the mod does not break or slow ordinary
+chunk loading, not how play feels on a client.
+
 **Limits found.** With `sync-chunk-writes=true` (the dedicated-server default)
 each chunk write is synchronous; the IO thread then wrote about 2,700 chunks/s
 while about 3,300 were produced, pending writes held their chunk data, and a

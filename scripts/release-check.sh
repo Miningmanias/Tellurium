@@ -8,6 +8,7 @@
 #   kill       kill the server mid-pregeneration, validate region files, resume
 #   console    type every command into the installed server running the release jar
 #   client     singleplayer SURFACE digest against the dedicated reference (CLIENT=1 only; opens a game window)
+#   tour       a player flown across fresh terrain in singleplayer, no errors (CLIENT=1 only)
 #
 # GPU checks run one at a time; nothing else should be using the GPU.  Logs go to build/release-check/.
 # Usage: scripts/release-check.sh            (about 25 minutes; FULL_MATRIX=1 adds about 40)
@@ -53,6 +54,7 @@ if [ -n "${CLIENT:-}" ]; then
     echo
   }
   check client "missing=0 extra=0 +PASS" client
+  check tour "player tour PASS" env TOUR=120 bash scripts/run-client-pregen.sh 1 vanilla
 fi
 
 echo

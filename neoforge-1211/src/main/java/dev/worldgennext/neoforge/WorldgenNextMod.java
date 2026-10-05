@@ -4,6 +4,7 @@ package dev.worldgennext.neoforge;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import dev.worldgennext.neoforge.bench.ChunkThroughputBenchmark;
+import dev.worldgennext.neoforge.bench.PlayerTour;
 import dev.worldgennext.neoforge.command.StatusReport;
 import dev.worldgennext.neoforge.config.UserSettings;
 import dev.worldgennext.neoforge.fast.BaseHeightCache;
@@ -91,6 +92,7 @@ public final class WorldgenNextMod {
                     : staged != null ? staged : "VANILLA_ORIGINAL";
             ChunkThroughputBenchmark.startAsync(server, route);
         }
+        if (PlayerTour.requested()) PlayerTour.startAsync(server);
         // Unattended use: -Dworldgennext.pregen.autoresume=true continues a job that a restart cut short;
         // -Dworldgennext.pregen.autostart=<radius in chunks> starts one around the world spawn of the Overworld.
         Integer radius = Integer.getInteger("worldgennext.pregen.autostart");

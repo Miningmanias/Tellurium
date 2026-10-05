@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **608**, plus this generated index.
+Indexed project files: **610**, plus this generated index.
 
 ## semantic-core
 
@@ -409,6 +409,7 @@ Minecraft snapshot/runtime composition and bootstrap tests.
 | [neoforge-1211/src/gameTest/resources/META-INF/neoforge.mods.toml](../neoforge-1211/src/gameTest/resources/META-INF/neoforge.mods.toml) | Opt-in game bootstrap test/resource |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/bench/ChunkDigest.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/bench/ChunkDigest.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/bench/ChunkThroughputBenchmark.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/bench/ChunkThroughputBenchmark.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/bench/PlayerTour.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/bench/PlayerTour.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/command/StatusReport.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/command/StatusReport.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/command/WorldgenNextCommands.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/command/WorldgenNextCommands.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/compat/CompatibilityRegistry.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/compat/CompatibilityRegistry.java) | Implementation or explicit public contract |
@@ -660,6 +661,7 @@ Deferred loader frame.
 | [scripts/probe-fused-kernels.ps1](../scripts/probe-fused-kernels.ps1) | Tooling, data or provenance |
 | [scripts/probe-gpu-density.ps1](../scripts/probe-gpu-density.ps1) | Tooling, data or provenance |
 | [scripts/qualify-v02.ps1](../scripts/qualify-v02.ps1) | Tooling, data or provenance |
+| [scripts/release-check.sh](../scripts/release-check.sh) | Tooling, data or provenance |
 | [scripts/replay-minecraft-logical-matrix.ps1](../scripts/replay-minecraft-logical-matrix.ps1) | Tooling, data or provenance |
 | [scripts/replay-minecraft-logical.ps1](../scripts/replay-minecraft-logical.ps1) | Tooling, data or provenance |
 | [scripts/replay-minecraft-noise-cpu.ps1](../scripts/replay-minecraft-noise-cpu.ps1) | Tooling, data or provenance |

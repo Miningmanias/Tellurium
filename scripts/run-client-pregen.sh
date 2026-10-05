@@ -30,6 +30,9 @@ if [ -n "${DIGEST:-}" ]; then
   args+=("-Dworldgennext.bench.autorun=true" "-Dworldgennext.bench.status=SURFACE" "-Dworldgennext.bench.radiusChunks=$RADIUS"
          "-Dworldgennext.bench.release=end" "-Dworldgennext.bench.digest=true" "-Dworldgennext.bench.output=$root/$DIGEST"
          "-Dworldgennext.fast.gpu=force")
+elif [ -n "${TOUR:-}" ]; then
+  # TOUR=<steps>: instead of pregenerating, fly the player across fresh terrain (ordinary play path).
+  args+=("-Dworldgennext.bench.tour=$TOUR")
 else
   args+=("-Dworldgennext.pregen.autostart=$RADIUS" "-Dworldgennext.pregen.stopServerWhenDone=true")
 fi
@@ -40,7 +43,7 @@ for p in "${extra[@]}"; do [ -n "$p" ] && args+=("-D$p"); done
 # The client keeps running after its integrated server stops; close it once the mod reports the stop.
 for _ in $(seq 1 180); do
   sleep 5
-  grep -qE "Fast GPU NOISE stopped|Stopping singleplayer server|Stopping server|benchmark PASS|benchmark FAIL" "$run/logs/latest.log" 2>/dev/null && break
+  grep -qE "Fast GPU NOISE stopped|Stopping singleplayer server|Stopping server|benchmark PASS|benchmark FAIL|player tour (PASS|FAIL)" "$run/logs/latest.log" 2>/dev/null && break
   jobs -r | grep -q . || break
 done
 sleep 5
