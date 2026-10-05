@@ -17,6 +17,9 @@ import dev.worldgennext.neoforge.pregen.Pregenerator;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -99,10 +102,20 @@ public final class WorldgenNextMod {
         if (Boolean.getBoolean("worldgennext.pregen.autoresume") && Pregenerator.status(server) != null) {
             LOG.info(Pregenerator.resume(server, null));
         } else if (radius != null) {
-            ServerLevel overworld = server.overworld();
-            BlockPos spawn = overworld.getSharedSpawnPos();
-            LOG.info(Pregenerator.start(server, new Pregenerator.Area(overworld.dimension(), spawn.getX() >> 4, spawn.getZ() >> 4, radius),
-                    0, null));
+            // -Dworldgennext.pregen.autostartDimension=minecraft:the_nether picks another dimension (centred on 0, 0 there).
+            String dimension = System.getProperty("worldgennext.pregen.autostartDimension", "").trim();
+            ServerLevel target = server.overworld();
+            BlockPos centre = target.getSharedSpawnPos();
+            if (!dimension.isEmpty()) {
+                target = server.getLevel(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(dimension)));
+                centre = BlockPos.ZERO;
+            }
+            if (target == null) {
+                LOG.error("worldgennext.pregen.autostartDimension={} is not a loaded dimension", dimension);
+            } else {
+                LOG.info(Pregenerator.start(server, new Pregenerator.Area(target.dimension(), centre.getX() >> 4, centre.getZ() >> 4, radius),
+                        0, null));
+            }
         }
     }
 

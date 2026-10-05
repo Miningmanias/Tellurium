@@ -123,8 +123,13 @@ reference, and a 14,641-chunk pregeneration ran with the GPU alongside
 rendering without errors. Opening a second world in the same game session was
 only exercised by restarting the GPU engine inside one server process.
 
-Lithium 0.15.4 alongside the mod: starts cleanly, the same world at SURFACE and
-CARVERS on vanilla Overworld, and about the same speed (within 2%).
+Other mods: Biomes O' Plenty, Oh The Biomes We've Gone, Nature's Spirit,
+Geophilic, William Wythers' Overhauled Overworld, nine YUNG's structure mods,
+three structure packs, Regions Unexplored, Incendium, Amplified Nether,
+Nullscape, Lithium and Chunky were each run with this mod. All of them work.
+Where the GPU can be used for a mod's terrain it matched vanilla on every
+chunk compared; where it cannot, that world generates with vanilla code.
+Details and limits: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 Not checked: Linux, GPUs other than an RTX 5070 Ti, world generators outside
 the tested list, other mods that change chunk generation or saving, LAN play.

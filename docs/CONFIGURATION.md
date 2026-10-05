@@ -34,7 +34,8 @@ the centre. It works in the caller's dimension; `/execute in <dimension> run
 worldgennext pregen ...` selects another. Progress is kept in `worldgennext-pregen.properties` in the world
 folder. Unattended use: `-Dworldgennext.pregen.autostart=<radius>` starts a
 job around the Overworld spawn when the server is up,
-`-Dworldgennext.pregen.autoresume=true` continues an unfinished one instead,
+`-Dworldgennext.pregen.autostartDimension=<id>` picks another dimension (centred
+on 0, 0), `-Dworldgennext.pregen.autoresume=true` continues an unfinished one instead,
 `-Dworldgennext.pregen.stopServerWhenDone=true` stops the server at the end,
 and `-Dworldgennext.statusOnStop=true` writes the status report to the log at
 shutdown.
