@@ -16,13 +16,13 @@ MODULES = {
         "neoforge-1211": "Minecraft snapshot/runtime composition and bootstrap tests",
     "fabric-1211": "Deferred loader frame",
 }
-EXCLUDED = {".git", ".gradle", "build", "run", "runs", ".idea", "__pycache__"}
+EXCLUDED = {".git", ".gradle", "build", "run", "runs", ".idea", "__pycache__", "launch-video", "net"}
 
 
 def authored_files():
     def walk(directory):
         for path in sorted(directory.iterdir()):
-            if path.name in EXCLUDED:
+            if path.name in EXCLUDED or path.name.startswith("neoforge-ovw-"):
                 continue
             if path.is_dir():
                 yield from walk(path)

@@ -302,6 +302,8 @@ tasks.register('sourceBundle', Zip) {
     reproducibleFileOrder = true
     from(rootProject.projectDir) {
         exclude '.git/**', '**/.gradle/**', '**/build/**', '**/run/**', '**/runs/**', '.idea/**', '**/__pycache__/**', '**/*.pyc', '**/*.log', 'hs_err_pid*'
+        // Not source: the launch-video workspace (renders and audio), local decompiled references and stray run folders.
+        exclude 'launch-video/**', 'net/**', 'neoforge-ovw-*/**'
         into "worldgennext-${project.version}"
     }
 }
