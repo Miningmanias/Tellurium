@@ -53,9 +53,11 @@ cd - >/dev/null
 
 log="$server/logs/latest.log"
 grep -E "WorldgenNext [0-9.]+ loaded|Pregeneration finished|Chunks since start|overworld: " "$log" | sed -E 's/^\[[^]]*\] \[[^]]*\]: /  /' | tail -5 | cut -c1-200
-errors=$(grep -cE "/ERROR\]|/FATAL\]|Mixin apply failed|InvalidInjectionException|InvalidMixinException" "$log" 2>/dev/null)
+# Not counted: "Failed to fetch mob spawner entity", which the unmodified game logs for the same dungeons
+# (docs/evidence/fabric-port.md).
+errors=$(grep -E "/ERROR\]|/FATAL\]|Mixin apply failed|InvalidInjectionException|InvalidMixinException" "$log" 2>/dev/null | grep -vc "Failed to fetch mob spawner entity")
 echo "  error lines: ${errors:-no log}"
-grep -E "/ERROR\]|/FATAL\]|Mixin apply failed|Invalid(Injection|Mixin)Exception" "$log" 2>/dev/null | head -5 | cut -c1-240
+grep -E "/ERROR\]|/FATAL\]|Mixin apply failed|Invalid(Injection|Mixin)Exception" "$log" 2>/dev/null | grep -v "Failed to fetch mob spawner entity" | head -5 | cut -c1-240
 echo "  saved chunks: $(python scripts/check-region-files.py "$server/world/region" | tail -1)"
 # The names a released Fabric game uses differ from the development environment's; if the mod could not read
 # the world generator under them it falls back to vanilla code, which must not count as a pass.

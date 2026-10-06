@@ -10,8 +10,10 @@ marked for a fluid update, which the GPU kernels now take as an option without
 changing the 1.21.1 kernel text. The list of tested generators names its
 Minecraft version and is ignored on any other. Verified on each of the three
 builds: SURFACE matrix 12 of 12 vanilla contexts identical; the built jar on
-a real server with terrain on the GPU and no errors (40,401 chunks at 3,096,
-2,620 and 1,953 chunks/s, one run each); check mode 0 differences over 7,104
+a real server with terrain on the GPU and no errors (160,801 chunks at 2,386,
+1,942 and 3,057 chunks/s, one run each, after a save path for these versions
+went in: the first builds ran out of memory on runs longer than about 60,000
+chunks); check mode 0 differences over 7,104
 Overworld, 7,225 Nether and 7,225 End chunks; save and reopen; Terralith
 identical to serial vanilla and on the tested lists (Tectonic's releases for
 these versions are refused by the frontend and generate with vanilla code).

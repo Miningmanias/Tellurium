@@ -21,9 +21,12 @@ config="${1:?configuration}"
 radius="${2:-64}"
 jvm="${3:-}"
 # LOADER=fabric runs on the Fabric server (build/installed-fabric, mods from build/test-mods/dh-fabric) with the
-# Fabric jar instead.
+# Fabric jar instead; with MC=<Minecraft version> on that version's Fabric server (build/installed-fabric-<version>,
+# mods from build/test-mods/dh-fabric-<version>) with that version's jar.
 loader="${LOADER:-neoforge}"
-if [ "$loader" = fabric ]; then server="${SERVER:-build/installed-fabric}"; mods=build/test-mods/dh-fabric
+mc="${MC:-1.21.1}"
+suffix=""; [ "$mc" = 1.21.1 ] || suffix="-$mc"
+if [ "$loader" = fabric ]; then server="${SERVER:-build/installed-fabric$suffix}"; mods="build/test-mods/dh-fabric$suffix"
 else server="${SERVER:-build/installed-server}"; mods=build/test-mods/dh; fi
 dimension="${DIM:-minecraft:overworld}"
 [ "$loader" = fabric ] || neoforge=$(ls "$server/libraries/net/neoforged/neoforge" | head -1)
@@ -38,7 +41,7 @@ mv "$server"/mods/*.jar "$server/mods-stash/" 2>/dev/null
 cp "$mods"/*.jar "$server/mods/"
 case "$config" in
   dh) ;;
-  worldgennext) cp "$(ls -t "$loader"-1211/build/libs/worldgennext-"$loader"-1.21.1-*.jar | grep -v sources | head -1)" "$server/mods/" ;;
+  worldgennext) cp "$(ls -t "$loader-$(echo "$mc" | tr -d .)"/build/libs/worldgennext-"$loader"-"$mc"-*.jar | grep -v sources | head -1)" "$server/mods/" ;;
   *) echo "unknown configuration $config"; exit 2 ;;
 esac
 [ -d "$server/world" ] && mv "$server/world" "$stash/world-$(date +%Y%m%d-%H%M%S)"

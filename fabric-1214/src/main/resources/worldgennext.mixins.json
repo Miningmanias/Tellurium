@@ -38,7 +38,9 @@
     "RegionFileHeaderMixin",
     "RegionFileGroupCommitMixin",
     "IOWorkerGroupCommitMixin",
-    "ChunkStorageInfoAccessor"
+    "ChunkStorageInfoAccessor",
+    "ChunkMapSavePipelineMixin",
+    "ConsecutiveExecutorBatchMixin"
   ],
   "client": [],
   "server": [],

@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **667**, plus this generated index.
+Indexed project files: **670**, plus this generated index.
 
 ## semantic-core
 
@@ -657,10 +657,13 @@ Deferred loader frame.
 | [fabric-1214/build.gradle](../fabric-1214/build.gradle) | Build configuration/tooling |
 | [fabric-1214/README.md](../fabric-1214/README.md) | Documentation |
 | [fabric-1214/removed.txt](../fabric-1214/removed.txt) | Tooling, data or provenance |
+| [fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/ChunkMapSavePipelineMixin.java](../fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/ChunkMapSavePipelineMixin.java) | Implementation or explicit public contract |
 | [fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/ChunkMapUnloadTypeMixin.java](../fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/ChunkMapUnloadTypeMixin.java) | Implementation or explicit public contract |
+| [fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/ConsecutiveExecutorBatchMixin.java](../fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/ConsecutiveExecutorBatchMixin.java) | Implementation or explicit public contract |
 | [fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerGroupCommitMixin.java](../fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerGroupCommitMixin.java) | Implementation or explicit public contract |
 | [fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerHeaderFlushMixin.java](../fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerHeaderFlushMixin.java) | Implementation or explicit public contract |
 | [fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/SerializableChunkDataSurfaceMixin.java](../fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/SerializableChunkDataSurfaceMixin.java) | Implementation or explicit public contract |
+| [fabric-1214/src/main/java/dev/worldgennext/neoforge/threading/SavePipeline.java](../fabric-1214/src/main/java/dev/worldgennext/neoforge/threading/SavePipeline.java) | Implementation or explicit public contract |
 | [fabric-1214/src/main/java/dev/worldgennext/neoforge/version/Version.java](../fabric-1214/src/main/java/dev/worldgennext/neoforge/version/Version.java) | Implementation or explicit public contract |
 | [fabric-1214/src/main/resources/fabric.mod.json](../fabric-1214/src/main/resources/fabric.mod.json) | Packaged metadata/resource |
 | [fabric-1214/src/main/resources/worldgennext/fused-qualified.properties](../fabric-1214/src/main/resources/worldgennext/fused-qualified.properties) | Packaged metadata/resource |

@@ -22,6 +22,7 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.storage.SerializableChunkData;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -105,8 +106,11 @@ public final class Version {
         // Like the region tickets of earlier versions it both loads and counts towards simulation.
         private final TicketType type = new TicketType(TicketType.NO_TIMEOUT, false, TicketType.TicketUse.LOADING_AND_SIMULATION);
         private final String name;
-        /** How many keys hold a ticket of one cache, position and radius; the game's ticket is there while any does. */
-        private final Map<Held, Integer> held = new HashMap<>();
+        /**
+         * The keys that hold a ticket of one cache, position and radius; the game's ticket is there while any
+         * does.  A set, as in earlier versions: adding a ticket twice under one key is one ticket.
+         */
+        private final Map<Held, Set<Long>> held = new HashMap<>();
 
         private record Held(ServerChunkCache cache, long position, int radius) {}
 
@@ -115,19 +119,16 @@ public final class Version {
         }
 
         public synchronized void add(ServerChunkCache cache, ChunkPos position, int radius, ChunkPos key) {
-            if (held.merge(new Held(cache, position.toLong(), radius), 1, Integer::sum) == 1) cache.addTicketWithRadius(type, position, radius);
+            Set<Long> keys = held.computeIfAbsent(new Held(cache, position.toLong(), radius), entry -> new HashSet<>(2));
+            if (keys.add(key.toLong()) && keys.size() == 1) cache.addTicketWithRadius(type, position, radius);
         }
 
         public synchronized void remove(ServerChunkCache cache, ChunkPos position, int radius, ChunkPos key) {
             Held entry = new Held(cache, position.toLong(), radius);
-            Integer count = held.get(entry);
-            if (count == null) return;
-            if (count > 1) {
-                held.put(entry, count - 1);
-            } else {
-                held.remove(entry);
-                cache.removeTicketWithRadius(type, position, radius);
-            }
+            Set<Long> keys = held.get(entry);
+            if (keys == null || !keys.remove(key.toLong()) || !keys.isEmpty()) return;
+            held.remove(entry);
+            cache.removeTicketWithRadius(type, position, radius);
         }
 
         @Override

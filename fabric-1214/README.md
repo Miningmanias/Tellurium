@@ -9,6 +9,7 @@ module holds only what 1.21.4 needs differently:
 | `src/main/java/.../version/Version.java` | The 1.21.4 form of every call that differs between Minecraft versions, including which aquifer fluid-update rule the GPU kernels use |
 | `src/main/java/.../mixin/SerializableChunkDataSurfaceMixin.java` | Keeps the mark of a chunk saved with its surface already built (1.21.1: `ChunkSerializerSurfaceMixin`) |
 | `src/main/java/.../mixin/ChunkMapUnloadTypeMixin.java`, `IOWorkerGroupCommitMixin.java`, `IOWorkerHeaderFlushMixin.java` | 1.21.4 copies of mixins whose targets changed shape |
+| `src/main/java/.../threading/SavePipeline.java`, `mixin/ChunkMapSavePipelineMixin.java`, `mixin/ConsecutiveExecutorBatchMixin.java` | Saving at generation rates since 1.21.2: the chunk's NBT is built and compressed on the mod's own threads, pending saves are bounded, and the IO worker takes its messages in batches |
 | `removed.txt` | Shared files with no counterpart on 1.21.4 |
 | `src/main/resources/worldgennext.mixins.json` | The mixins that apply on 1.21.4 |
 | `src/main/resources/worldgennext/fused-qualified.properties` | The generators tested on 1.21.4 (vanilla only) |
