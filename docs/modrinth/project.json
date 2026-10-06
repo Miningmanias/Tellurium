@@ -1,0 +1,16 @@
+{
+  "slug": "tellurium",
+  "title": "Tellurium",
+  "description": "Faster chunk generation that produces the same world. GPU terrain through Vulkan, parallel structure and feature steps, background saving and a built-in pregenerator. NeoForge and Fabric.",
+  "categories": ["optimization", "worldgen"],
+  "additional_categories": ["utility"],
+  "client_side": "optional",
+  "server_side": "required",
+  "license_id": "MIT",
+  "project_type": "mod",
+  "source_url": "https://github.com/Miningmanias/Tellurium",
+  "issues_url": "https://github.com/Miningmanias/Tellurium/issues",
+  "wiki_url": "https://github.com/Miningmanias/Tellurium/blob/main/docs/CONFIGURATION.md",
+  "initial_versions": [],
+  "is_draft": true
+}
