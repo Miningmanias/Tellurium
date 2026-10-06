@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **661**, plus this generated index.
+Indexed project files: **666**, plus this generated index.
 
 ## semantic-core
 
@@ -671,12 +671,16 @@ Deferred loader frame.
 | [fabric-1218/src/main/resources/worldgennext/fused-qualified.properties](../fabric-1218/src/main/resources/worldgennext/fused-qualified.properties) | Packaged metadata/resource |
 | [gradle/fabric-port.gradle](../gradle/fabric-port.gradle) | Build configuration/tooling |
 | [gradle/gpu-runtime.gradle](../gradle/gpu-runtime.gradle) | Build configuration/tooling |
+| [gradle/neoforge-port.gradle](../gradle/neoforge-port.gradle) | Build configuration/tooling |
 | [gradle/wrapper/gradle-wrapper.jar](../gradle/wrapper/gradle-wrapper.jar) | Tooling, data or provenance |
 | [gradle/wrapper/gradle-wrapper.properties](../gradle/wrapper/gradle-wrapper.properties) | Build configuration/tooling |
 | [gradle.properties](../gradle.properties) | Build configuration/tooling |
 | [gradlew](../gradlew) | Build configuration/tooling |
 | [gradlew.bat](../gradlew.bat) | Build configuration/tooling |
 | [LICENSE](../LICENSE) | Tooling, data or provenance |
+| [neoforge-1218/build.gradle](../neoforge-1218/build.gradle) | Build configuration/tooling |
+| [neoforge-1218/README.md](../neoforge-1218/README.md) | Documentation |
+| [neoforge-1218/src/main/resources/META-INF/neoforge.mods.toml](../neoforge-1218/src/main/resources/META-INF/neoforge.mods.toml) | Packaged metadata/resource |
 | [NOTICE](../NOTICE) | Tooling, data or provenance |
 | [oracle-1211/build.gradle](../oracle-1211/build.gradle) | Build configuration/tooling |
 | [oracle-1211/README.md](../oracle-1211/README.md) | Documentation |
@@ -723,6 +727,7 @@ Deferred loader frame.
 | [scripts/test-installed-commands.sh](../scripts/test-installed-commands.sh) | Tooling, data or provenance |
 | [scripts/test-installed-fabric.sh](../scripts/test-installed-fabric.sh) | Tooling, data or provenance |
 | [scripts/test-installed-mod.ps1](../scripts/test-installed-mod.ps1) | Tooling, data or provenance |
+| [scripts/test-installed-neoforge.sh](../scripts/test-installed-neoforge.sh) | Tooling, data or provenance |
 | [scripts/test-worldgen-mods.py](../scripts/test-worldgen-mods.py) | Tooling, data or provenance |
 | [scripts/tests/FocusedJUnitRunner.java](../scripts/tests/FocusedJUnitRunner.java) | Tooling, data or provenance |
 | [scripts/tests/test-compiled-replay-inputs.ps1](../scripts/tests/test-compiled-replay-inputs.ps1) | Tooling, data or provenance |

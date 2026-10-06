@@ -1,7 +1,7 @@
 # WorldgenNext
 
 Faster chunk generation for Minecraft that produces the same world: NeoForge
-and Fabric on 1.21.1, Fabric on 1.21.4 and 1.21.8. No CUDA: the GPU part runs
+and Fabric on 1.21.1 and 1.21.8, Fabric on 1.21.4. No CUDA: the GPU part runs
 on Vulkan.
 
 - **Terrain and surface on the GPU** for world generators on the tested list:
@@ -25,7 +25,8 @@ on Vulkan.
    `worldgennext-fabric-1.21.1-0.2.0.jar` (Fabric) in `mods/`.
    For Minecraft 1.21.4 or 1.21.8 on Fabric the jar is
    `worldgennext-fabric-1.21.4-0.2.0.jar` or
-   `worldgennext-fabric-1.21.8-0.2.0.jar`. On those two versions only the
+   `worldgennext-fabric-1.21.8-0.2.0.jar`; for 1.21.8 on NeoForge (21.8.54+)
+   it is `worldgennext-neoforge-1.21.8-0.2.0.jar`. On those two versions only the
    vanilla Overworld, Nether and End are on the tested list so far, and
    everything below about other mods, Distant Horizons, Voxy and singleplayer
    was measured on 1.21.1
@@ -307,6 +308,7 @@ The mod jar is `neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-0.2.0.jar`
 | neoforge-1211 | Config/lazy-native/snapshot/commit lifecycle composition and loader bootstrap checks |
 | fabric-1211 | The Fabric build of the same mod: loader glue, one thread-safety mixin, and the name table a released Fabric game needs ([docs/evidence/fabric-port.md](docs/evidence/fabric-port.md)) |
 | fabric-1214, fabric-1218 | The Fabric builds for Minecraft 1.21.4 and 1.21.8: only the files that differ from the shared 1.21.1 source, assembled by `gradle/fabric-port.gradle` ([docs/evidence/minecraft-versions.md](docs/evidence/minecraft-versions.md)) |
+| neoforge-1218 | The NeoForge build for Minecraft 1.21.8: loader metadata only; the version's files come from fabric-1218 and fabric-1214 through `gradle/neoforge-port.gradle` |
 
 See the module READMEs for runnable diagnostics and detailed API limits. [docs/CONTRACTS.md](docs/CONTRACTS.md) fixes the shared boundaries for contributors.
 

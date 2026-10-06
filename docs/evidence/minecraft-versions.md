@@ -8,10 +8,13 @@
 | 1.21.1 | Fabric | `fabric-1211` | `worldgennext-fabric-1.21.1-<version>.jar` | `docs/evidence/fabric-port.md` |
 | 1.21.4 | Fabric | `fabric-1214` | `worldgennext-fabric-1.21.4-<version>.jar` | verified as below |
 | 1.21.8 | Fabric | `fabric-1218` | `worldgennext-fabric-1.21.8-<version>.jar` | verified as below |
+| 1.21.8 | NeoForge 21.8.54+ | `neoforge-1218` | `worldgennext-neoforge-1.21.8-<version>.jar` | verified as below |
 
-Not ported: NeoForge for anything after 1.21.1; Minecraft 1.21.5 to 1.21.7
-(not built or run; the 1.21.8 jar declares 1.21.8 only); 1.21.9 and later
-(see the end).
+Not ported: NeoForge for 1.21.4 (the module compiled against NeoForge
+21.4.158 and was set aside unrun: ScalableLux has no NeoForge build for
+1.21.4, and every test run here includes ScalableLux); Minecraft 1.21.5 to
+1.21.7 (not built or run; the 1.21.8 jars declare 1.21.8 only); 1.21.9 and
+later (see the end).
 
 ## How a version is built
 
@@ -28,6 +31,14 @@ Code that differs between versions but is otherwise shared calls
 `version/Version` (one class per version, same methods). `fabric-1214` holds a
 `Version`, four mixins and a mixin list; `fabric-1218` holds a `Version`, a
 list of tested generators and nothing else.
+
+What a Minecraft version needs differently is the same on both loaders, so the
+NeoForge build of a later version (`gradle/neoforge-port.gradle`) takes those
+files from that version's Fabric module and adds only its loader metadata:
+`neoforge-1218` is a build script and a `neoforge.mods.toml`. The NeoForge
+`Loader` and entry point of 1.21.1 compile and run unchanged on NeoForge
+21.8. The module uses ModDevGradle 2.0.148; with 2.0.91, which the 1.21.1
+module uses, the development server of 21.8 does not start.
 
 What changed in Minecraft and what the mod does about it:
 
@@ -60,15 +71,21 @@ the GPU.
 ## Verification
 
 Reference host (RTX 5070 Ti, 24 logical cores), Java 21, ScalableLux for the
-version in every run (0.1.2 on 1.21.4, 0.1.5.1 on 1.21.8), Fabric loader
-0.19.5, Fabric API 0.119.4+1.21.4 and 0.136.1+1.21.8. One run per figure.
+version and loader in every run (0.1.2 on 1.21.4, 0.1.5.1 on 1.21.8), Fabric
+loader 0.19.5, Fabric API 0.119.4+1.21.4 and 0.136.1+1.21.8, NeoForge 21.8.54.
+One run per figure.
 
-| Check | 1.21.4 | 1.21.8 |
-| --- | --- | --- |
-| SURFACE digests against serial vanilla, 8,281 chunks per context, the 12 vanilla contexts (`MODULE=fabric-<n> MODS_ROOT=build/test-mods/fabric-<n> PREFIX=f<n>- scripts/verify-fast-matrix.sh`), development environment | 12 of 12 identical | 12 of 12 identical |
-| Built jar on a real Fabric server, pregeneration to FULL, 40,401 chunks (`FABRIC_MC=<version> scripts/test-installed-fabric.sh 100`) | 3,096 chunks/s; 41,895 chunks' terrain on the GPU, 9 on the CPU; no errors; 49,729 chunks read back with no problems | 2,620 chunks/s; 41,895 on the GPU, 9 on the CPU; no errors; 49,729 read back with no problems |
-| The same server with `gpu.mode = "check"` (vanilla code generates, the GPU result is compared block by block) | Overworld 7,104, Nether 7,225, End 7,225 chunks compared, 0 differ | Overworld 7,104, Nether 7,225, End 7,225 compared, 0 differ |
-| Save and reopen, 8,281 chunks to FULL (`MODULE=fabric-<n> scripts/verify-save-reopen.sh 45 fabric-<n>/vanilla`) | PASS: blocks, heightmaps, marks and biomes equal after reopening, nothing generated again | PASS, the same |
+| Check | Fabric 1.21.4 | Fabric 1.21.8 | NeoForge 1.21.8 |
+| --- | --- | --- | --- |
+| SURFACE digests against serial vanilla, 8,281 chunks per context, the 12 vanilla contexts (`MODULE=<module> MODS_ROOT=build/test-mods/<module> PREFIX=<label>- scripts/verify-fast-matrix.sh`), development environment | 12 of 12 identical | 12 of 12 identical | 12 of 12 identical |
+| Built jar on a real server, pregeneration to FULL, 40,401 chunks (`FABRIC_MC=<version> scripts/test-installed-fabric.sh 100`, `NEOFORGE_MC=1.21.8 scripts/test-installed-neoforge.sh 100`) | 3,096 chunks/s; 41,895 chunks' terrain on the GPU, 9 on the CPU; no errors; 49,729 chunks read back with no problems | 2,620 chunks/s; 41,895 on the GPU, 9 on the CPU; no errors; 49,729 read back with no problems | 1,953 chunks/s; 41,895 on the GPU, 9 on the CPU; no errors; 49,729 read back with no problems |
+| The same server with `gpu.mode = "check"` (vanilla code generates, the GPU result is compared block by block) | Overworld 7,104, Nether 7,225, End 7,225 chunks compared, 0 differ | the same counts, 0 differ | the same counts, 0 differ |
+| Save and reopen, 8,281 chunks to FULL (`MODULE=<module> scripts/verify-save-reopen.sh 45 <module>/vanilla`) | PASS: blocks, heightmaps, marks and biomes equal after reopening, nothing generated again | PASS, the same | PASS, the same |
+| Singleplayer in the development client, 8,281 chunks pregenerated (`MODULE=<module> scripts/run-client-pregen.sh 45 <module>/vanilla`) | 1,811 chunks/s, terrain on the GPU, no errors | 2,083 chunks/s, terrain on the GPU; one error line from the game ("Negative index in crash report handler") at the moment the test stops the integrated server under the client, not looked into | not run |
+
+The list of tested generators that the NeoForge 1.21.8 build uses is the
+Fabric 1.21.8 module's file; the NeoForge row of the matrix above is what
+entitles it to that list (the fingerprints are the same on both loaders).
 
 Before the fix for the aquifer rule the 1.21.4 matrix failed on exactly that:
 blocks, heightmaps, biomes and structures were identical and the fluid-update
@@ -82,18 +99,26 @@ Fabric vanilla Overworld, End and Tectonic identical (3 of 3); the Fabric
 as the tested vanilla generator, which shows the 1.21.1 kernel text is
 unchanged.
 
+Fabric 1.21.1, which had not had it: save and reopen (`MODULE=fabric-1211
+scripts/verify-save-reopen.sh 45 fabric/vanilla`) PASS. NeoForge 1.21.1 after
+all of the above: `scripts/release-check.sh` PASS (build, exactness 3 of 3,
+carvers, save and reopen, kill-recovery, console commands on the installed
+server).
+
 ## Not verified on 1.21.4 and 1.21.8
 
 - No datapack or mod world generator (Terralith, Tectonic and the rest): only
   vanilla is on their tested lists. Others generate with vanilla code unless
   `gpu.mode` is set to `"check"` or `"force"`.
-- No client was run: singleplayer, Distant Horizons and Voxy are untested
-  there. The Distant Horizons bridge holds tickets of one position under
-  several keys; on 1.21.8 that goes through the mod's own counting, which only
-  the pregenerator and the benchmark have exercised.
+- Singleplayer was run only as above, in the development client: no released
+  client, no play session. Distant Horizons and Voxy are untested there. The
+  Distant Horizons bridge holds tickets of one position under several keys;
+  on 1.21.8 that goes through the mod's own counting, which only the
+  pregenerator and the benchmark have exercised.
 - Kill-recovery and the console command walk-through were not repeated.
-- Throughput is one run each and is not a comparison between versions (the
-  ScalableLux and Fabric API versions differ).
+- Throughput is one run each and is not a comparison between versions or
+  loaders (the ScalableLux and Fabric API versions differ, and the runs were
+  not repeated).
 
 ## 1.21.9 and later: not ported, and why
 

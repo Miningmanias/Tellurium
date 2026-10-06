@@ -1,21 +1,22 @@
 # WorldgenNext status — 2026-10-03
 
-## 2026-10-06 — Minecraft 1.21.4 and 1.21.8 on Fabric
+## 2026-10-06 — Minecraft 1.21.4 (Fabric) and 1.21.8 (Fabric, NeoForge)
 
 `fabric-1214` and `fabric-1218` build from the shared 1.21.1 source; each
 holds only the files that differ, and version differences in shared code go
-through `version/Version`. Minecraft 1.21.2 changed which aquifer blocks are
+through `version/Version`. `neoforge-1218` builds the NeoForge jar for 1.21.8
+from the same files plus its loader metadata. Minecraft 1.21.2 changed which aquifer blocks are
 marked for a fluid update, which the GPU kernels now take as an option without
 changing the 1.21.1 kernel text. The list of tested generators names its
-Minecraft version and is ignored on any other. Verified on each of the two
-versions: SURFACE matrix 12 of 12 vanilla contexts identical; the built jar on
-a real Fabric server with terrain on the GPU and no errors (40,401 chunks at
-3,096 and 2,620 chunks/s); check mode 0 differences over 7,104 Overworld,
-7,225 Nether and 7,225 End chunks; save and reopen. Not verified there: any
-datapack or mod generator, a client, Distant Horizons, Voxy, kill-recovery,
-the command walk-through. Not ported: NeoForge after 1.21.1, Minecraft 1.21.5
-to 1.21.7, and 1.21.9 or later, whose world generator computes the aquifers'
-surface level differently. Evidence: `docs/evidence/minecraft-versions.md`.
+Minecraft version and is ignored on any other. Verified on each of the three
+builds: SURFACE matrix 12 of 12 vanilla contexts identical; the built jar on
+a real server with terrain on the GPU and no errors (40,401 chunks at 3,096,
+2,620 and 1,953 chunks/s, one run each); check mode 0 differences over 7,104
+Overworld, 7,225 Nether and 7,225 End chunks; save and reopen. Not verified
+there: any datapack or mod generator, a released client or play session,
+Distant Horizons, Voxy, kill-recovery, the command walk-through. Not ported:
+NeoForge 1.21.4, Minecraft 1.21.5 to 1.21.7, and 1.21.9 or later, whose world
+generator computes the aquifers' surface level differently. Evidence: `docs/evidence/minecraft-versions.md`.
 
 ## 2026-10-06 — Fabric 1.21.1
 

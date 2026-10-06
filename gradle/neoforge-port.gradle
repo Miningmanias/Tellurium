@@ -1,0 +1,125 @@
+// A NeoForge build of the mod for one Minecraft version after 1.21.1, applied by that version's module (which
+// applies the net.neoforged.moddev plugin) after it has set
+//   ext.portMinecraft   the Minecraft version
+//   ext.portNeoForge    the NeoForge version to build against
+//   ext.portParents     modules holding that Minecraft version's files, nearest first
+// The mod's code is the 1.21.1 source in neoforge-1211.  What a Minecraft version needs differently is the same
+// on every loader and lives in that version's Fabric module (see gradle/fabric-port.gradle): replacing files
+// under src/main/java and src/main/resources, and removed.txt.  The NeoForge module itself holds the loader
+// metadata and whatever differs on NeoForge only.  Where several have a file, the module's own wins, then the
+// nearest parent's.
+def pureModules = ['semantic-core', 'compiler-jvm', 'compiler-vulkan', 'material-codec', 'spatial-data', 'chunk-engine', 'frontend-mc1211', 'runtime-vulkan']
+def shared = project(':neoforge-1211').projectDir
+def layers = [projectDir] + (project.findProperty('portParents') ?: []).collect { project(":$it").projectDir }
+def removed = layers.collectMany { layer ->
+    def list = new File(layer, 'removed.txt')
+    list.isFile() ? list.readLines('UTF-8').collect { it.trim() }.findAll { it && !it.startsWith('#') }.collect { 'dev/worldgennext/neoforge/' + it } : []
+}
+// The index of the layer a file belongs to, or -1 for the shared source.
+def layerOf = { File file -> layers.findIndexOf { file.toPath().startsWith(it.toPath()) } }
+// Whether a layer before the given one (all of them for -1) has this path under the given directory.
+def replacedBefore = { int layer, String directory, String path ->
+    (layer < 0 ? layers : layers.take(layer)).any { new File(new File(it, directory), path).isFile() }
+}
+// Files of a parent that belong to its own loader.
+def otherLoaders = ['fabric.mod.json']
+
+sourceSets.main {
+    java {
+        srcDir new File(shared, 'src/main/java')
+        layers.drop(1).each { srcDir new File(it, 'src/main/java') }
+        exclude { element ->
+            if (element.isDirectory()) return false
+            int layer = layerOf(element.file)
+            return (layer < 0 && element.path in removed) || replacedBefore(layer, 'src/main/java', element.path)
+        }
+    }
+    resources {
+        srcDir new File(shared, 'src/main/resources')
+        layers.drop(1).each { srcDir new File(it, 'src/main/resources') }
+        exclude { element ->
+            if (element.isDirectory()) return false
+            int layer = layerOf(element.file)
+            return (layer > 0 && element.path in otherLoaders) || replacedBefore(layer, 'src/main/resources', element.path)
+        }
+    }
+}
+
+neoForge {
+    version = portNeoForge
+    mods {
+        worldgennext {
+            sourceSet sourceSets.main
+            pureModules.each { sourceSet project(":$it").sourceSets.main }
+        }
+    }
+    runs {
+        configureEach {
+            loadedMods = [mods.worldgennext]
+            // As in neoforge-1211: the launch-time LWJGL artifacts for the GPU runtime in development runs.
+            additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl:3.3.3')
+            additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl-vulkan:3.3.3')
+            additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl-shaderc:3.3.3')
+            additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl:3.3.3:natives-windows')
+            additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl-shaderc:3.3.3:natives-windows')
+            jvmArgument '-Dorg.lwjgl.system.stackSize=16384'
+        }
+        server {
+            server()
+            gameDirectory = project.file(System.getProperty('worldgennext.candidate.runDir', layout.buildDirectory.dir('run/server').get().asFile.absolutePath))
+            programArgument '--nogui'
+        }
+        client {
+            client()
+            gameDirectory = project.file(System.getProperty('worldgennext.candidate.runDir', layout.buildDirectory.dir('run/client').get().asFile.absolutePath))
+            // Straight into an existing singleplayer world (a folder under <gameDirectory>/saves).
+            def quickPlay = System.getProperty('worldgennext.client.quickPlay', '').trim()
+            if (!quickPlay.isEmpty()) programArguments.addAll '--quickPlaySingleplayer', quickPlay
+        }
+    }
+}
+
+tasks.named('processResources') {
+    inputs.property 'version', project.version
+    inputs.property 'minecraft', portMinecraft
+    inputs.property 'neoforge', portNeoForge
+    filesMatching('META-INF/neoforge.mods.toml') { expand version: project.version, minecraft: portMinecraft, neoforge: portNeoForge }
+}
+
+tasks.named('jar', Jar) {
+    pureModules.each { from project(":$it").sourceSets.main.output }
+    duplicatesStrategy = DuplicatesStrategy.FAIL
+    manifest { attributes('Implementation-Title': 'WorldgenNext', 'Implementation-Version': project.version) }
+}
+tasks.named('sourcesJar', Jar) {
+    pureModules.each { from project(":$it").sourceSets.main.allSource }
+    duplicatesStrategy = DuplicatesStrategy.FAIL
+}
+
+// The dev server's run directory, as in neoforge-1211 (scripts/run-pregen.sh, bench-cps.ps1).
+tasks.register('prepareCandidateRun') {
+    doLast {
+        def directory = project.file(System.getProperty('worldgennext.candidate.runDir', layout.buildDirectory.dir('run/candidate').get().asFile.absolutePath))
+        if (Boolean.parseBoolean(System.getProperty('worldgennext.prototype.resume', 'false'))) return
+        directory.mkdirs()
+        new File(directory, 'eula.txt').text = 'eula=true\n'
+        def seed = System.getProperty('worldgennext.candidate.seed', '0')
+        new File(directory, 'server.properties').text = "level-seed=${seed}\nlevel-name=candidate-world\ngenerate-structures=${System.getProperty('worldgennext.run.generateStructures', 'true')}\nsync-chunk-writes=${System.getProperty('worldgennext.run.syncChunkWrites', 'true')}\nonline-mode=false\nserver-ip=127.0.0.1\nserver-port=${System.getProperty('worldgennext.prototype.port', '25565')}\nspawn-protection=0\nmax-tick-time=-1\nenable-command-block=true\n"
+    }
+}
+tasks.matching { it.name == 'runServer' || it.name == 'runClient' }.configureEach {
+    dependsOn tasks.named('prepareCandidateRun')
+    // Every -Dworldgennext.* given to Gradle reaches the game (output paths resolved here: the game's working
+    // directory is the run directory).
+    System.properties.each { key, value ->
+        if (key.toString().startsWith('worldgennext.') && !(key.toString() in ['worldgennext.candidate.runDir', 'worldgennext.run.maxHeap', 'worldgennext.run.jvmArgs'])) {
+            systemProperty key.toString(), key == 'worldgennext.bench.output' && !value.toString().trim().isEmpty() ? project.file(value.toString().trim()).absolutePath : value.toString()
+        }
+    }
+    def maxHeap = System.getProperty('worldgennext.run.maxHeap', '').trim()
+    if (!maxHeap.isEmpty()) jvmArgs "-Xmx${maxHeap}"
+    def extraJvmArgs = System.getProperty('worldgennext.run.jvmArgs', '').trim()
+    if (!extraJvmArgs.isEmpty()) jvmArgs extraJvmArgs.split(/\s+/)
+}
+
+apply from: rootProject.file('gradle/gpu-runtime.gradle')

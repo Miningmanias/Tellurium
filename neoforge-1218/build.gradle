@@ -1,0 +1,9 @@
+plugins { id 'net.neoforged.moddev' version '2.0.148' }
+
+base { archivesName = 'worldgennext-neoforge-1.21.8' }
+
+// Minecraft 1.21.8 on NeoForge: see gradle/neoforge-port.gradle for what this module holds.
+ext.portMinecraft = '1.21.8'
+ext.portNeoForge = '21.8.54'
+ext.portParents = ['fabric-1218', 'fabric-1214']
+apply from: rootProject.file('gradle/neoforge-port.gradle')
