@@ -35,7 +35,9 @@ public final class WorldgenNextMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        return true;
+        // -Dworldgennext.bench.noMixins=true (with enabled = false in the config): nothing of the mod touches the
+        // game, for recording another chunk mod or the unmodified game through the same player tour.
+        return !Boolean.getBoolean("worldgennext.bench.noMixins");
     }
 
     @Override

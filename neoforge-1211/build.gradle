@@ -106,6 +106,9 @@ tasks.register('prepareCandidateRun') {
 }
 
 tasks.matching { it.name == 'runServer' || it.name == 'runClient' }.configureEach {
+    // -Dworldgennext.run.java=<version>: run on that Java instead (a comparison with a mod that needs a newer one).
+    def runJava = System.getProperty('worldgennext.run.java', '').trim()
+    if (!runJava.isEmpty()) javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(runJava as int) }
     dependsOn tasks.named('prepareCandidateRun')
     if (Boolean.parseBoolean(System.getProperty('worldgennext.prototype.cpuLive', 'false'))) {
         standardInput = System.in

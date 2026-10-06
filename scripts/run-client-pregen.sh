@@ -60,6 +60,8 @@ else
   args+=("-Dworldgennext.pregen.autostart=$RADIUS" "-Dworldgennext.pregen.stopServerWhenDone=true")
 fi
 [ -n "${NEOFORGE:-}" ] && args+=("-Pworldgennext.neoforge=$NEOFORGE")
+# RUN_JAVA=<version>: run the client on that Java (for a comparison with a mod that needs a newer one).
+[ -n "${RUN_JAVA:-}" ] && args+=("-Dworldgennext.run.java=$RUN_JAVA")
 IFS=';' read -ra extra <<< "$EXTRA"
 for p in "${extra[@]}"; do [ -n "$p" ] && args+=("-D$p"); done
 ./gradlew.bat "${args[@]}" > "$run/gradle-client.out" 2>&1 &
