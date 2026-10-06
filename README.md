@@ -47,14 +47,13 @@ Chunky is installed (`pregen.tune_chunky = false` leaves it alone).
 Distant Horizons works too. It keeps its rough surface pass for far terrain,
 and the chunks it then generates to refine that come from this mod's chunk
 generation instead of its own. On the reference host a dedicated server built
-full-detail distant terrain about 2.9 times as fast as Distant Horizons alone
-with its default settings (1,260-1,320 chunks/s against 449, 66,049 chunks),
-and a singleplayer world had 1.9 times as many chunks refined after two
+full-detail distant terrain about 3.7 times as fast as Distant Horizons alone
+with its default settings (1,650-1,705 chunks/s against 449, 66,049 chunks),
+and a singleplayer world had 3.9 times as many chunks refined after two
 minutes. `distant_horizons.generator = "direct"` drops the rough pass and
-builds everything from finished chunks (3.7 and 3.8 times); `"off"` leaves
-Distant Horizons to itself. In `hybrid` and `direct` those chunks are real and
-are saved in the world, about 10 KB each, so the world's files grow as far as
-Distant Horizons refines. Details:
+builds everything from finished chunks; `"off"` leaves Distant Horizons to
+itself. Those chunks are real and are saved in the world, about 10 KB each,
+so the world's files grow as far as Distant Horizons refines. Details:
 [docs/evidence/comparison-distant-horizons.md](docs/evidence/comparison-distant-horizons.md).
 
 The pregenerator works in the dimension the command is run in. From the

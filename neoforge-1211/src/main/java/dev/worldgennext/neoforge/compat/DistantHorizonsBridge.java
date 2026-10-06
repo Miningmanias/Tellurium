@@ -37,7 +37,8 @@ import java.util.function.Consumer;
  * chunk generator of its own that runs outside the chunk system, one small tile (4x4 chunks) per worker
  * thread.  With this mod the chunk system is the faster source of chunks, so this class registers a world
  * generator override through Distant Horizons' API.  In "hybrid" mode the override wraps Distant Horizons'
- * own generator and only redirects its chunk requests; in "direct" mode it answers every request with
+ * own generator and only takes over its chunk requests, converting the chunks with Distant Horizons' converter
+ * on this mod's threads ({@link DistantHorizonsConverter}); in "direct" mode it answers every request with
  * finished chunks itself.  In both, the tiles around a request are started early so that enough chunks are
  * in flight, and {@link DistantHorizonsHandover} keeps Distant Horizons from building them twice.</p>
  *
@@ -63,7 +64,7 @@ public final class DistantHorizonsBridge {
      */
     private static final int AHEAD_WINDOW = Math.max(0, Integer.getInteger("worldgennext.dh.readAhead",
             (int) Math.min(4096, Runtime.getRuntime().maxMemory() / (4L << 20))));
-    /** How far from a requested tile chunks are started ahead, in chunks. */
+    /** How far from a requested tile tiles are started ahead, in chunks. */
     private static final int AHEAD_REACH = Math.max(0, Integer.getInteger("worldgennext.dh.readAheadReach", 32));
     /** A chunk started ahead and not asked for within this time is let go. */
     private static final long AHEAD_EXPIRY_NANOS = 30_000_000_000L;
@@ -76,6 +77,7 @@ public final class DistantHorizonsBridge {
     private static final AtomicLong AHEAD_USED = new AtomicLong();
     private static final AtomicLong REQUESTS = new AtomicLong();
     private static final AtomicLong REQUESTS_DONE = new AtomicLong();
+    private static final AtomicLong ANSWER_NANOS = new AtomicLong();
     /** -Dworldgennext.dh.log=true writes the counters to the log every ten seconds. */
     private static final boolean PERIODIC_LOG = Boolean.getBoolean("worldgennext.dh.log");
     private static final AtomicLong AHEAD_EXPIRED = new AtomicLong();
@@ -107,6 +109,7 @@ public final class DistantHorizonsBridge {
         AHEAD_USED.set(0);
         REQUESTS.set(0);
         REQUESTS_DONE.set(0);
+        ANSWER_NANOS.set(0);
         AHEAD_EXPIRED.set(0);
         DistantHorizonsHandover.SKIPPED.set(0);
         Thread thread = new Thread(() -> watch(server), "worldgennext-dh-bridge");
@@ -151,6 +154,7 @@ public final class DistantHorizonsBridge {
                 }
             }
             DistantHorizonsHandover.prepare();
+            if (HYBRID) DistantHorizonsConverter.prepare();
             long started = System.nanoTime();
             while (watcher == Thread.currentThread()) {
                 Object worldProxy = delayed.getField("worldProxy").get(null);
@@ -185,7 +189,8 @@ public final class DistantHorizonsBridge {
                     swept = System.nanoTime();
                     for (Generator generator : generators) generator.letGo(AHEAD_EXPIRY_NANOS);
                     if (PERIODIC_LOG && ++sweeps % 5 == 0) {
-                        LOG.info("{}; requests {} started, {} answered", status(), REQUESTS.get(), REQUESTS_DONE.get());
+                        LOG.info("{}; requests {} started, {} answered, {} ms each on average", status(), REQUESTS.get(),
+                                REQUESTS_DONE.get(), ANSWER_NANOS.get() / 1_000_000 / Math.max(1, REQUESTS_DONE.get()));
                     }
                 }
                 Thread.sleep(System.nanoTime() - started < 120_000_000_000L ? 10 : 2000);
@@ -199,20 +204,29 @@ public final class DistantHorizonsBridge {
 
     /** IDhApiWorldGenerator, implemented through a proxy so that Distant Horizons is not needed to build or load this mod. */
     private static final class Generator implements InvocationHandler {
+        /** Distant Horizons asks for chunk detail in tiles of this many chunks a side; its tiles are aligned to it. */
+        private static final int TILE = 4;
+
         private final MinecraftServer server;
         private final ServerLevel level;
+        private final Object levelWrapper;
         /** Null when Distant Horizons' own handling of these chunks cannot be switched off. */
         private final DistantHorizonsHandover handover;
-        /** Chunks started ahead of Distant Horizons and not yet asked for by it; guarded by this. */
-        private final Long2ObjectOpenHashMap<Ahead> ahead = new Long2ObjectOpenHashMap<>();
-        /** Chunks already handed over, so that they are not started ahead again; guarded by this. */
+        /** Tiles started ahead of Distant Horizons and not yet asked for by it, by their corner chunk; guarded by this. */
+        private final Long2ObjectOpenHashMap<Tile> ahead = new Long2ObjectOpenHashMap<>();
+        /** Tiles already handed over, so that they are not started ahead again; guarded by this. */
         private final LongOpenHashSet served = new LongOpenHashSet();
-
-        private record Ahead(CompletableFuture<ChunkAccess> chunk, long requestedNanos) {}
-
-        private final Object levelWrapper;
-        /** Distant Horizons' own generator for this level, made on first use (hybrid mode). */
+        /** Distant Horizons' own generator for this level and its level object, made on first use (hybrid mode). */
         private Object inner;
+        private Object dhLevel;
+        /**
+         * Chunks that may be started ahead right now: grows while Distant Horizons asks for what was started
+         * and shrinks when tiles were started for nothing (it already had them, or went elsewhere).  Guarded by this.
+         */
+        private int budget = AHEAD_WINDOW;
+
+        /** One 4x4-chunk tile: its chunks as the chunk system finishes them. */
+        private record Tile(ChunkPos[] positions, CompletableFuture<ChunkAccess>[] chunks, long requestedNanos) {}
 
         Generator(MinecraftServer server, ServerLevel level, Object levelWrapper, DistantHorizonsHandover handover) {
             this.server = server;
@@ -223,7 +237,7 @@ public final class DistantHorizonsBridge {
 
         private synchronized Object inner() throws ReflectiveOperationException {
             if (inner == null) {
-                Object dhLevel = levelWrapper.getClass().getMethod("getDhLevel").invoke(levelWrapper);
+                dhLevel = levelWrapper.getClass().getMethod("getDhLevel").invoke(levelWrapper);
                 if (dhLevel == null) throw new IllegalStateException("Distant Horizons has no level for " + level.dimension().location() + " yet");
                 Class<?> levelType = Class.forName("com.seibel.distanthorizons.core.level.IDhServerLevel");
                 inner = Class.forName("com.seibel.distanthorizons.core.generation.DhWorldGenerator").getConstructor(levelType).newInstance(dhLevel);
@@ -244,33 +258,52 @@ public final class DistantHorizonsBridge {
             }
         }
 
-        /**
-         * Hybrid mode.  Everything is Distant Horizons' own generator, except that a request it would answer
-         * by generating chunks itself is answered through the server instead (its INTERNAL_SERVER mode), with
-         * those chunks and their neighbours already started here so that they are ready when it asks.
-         */
-        private Object hybrid(Object proxy, Method method, Object[] arguments) throws Throwable {
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] arguments) throws Throwable {
             switch (method.getName()) {
-                case "getPriority":
-                    return InvocationHandler.invokeDefault(proxy, method, arguments);
                 case "equals":
                     return proxy == arguments[0];
                 case "hashCode":
                     return System.identityHashCode(proxy);
                 case "toString":
-                    return "WorldgenNext generator around Distant Horizons' own for " + level.dimension().location();
+                    return "WorldgenNext generator (" + MODE + ") for " + level.dimension().location();
+                case "getPriority":
+                    return InvocationHandler.invokeDefault(proxy, method, arguments);
                 default:
             }
+            return HYBRID ? hybrid(method, arguments) : direct(proxy, method, arguments);
+        }
+
+        /**
+         * Hybrid mode.  Everything is Distant Horizons' own generator, except a request for a full-detail tile
+         * that it would answer by generating chunks itself.  Those chunks come from the chunk system instead
+         * and are converted here with Distant Horizons' converter; where that converter cannot be reached the
+         * request is passed on in its INTERNAL_SERVER mode, which asks the server for the chunks itself.
+         */
+        private Object hybrid(Method method, Object[] arguments) throws Throwable {
             Object inner = inner();
             Runnable after = null;
             if (method.getName().equals("close")) {
                 letGo(0);
-            } else if (method.getName().equals("generateLod") && (byte) arguments[4] == 0
-                    && ((Enum<?>) arguments[6]).name().equals("FEATURES") && planGeneratesChunks()) {
-                @SuppressWarnings({"unchecked", "rawtypes"})
-                Object throughServer = Enum.valueOf((Class) ((Enum<?>) arguments[6]).getDeclaringClass(), "INTERNAL_SERVER");
-                arguments[6] = throughServer;
-                after = startTile((int) arguments[0], (int) arguments[1], 4);
+            } else if (method.getName().equals("generateLod") && (byte) arguments[4] == 0 && planGeneratesChunks()) {
+                String mode = ((Enum<?>) arguments[6]).name();
+                if (DistantHorizonsConverter.available() && (mode.equals("FEATURES") || mode.equals("INTERNAL_SERVER"))) {
+                    @SuppressWarnings("unchecked")
+                    Consumer<Object> consumer = (Consumer<Object>) arguments[8];
+                    return convertTile((int) arguments[0], (int) arguments[1], arguments[5], consumer);
+                }
+                if (mode.equals("FEATURES")) {
+                    @SuppressWarnings({"unchecked", "rawtypes"})
+                    Object throughServer = Enum.valueOf((Class) ((Enum<?>) arguments[6]).getDeclaringClass(), "INTERNAL_SERVER");
+                    arguments[6] = throughServer;
+                    Tile tile = take((int) arguments[0], (int) arguments[1]);
+                    REQUESTS.incrementAndGet();
+                    after = () -> {
+                        REQUESTS_DONE.incrementAndGet();
+                        CHUNKS.addAndGet(tile.positions.length);
+                        release(tile, false);
+                    };
+                }
             }
             Object result;
             try {
@@ -286,38 +319,10 @@ public final class DistantHorizonsBridge {
             return result;
         }
 
-        /** Starts a tile's chunks and its neighbours; the returned action lets the tile's chunks go again. */
-        private Runnable startTile(int minX, int minZ, int width) {
-            REQUESTS.incrementAndGet();
-            ChunkPos[] positions = new ChunkPos[width * width];
-            synchronized (this) {
-                if (served.size() > 8_000_000) served.clear();
-                for (int i = 0; i < positions.length; i++) {
-                    ChunkPos pos = new ChunkPos(minX + i % width, minZ + i / width);
-                    positions[i] = pos;
-                    if (handover != null) handover.handingOver(pos);
-                    served.add(pos.toLong());
-                    if (ahead.remove(pos.toLong()) != null) AHEAD_USED.incrementAndGet();
-                    else request(pos);
-                }
-                startAhead(minX, minZ, width, System.nanoTime());
-            }
-            letGo(AHEAD_EXPIRY_NANOS);
-            return () -> {
-                REQUESTS_DONE.incrementAndGet();
-                CHUNKS.addAndGet(positions.length);
-                server.execute(() -> {
-                    for (ChunkPos pos : positions) release(pos);
-                });
-            };
-        }
-
-        @Override
-        public Object invoke(Object proxy, Method method, Object[] arguments) throws Throwable {
-            if (HYBRID) return hybrid(proxy, method, arguments);
+        /** Direct mode: Distant Horizons' public API only, every request answered with finished chunks. */
+        private Object direct(Object proxy, Method method, Object[] arguments) throws Throwable {
             switch (method.getName()) {
                 case "getSmallestDataDetailLevel":
-                    return (byte) 0;
                 case "getLargestDataDetailLevel":
                     // Always 4x4-chunk tiles.  With larger ones Distant Horizons stopped asking after a few seconds
                     // in a singleplayer world (3.3.3).
@@ -331,12 +336,6 @@ public final class DistantHorizonsBridge {
                 case "close":
                     letGo(0);
                     return null;
-                case "equals":
-                    return proxy == arguments[0];
-                case "hashCode":
-                    return System.identityHashCode(proxy);
-                case "toString":
-                    return "WorldgenNext chunk-system generator for " + level.dimension().location();
                 default:
                     if (method.isDefault()) return InvocationHandler.invokeDefault(proxy, method, arguments);
                     throw new UnsupportedOperationException(method.toString());
@@ -344,39 +343,19 @@ public final class DistantHorizonsBridge {
         }
 
         /**
-         * Hands every chunk of the tile to Distant Horizons as the chunk system finishes it, and starts the
-         * tiles around this one as well: Distant Horizons works outwards and keeps only one small tile per
-         * worker thread in progress, fewer chunks than the chunk system can generate at once, so chunks it is
-         * about to ask for are started now and kept loaded until it does.
-         *
-         * <p>Its consumer appends to a plain list, so calls are serialised; it builds the level-of-detail data
-         * on whichever thread completes the returned future, so that completion is moved to the executor it
-         * supplied rather than left on the server thread.</p>
+         * Hands every chunk of the tile to Distant Horizons as the chunk system finishes it.  Its consumer
+         * appends to a plain list, so calls are serialised; it builds the level-of-detail data on whichever
+         * thread completes the returned future, so that completion is moved to the executor it supplied rather
+         * than left on the server thread.
          */
         private CompletableFuture<Void> generateChunks(int minX, int minZ, int width, ExecutorService executor, Consumer<Object[]> consumer) {
-            int count = width * width;
+            if (width != TILE) throw new UnsupportedOperationException("tile of " + width + " chunks");
             REQUESTS.incrementAndGet();
-            ChunkPos[] positions = new ChunkPos[count];
-            @SuppressWarnings("unchecked")
-            CompletableFuture<ChunkAccess>[] chunks = new CompletableFuture[count];
-            synchronized (this) {
-                if (served.size() > 8_000_000) served.clear();
-                for (int i = 0; i < count; i++) {
-                    ChunkPos pos = new ChunkPos(minX + i % width, minZ + i / width);
-                    positions[i] = pos;
-                    if (handover != null) handover.handingOver(pos);
-                    Ahead early = ahead.remove(pos.toLong());
-                    served.add(pos.toLong());
-                    if (early != null) AHEAD_USED.incrementAndGet();
-                    chunks[i] = early != null ? early.chunk : request(pos);
-                }
-                startAhead(minX, minZ, width, System.nanoTime());
-            }
-            letGo(AHEAD_EXPIRY_NANOS);
+            Tile tile = take(minX, minZ);
             Object lock = new Object();
-            CompletableFuture<?>[] pending = new CompletableFuture<?>[count];
-            for (int i = 0; i < count; i++) {
-                pending[i] = chunks[i].thenAccept(generated -> {
+            CompletableFuture<?>[] pending = new CompletableFuture<?>[tile.chunks.length];
+            for (int i = 0; i < pending.length; i++) {
+                pending[i] = tile.chunks[i].thenAccept(generated -> {
                     synchronized (lock) {
                         consumer.accept(new Object[]{generated, level});
                     }
@@ -386,12 +365,7 @@ public final class DistantHorizonsBridge {
             CompletableFuture<Void> done = new CompletableFuture<>();
             CompletableFuture.allOf(pending).whenComplete((nothing, failure) -> {
                 REQUESTS_DONE.incrementAndGet();
-                if (failure != null && handover != null) {
-                    for (ChunkPos pos : positions) handover.notHandedOver(pos);
-                }
-                server.execute(() -> {
-                    for (ChunkPos pos : positions) release(pos);
-                });
+                release(tile, failure != null);
                 try {
                     executor.execute(() -> complete(done, failure));
                 } catch (RuntimeException rejected) {
@@ -402,68 +376,134 @@ public final class DistantHorizonsBridge {
             return done;
         }
 
-        /** Starts the tiles around the given one, nearest ring first, until the window is full.  Holds this. */
-        private void startAhead(int minX, int minZ, int width, long now) {
-            int rings = AHEAD_REACH / width;
-            for (int ring = 1; ring <= rings; ring++) {
-                for (int[] offset : TileRings.offsets(ring)) {
-                    if (ahead.size() >= AHEAD_WINDOW) return;
-                    int tileX = minX + offset[0] * width;
-                    int tileZ = minZ + offset[1] * width;
-                    for (int i = 0; i < width * width; i++) {
-                        ChunkPos pos = new ChunkPos(tileX + i % width, tileZ + i / width);
-                        long key = pos.toLong();
-                        if (served.contains(key) || ahead.containsKey(key)) continue;
-                        // Its load event comes long before Distant Horizons asks for it, so that is switched off now.
-                        if (handover != null) handover.handingOver(pos);
-                        ahead.put(key, new Ahead(request(pos), now));
+        /**
+         * Answers a request for a full-detail tile that Distant Horizons would build from chunks: the chunks
+         * come from the chunk system and are converted with Distant Horizons' own converter on this mod's
+         * threads, into the data source it supplied.
+         */
+        private CompletableFuture<Void> convertTile(int minX, int minZ, Object tileDataSource, Consumer<Object> consumer) {
+            REQUESTS.incrementAndGet();
+            long asked = System.nanoTime();
+            Tile tile = take(minX, minZ);
+            CompletableFuture<Void> done = new CompletableFuture<>();
+            CompletableFuture.allOf(tile.chunks).whenCompleteAsync((nothing, failure) -> {
+                REQUESTS_DONE.incrementAndGet();
+                Throwable problem = failure;
+                if (problem == null) {
+                    try {
+                        ChunkAccess[] generated = new ChunkAccess[tile.chunks.length];
+                        for (int i = 0; i < generated.length; i++) generated[i] = tile.chunks[i].join();
+                        DistantHorizonsConverter.convert(level, dhLevel, levelWrapper, generated, tileDataSource);
+                        consumer.accept(tileDataSource);
+                        CHUNKS.addAndGet(generated.length);
+                    } catch (Throwable thrown) {
+                        problem = thrown;
                     }
                 }
-            }
-        }
-
-        private CompletableFuture<ChunkAccess> request(ChunkPos pos) {
-            ServerChunkCache cache = level.getChunkSource();
-            server.execute(() -> cache.addRegionTicket(TICKET, pos, 0, pos));
-            return cache.getChunkFuture(pos.x, pos.z, ChunkStatus.FULL, true).thenApply(result -> {
-                ChunkAccess chunk = result.orElse(null);
-                if (chunk == null) {
-                    throw new IllegalStateException("chunk " + pos + " was not generated: " + result.getError());
-                }
-                return chunk;
-            });
-        }
-
-        /** Server thread. */
-        private void release(ChunkPos pos) {
-            level.getChunkSource().removeRegionTicket(TICKET, pos, 0, pos);
+                release(tile, problem != null);
+                ANSWER_NANOS.addAndGet(System.nanoTime() - asked);
+                complete(done, problem);
+            }, DistantHorizonsConverter.pool());
+            return done;
         }
 
         /**
-         * Lets go of chunks that were started ahead longer ago than the given time and never asked for.  Called
-         * with every request and, because requests can simply stop, by the bridge's thread every few seconds.
-         * Distant Horizons is told to treat such a chunk normally again, so it builds it when it is saved.
+         * The tile Distant Horizons is asking for: the one started ahead if there is one, a new one otherwise.
+         * Also starts the tiles around it.  Distant Horizons works outwards and keeps only one tile per worker
+         * thread in progress, fewer chunks than the chunk system can generate at once, so tiles it is about to
+         * ask for are started now and kept until it does.
          */
-        void letGo(long olderThanNanos) {
-            LongArrayList stale = new LongArrayList();
+        private Tile take(int minX, int minZ) {
+            Tile tile;
             synchronized (this) {
-                long now = System.nanoTime();
-                var entries = ahead.long2ObjectEntrySet().iterator();
-                while (entries.hasNext()) {
-                    var entry = entries.next();
-                    if (now - entry.getValue().requestedNanos >= olderThanNanos) {
-                        stale.add(entry.getLongKey());
-                        entries.remove();
+                if (served.size() > 500_000) served.clear();
+                long key = ChunkPos.asLong(minX, minZ);
+                tile = ahead.remove(key);
+                served.add(key);
+                if (tile != null) {
+                    AHEAD_USED.addAndGet(tile.positions.length);
+                    budget = Math.min(AHEAD_WINDOW, budget + 2 * TILE * TILE);
+                } else {
+                    tile = start(minX, minZ);
+                }
+                int limit = budget / (TILE * TILE);
+                int rings = AHEAD_REACH / TILE;
+                ahead:
+                for (int ring = 1; ring <= rings; ring++) {
+                    for (int[] offset : TileRings.offsets(ring)) {
+                        if (ahead.size() >= limit) break ahead;
+                        int x = minX + offset[0] * TILE;
+                        int z = minZ + offset[1] * TILE;
+                        long neighbour = ChunkPos.asLong(x, z);
+                        if (served.contains(neighbour) || ahead.containsKey(neighbour)) continue;
+                        ahead.put(neighbour, start(x, z));
                     }
                 }
             }
-            if (stale.isEmpty()) return;
-            AHEAD_EXPIRED.addAndGet(stale.size());
-            server.execute(() -> stale.forEach(key -> {
-                ChunkPos pos = new ChunkPos(key);
-                if (handover != null) handover.notHandedOver(pos);
-                release(pos);
-            }));
+            letGo(AHEAD_EXPIRY_NANOS);
+            return tile;
+        }
+
+        /** Asks the chunk system for a tile's chunks. */
+        private Tile start(int minX, int minZ) {
+            ChunkPos[] positions = new ChunkPos[TILE * TILE];
+            @SuppressWarnings("unchecked")
+            CompletableFuture<ChunkAccess>[] chunks = new CompletableFuture[positions.length];
+            ServerChunkCache cache = level.getChunkSource();
+            for (int i = 0; i < positions.length; i++) {
+                ChunkPos pos = new ChunkPos(minX + i % TILE, minZ + i / TILE);
+                positions[i] = pos;
+                // The chunk's load event comes before Distant Horizons has its data from here, so that is switched off now.
+                if (handover != null) handover.handingOver(pos);
+                server.execute(() -> cache.addRegionTicket(TICKET, pos, 0, pos));
+                chunks[i] = cache.getChunkFuture(pos.x, pos.z, ChunkStatus.FULL, true).thenApply(result -> {
+                    ChunkAccess chunk = result.orElse(null);
+                    if (chunk == null) {
+                        throw new IllegalStateException("chunk " + pos + " was not generated: " + result.getError());
+                    }
+                    return chunk;
+                });
+            }
+            return new Tile(positions, chunks, System.nanoTime());
+        }
+
+        /** Lets a tile's chunks unload.  A tile that Distant Horizons did not get is treated by it as any other chunk again. */
+        private void release(Tile tile, boolean notHandedOver) {
+            if (notHandedOver && handover != null) {
+                for (ChunkPos pos : tile.positions) handover.notHandedOver(pos);
+            }
+            server.execute(() -> {
+                ServerChunkCache cache = level.getChunkSource();
+                for (ChunkPos pos : tile.positions) cache.removeRegionTicket(TICKET, pos, 0, pos);
+            });
+        }
+
+        /**
+         * Lets go of tiles that were started ahead longer ago than the given time and never asked for.  Called
+         * with every request and, because requests can simply stop, by the bridge's thread every few seconds.
+         */
+        void letGo(long olderThanNanos) {
+            List<Tile> stale = new ArrayList<>();
+            synchronized (this) {
+                long now = System.nanoTime();
+                var tiles = ahead.values().iterator();
+                while (tiles.hasNext()) {
+                    Tile tile = tiles.next();
+                    if (now - tile.requestedNanos >= olderThanNanos) {
+                        stale.add(tile);
+                        tiles.remove();
+                    }
+                }
+            }
+            if (!stale.isEmpty()) {
+                synchronized (this) {
+                    budget = Math.max(4 * TILE * TILE, budget - stale.size() * TILE * TILE);
+                }
+            }
+            for (Tile tile : stale) {
+                AHEAD_EXPIRED.addAndGet(tile.positions.length);
+                release(tile, true);
+            }
         }
 
         private static void complete(CompletableFuture<Void> done, Throwable failure) {

@@ -13,8 +13,11 @@ package the other sections are decompressed too, otherwise they are counted as "
 Usage: scripts/dh-database-steps.py <world>/data/DistantHorizons.sqlite
 """
 import collections
+import os
+import shutil
 import sqlite3
 import sys
+import tempfile
 
 try:
     from compression import zstd
@@ -35,7 +38,13 @@ UNIFORM_PREFIX = bytes.fromhex("28B52FFD60000F4D000010")
 NAMES = {0: "empty", 5: "surface", 6: "carvers", 7: "liquid carvers", 8: "features", 9: "light", 255: "down-sampled"}
 
 path = sys.argv[1].replace("\\", "/")
-db = sqlite3.connect("file:" + path + "?mode=ro", uri=True)
+# A database left by a process that was stopped has a write-ahead log that must be replayed, which a read-only
+# connection cannot do; so the three files are copied and the copy is opened normally.
+scratch = tempfile.mkdtemp(prefix="dh-steps-")
+for suffix in ("", "-wal", "-shm"):
+    if os.path.exists(path + suffix):
+        shutil.copy(path + suffix, os.path.join(scratch, "copy.sqlite" + suffix))
+db = sqlite3.connect(os.path.join(scratch, "copy.sqlite"))
 uniform = collections.Counter()
 columns = collections.Counter()
 sections = mixed = other = 0
@@ -59,3 +68,5 @@ for step, count in sorted(columns.items()):
     print(f"    {NAMES.get(step, 'step ' + str(step))}: {count} columns = {count / 256:.0f} chunks")
 if other:
     print(f"  not read (no data or another compression): {other} sections")
+db.close()
+shutil.rmtree(scratch, ignore_errors=True)

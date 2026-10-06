@@ -23,8 +23,11 @@ Distant Horizons fine-tuning (system properties only): `worldgennext.dh.readAhea
 heap up to 4,096, `0` for none), `worldgennext.dh.readAheadReach` (how far from
 a request, in chunks, default 32), `worldgennext.dh.skipSecondBuild` (default
 `true`; `false` lets Distant Horizons also rebuild each of those chunks from
-its load event) and `worldgennext.dh.log` (`true` writes the bridge's counters
-to the log every ten seconds). `worldgennext.dh.mode` is the property behind
+its load event), `worldgennext.dh.convert` (default `true`; `false` leaves the
+chunk-to-LOD conversion on Distant Horizons' own threads),
+`worldgennext.dh.convertThreads` (default half the processors) and
+`worldgennext.dh.log` (`true` writes the bridge's counters to the log every
+ten seconds). `worldgennext.dh.mode` is the property behind
 the option above.
 
 Each option stands for one or more of the system properties below. A property

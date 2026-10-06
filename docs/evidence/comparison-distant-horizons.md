@@ -17,10 +17,16 @@ so the mod redirects DH's chunk generation to it
 
 - **`"hybrid"` (default).** The mod registers a generator override that wraps
   DH's own generator. Everything goes to DH's generator unchanged, including
-  the rough surface and the plan, except that a request it would answer by
-  generating chunks itself is passed on in DH's `INTERNAL_SERVER` mode, in
-  which DH asks the server for finished chunks. The mod starts those chunks,
-  and the tiles around them, before DH asks.
+  the rough surface and the plan, except a request for a full-detail tile that
+  it would answer by generating chunks itself. For those the mod gets the
+  chunks from the chunk system and runs DH's own chunk-to-LOD conversion on
+  threads of its own (`compat/DistantHorizonsConverter.java`): the same
+  methods, in the order DH's `INTERNAL_SERVER` generator calls them, writing
+  into the data source DH supplied. DH does everything it does inside one
+  thread budget (12 by default) and that conversion was most of it.
+  If the conversion methods cannot be found, the request is passed on in DH's
+  `INTERNAL_SERVER` mode instead, in which DH asks the server for the chunks
+  and converts them itself (the "converter off" row below).
 - **`"direct"`.** The override answers every request with finished chunks
   itself. DH's rough surface generator is not used: nothing is shown for an
   area until its chunks are done.
@@ -39,10 +45,14 @@ In both modes:
   (`compat/DistantHorizonsHandover.java`).
 
 What is and is not DH's public API: `direct` uses only the API for the
-override itself. `hybrid` constructs DH's generator class, which is not part
-of the API; if that class is missing the mod logs it and registers nothing.
-The ignore set is not part of the API either; if it is missing the mod logs
-it and DH does the extra work.
+override itself. `hybrid` constructs DH's generator class and calls its
+conversion classes, none of which is part of the API; all are found by name.
+If the generator class is missing the mod logs it and registers nothing; if
+the conversion methods are missing it falls back as described. The ignore set
+is not part of the API either; if it is missing the mod logs it and DH does
+the extra work. Nothing in DH is changed or patched. The conversion threads
+are named with DH's thread prefix (`DH-WorldgenNext Convert Thread`), because
+DH warns when its conversion runs on a thread without it.
 
 ## Server: every chunk at full detail (`dh pregen`)
 
@@ -65,16 +75,22 @@ Chunks of LOD per second:
 
 | DH settings | DH alone | WorldgenNext `hybrid` | WorldgenNext `direct` |
 | --- | --- | --- | --- |
-| `SURFACE_THEN_CHUNKS` (DH's default), 12 threads | 449 | 1,262, 1,314, 1,317 | 1,598–1,686 (seven runs) |
+| `SURFACE_THEN_CHUNKS` (DH's default), 12 threads | 449 | 1,652, 1,667, 1,705 | 1,598–1,686 (eight runs) |
 | `CHUNKS_ONLY`, 12 threads | 441 | not run | 1,644 |
-| `CHUNKS_ONLY`, 24 threads | 731 | 1,625 | 1,822, 1,862 |
+| `CHUNKS_ONLY`, 24 threads | 731 | 1,754 | 1,822, 1,862 |
 | `SURFACE_ONLY` (rough surface only), 12 threads | 373 | 368 (DH's rough generator, no chunks) | 1,667 (finished chunks) |
 | `SURFACE_ONLY`, 24 threads | 716 | not run | not run |
 
-One run per cell unless more figures are given. At DH's defaults `hybrid`
-produced full-detail LODs about 2.9 times as fast as DH alone and `direct`
-about 3.7 times. `direct` ignores the plan; `hybrid` follows it, so under
-`SURFACE_ONLY` it generates no chunks at all (0 provided, checked).
+One run per cell unless more figures are given. At DH's defaults both modes
+produced full-detail LODs about 3.7 times as fast as DH alone. `direct`
+ignores the plan; `hybrid` follows it, so under `SURFACE_ONLY` it generates no
+chunks at all (0 provided, checked).
+
+During a `hybrid` run the machine's processors were 90–93% busy. About as
+many threads were running DH's conversion as were generating chunks, so on
+this machine the rate is now limited by processor time, and converting a
+chunk for DH costs about as much of it as generating the chunk. Doubling DH's
+threads no longer makes much difference (1,754).
 
 Other configurations of the same test (12 DH threads):
 
@@ -83,6 +99,7 @@ Other configurations of the same test (12 DH threads):
 | DH alone, its `INTERNAL_SERVER` mode (16,641 chunks) | 143 |
 | This mod loaded, `off`, DH's own generator (16,641 chunks) | 640, 654, 670 |
 | This mod loaded, `off`, DH set to `INTERNAL_SERVER` (16,641 chunks) | 878 |
+| `hybrid`, converter off (DH converts on its own threads) | 1,220, 1,262, 1,314, 1,317 |
 | `direct` without starting ahead and with the second build | 881, 903 |
 | `direct` without starting ahead, no second build | 1,203, 1,221, 1,240 |
 | `direct` with starting ahead and with the second build | 924 |
@@ -106,31 +123,36 @@ produced. One run each.
 | --- | --- | --- |
 | DH alone (this mod switched off in its config) | 331,776 chunks (all of it) | 19,280 |
 | This mod, `off` (DH's own generator on the faster engine) | all of it | 30,928 |
-| This mod, `hybrid` | all of it | 36,896 |
-| This mod, `direct` | none | 72,480 by this mod's count; DH's database could not be read after that run |
+| This mod, `hybrid`, converter off | all of it | 36,896 |
+| This mod, `hybrid` | 251,824 chunks | 75,488 |
+| This mod, `direct` | none | 72,480 by this mod's count; DH's database was not read after that run |
 
 In every run with rough data DH spent roughly the first 40 s on it before
-refining anything. In the game `hybrid` refined about 1.9 times as many chunks
-as DH alone in the two minutes and `direct` about 3.8 times as many, with
-nothing shown beyond what was finished. The rough fill itself is DH's code in
-every case and was not made faster.
+refining much. `hybrid` refined about 3.9 times as many chunks as DH alone in
+the two minutes. Its rough data covered about three quarters of the area by
+then instead of all of it: the rough pass is DH's own code and shares the
+processors with the chunk generation and conversion. `direct` refined about
+3.8 times as many, with nothing shown beyond what was finished.
 
 ## Checks
 
 - **Nothing left out, by DH's own account.** The `dh pregen` command was
   given a second time in the same session (`REPEAT=1`). DH skips tiles it
-  holds complete data for: the second pass took 0.9 s (`hybrid`) and 0.8 s
-  (`direct`) and asked for no chunks.
+  holds complete data for: the second pass took 0.8 s in both modes and asked
+  for no chunks.
 - **What DH stored.** After the `hybrid` run all 4,097 full-detail tiles in
   DH's database were marked as built from lit chunks.
 - **No chunk left marked.** After `save-all flush` the count of chunks still
   in DH's ignore set was 0 (`/worldgennext status` reports it). Chunks that
   are already loaded, near a player or force-loaded are never marked.
-- **Saved world.** 83,076 (`hybrid`) and 83,116 (`direct`) chunks in 100
+- **Saved world.** 82,980 (`hybrid`) and 83,116 (`direct`) chunks in 100
   region files read back with no problems (`scripts/check-region-files.py`).
   About 820 MB of region files at the default compression level, next to a
   268 MB DH database.
-- **Logs.** No errors from this mod or DH in the timed runs. One vanilla
+- **Logs.** No errors from this mod or DH in the timed runs. One server
+  process out of about seventy runs that day ended right after start-up with
+  nothing in its log and no crash file; it did not happen again and was not
+  explained. One vanilla
   message ("Failed to fetch mob spawner entity") appears in some runs with and
   without the mod. Stopping the server seconds after a pregen sometimes made
   DH log "database connection closed" from threads still writing.
@@ -145,10 +167,11 @@ every case and was not made faster.
   as DH refines, about 10 KB per chunk here, as they do with DH's own
   `INTERNAL_SERVER` mode. A world explored afterwards finds those chunks
   already generated.
-- **DH warns about C2ME once.** In `hybrid` DH runs its `INTERNAL_SERVER` code,
-  which logs and shows in chat "C2ME missing … slow world gen speeds expected".
-  The figures above are with that warning; DH's
-  `showSlowWorldGenSettingWarnings` setting hides it.
+- **The rough pass can take longer to cover everything** in `hybrid`, as in
+  the singleplayer run above.
+- **DH's C2ME warning.** Only when the converter is unavailable does `hybrid`
+  run DH's `INTERNAL_SERVER` code, which logs and shows in chat "C2ME missing
+  … slow world gen speeds expected".
 - **`direct` shows no rough terrain**, as described above.
 - **DH lights the chunks itself** in both modes, as it does for any chunk it is
   given. That is DH's code and was not changed.
@@ -161,8 +184,10 @@ every case and was not made faster.
   client with the player standing still. Flying, a dedicated server with
   remote players, frame rate and how the terrain looks were not measured.
 - LOD content was not compared between the routes. All of them convert chunks
-  with DH's own code. FULL generation is not reproducible run to run.
-- `hybrid` and the ignore set rely on DH internals as they are in 3.3.3. A
+  with DH's own code, `hybrid` by calling the same methods in the same order
+  on other threads. FULL generation is not reproducible run to run.
+- `hybrid`, its converter and the ignore set rely on DH internals as they are
+  in 3.3.3. A
   chunk changed by something other than a player or a force-loaded area
   between being started for DH and its first save would have that change
   reach DH only at its next save.
@@ -174,5 +199,9 @@ every case and was not made faster.
 - Running this mod's pregenerator first and letting DH pick the chunks up
   from its chunk events is not a shortcut: DH's event queue dropped most of
   them, and its later pass still asked for 55,712 of 66,049.
+- Read-ahead that follows DH's ring order around its centre, and converting
+  tiles before DH asks for them, were both tried once the processors were
+  saturated and were no faster (1,478–1,554 and 1,640–1,683); the simpler
+  neighbour read-ahead stayed.
 - Replacing DH's rough surface generator (for example with heights sampled on
   the GPU) was not attempted.

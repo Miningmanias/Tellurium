@@ -14,12 +14,18 @@ it does not build them a second time from its load event
 Distant Horizons classes outside its API, found by name; `hybrid` registers
 nothing if its class is missing.
 
+In `hybrid` the chunks are converted with Distant Horizons' own converter on
+this mod's threads (`compat/DistantHorizonsConverter.java`), outside its
+thread budget; without the converter its `INTERNAL_SERVER` mode is used.
+
 Measured (`docs/evidence/comparison-distant-horizons.md`): `dh pregen` over
 66,049 chunks on the installed dedicated server, 449 chunks/s for Distant
-Horizons alone, 1,262-1,317 `hybrid`, 1,598-1,686 `direct`; a repeat pass
-asked for no further chunks. Singleplayer dev client, standing still for two
-minutes, one run each: 19,280 chunks refined by Distant Horizons alone,
-36,896 `hybrid`, 72,480 `direct` (which shows no rough terrain). Not measured:
+Horizons alone, 1,652-1,705 `hybrid` (1,220-1,317 with the converter off),
+1,598-1,686 `direct`; a repeat pass asked for no further chunks; processors
+90-93% busy. Singleplayer dev client, standing still for two minutes, one run
+each: 19,280 chunks refined by Distant Horizons alone, 75,488 `hybrid` (rough
+data over three quarters of the area by then), 72,480 `direct` (which shows no
+rough terrain). Not measured:
 flying, remote players, frame rate, other world generators. The rough surface
 pass is Distant Horizons' own code and was not made faster.
 
