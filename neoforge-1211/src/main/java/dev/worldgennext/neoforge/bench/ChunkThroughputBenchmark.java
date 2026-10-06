@@ -9,7 +9,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkLevel;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.TicketType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import org.slf4j.Logger;
@@ -39,8 +38,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class ChunkThroughputBenchmark {
     private static final Logger LOG = LoggerFactory.getLogger("worldgennext-bench");
-    private static final TicketType<ChunkPos> BENCH_TICKET =
-            TicketType.create("worldgennext_bench", Comparator.comparingLong(ChunkPos::toLong));
+    private static final Version.Ticket BENCH_TICKET = Version.ticket("worldgennext_bench");
 
     public record Settings(ChunkStatus status, int radiusChunks, int warmupRadiusChunks,
                            int centerX, int centerZ, int inFlight, Path output, boolean stopAfter,
@@ -245,7 +243,7 @@ public final class ChunkThroughputBenchmark {
                 completionNanos.set(finished.getAndIncrement(), now - start);
                 if (!settings.releaseAtEnd()) {
                     if (batch) releases.add(pos);
-                    else server.execute(() -> cache.removeRegionTicket(BENCH_TICKET, pos, ticketDistance, pos));
+                    else server.execute(() -> BENCH_TICKET.remove(cache, pos, ticketDistance, pos));
                 }
                 permits.release();
                 done.complete(null);
@@ -273,10 +271,10 @@ public final class ChunkThroughputBenchmark {
             if (!requests.isEmpty() && drainQueued.compareAndSet(false, true)) mainThread.execute(self[0]);
             for (int index : batchRequests) {
                 ChunkPos pos = order.get(index);
-                cache.addRegionTicket(BENCH_TICKET, pos, ticketDistance, pos);
+                BENCH_TICKET.add(cache, pos, ticketDistance, pos);
             }
             for (int index : batchRequests) request.accept(index);
-            for (ChunkPos pos; (pos = releases.poll()) != null; ) cache.removeRegionTicket(BENCH_TICKET, pos, ticketDistance, pos);
+            for (ChunkPos pos; (pos = releases.poll()) != null; ) BENCH_TICKET.remove(cache, pos, ticketDistance, pos);
         };
         self[0] = drain;
         for (int i = 0; i < order.size(); i++) {
@@ -288,7 +286,7 @@ public final class ChunkThroughputBenchmark {
             } else {
                 ChunkPos pos = order.get(i);
                 int index = i;
-                server.execute(() -> cache.addRegionTicket(BENCH_TICKET, pos, ticketDistance, pos));
+                server.execute(() -> BENCH_TICKET.add(cache, pos, ticketDistance, pos));
                 request.accept(index);
             }
         }
@@ -321,7 +319,7 @@ public final class ChunkThroughputBenchmark {
         }
         if (settings.releaseAtEnd()) {
             server.execute(() -> {
-                for (ChunkPos pos : order) cache.removeRegionTicket(BENCH_TICKET, pos, ticketDistance, pos);
+                for (ChunkPos pos : order) BENCH_TICKET.remove(cache, pos, ticketDistance, pos);
             });
         }
         // Completions per half second: shows whether throughput is steady or ends in a serial tail.
@@ -375,7 +373,7 @@ public final class ChunkThroughputBenchmark {
             java.util.Map<String, Integer> byType = new java.util.TreeMap<>();
             for (Object set : tickets.values()) {
                 for (Object ticket : (Iterable<?>) set) {
-                    byType.merge(((net.minecraft.server.level.Ticket<?>) ticket).getType().toString(), 1, Integer::sum);
+                    byType.merge(Version.ticketTypeName(ticket), 1, Integer::sum);
                 }
             }
             return "holders=" + updating.size() + " ticketLevelLoaded=" + loadedLevels + " ticketLevelUnloaded=" + unloadedLevels

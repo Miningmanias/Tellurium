@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.mixin;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import com.google.common.collect.MapMaker;
 import dev.worldgennext.neoforge.fast.FastSurfaceState;
 import net.minecraft.core.RegistryAccess;
@@ -48,7 +50,7 @@ public abstract class SerializableChunkDataSurfaceMixin {
     @Inject(method = "parse", at = @At("RETURN"))
     private static void worldgenNext$parseSurfaceMark(LevelHeightAccessor heights, RegistryAccess registries, CompoundTag tag,
                                                       CallbackInfoReturnable<SerializableChunkData> callback) {
-        if (callback.getReturnValue() != null && tag.getBoolean(FastSurfaceState.TAG)) {
+        if (callback.getReturnValue() != null && Version.flag(tag, FastSurfaceState.TAG)) {
             worldgenNext$MARKED.put(callback.getReturnValue(), Boolean.TRUE);
         }
     }

@@ -60,7 +60,7 @@ public final class PlayerTour {
             for (int step = 1; step <= steps; step++) {
                 double x = startX + (double) step * stride;
                 CompletableFuture.runAsync(() -> {
-                    ServerLevel level = traveller.serverLevel();
+                    ServerLevel level = Version.level(traveller);
                     Version.teleport(traveller, level, x, 200.0, z, traveller.getYRot(), traveller.getXRot());
                 }, server).join();
                 Thread.sleep(pause);
@@ -68,7 +68,7 @@ public final class PlayerTour {
             }
             // Let the last chunks arrive and the ones left behind unload and save.
             Thread.sleep(5000);
-            int loaded = CompletableFuture.supplyAsync(() -> traveller.serverLevel().getChunkSource().getLoadedChunksCount(), server).join();
+            int loaded = CompletableFuture.supplyAsync(() -> Version.level(traveller).getChunkSource().getLoadedChunksCount(), server).join();
             LOG.info(String.format(Locale.ROOT, "WorldgenNext player tour PASS: %d steps, %,d blocks in %.1f s; average tick %.1f ms,"
                             + " longest recent tick %.0f ms; %,d chunks loaded at the end",
                     steps, (long) steps * stride, (System.nanoTime() - begin) / 1e9, server.getAverageTickTimeNanos() / 1e6,

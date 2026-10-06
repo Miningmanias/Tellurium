@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.compat;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import dev.worldgennext.neoforge.loader.Loader;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -11,7 +13,6 @@ import net.minecraft.server.level.ChunkLevel;
 import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.TicketType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
@@ -72,8 +73,7 @@ public final class DistantHorizonsBridge {
     /** A chunk started ahead and not asked for within this time is let go. */
     private static final long AHEAD_EXPIRY_NANOS = 30_000_000_000L;
     private static final Logger LOG = LoggerFactory.getLogger("worldgennext");
-    private static final TicketType<ChunkPos> TICKET =
-            TicketType.create("worldgennext_dh", Comparator.comparingLong(ChunkPos::toLong));
+    private static final Version.Ticket TICKET = Version.ticket("worldgennext_dh");
 
     private static volatile Thread watcher;
     private static final AtomicLong CHUNKS = new AtomicLong();
@@ -489,7 +489,7 @@ public final class DistantHorizonsBridge {
                 // An unfinished chunk has no such event.
                 if (inside && handover != null && !LOD_ONLY) handover.handingOver(pos);
                 // The ticket is this tile's own, so that a neighbouring tile letting go does not release it.
-                server.execute(() -> cache.addRegionTicket(TICKET, pos, TICKET_RADIUS, corner));
+                server.execute(() -> TICKET.add(cache, pos, TICKET_RADIUS, corner));
                 CompletableFuture<ChunkAccess> chunk = cache.getChunkFuture(pos.x, pos.z, STATUS, true).thenApply(result -> {
                     ChunkAccess generated = result.orElse(null);
                     if (generated == null) {
@@ -513,7 +513,7 @@ public final class DistantHorizonsBridge {
             }
             server.execute(() -> {
                 ServerChunkCache cache = level.getChunkSource();
-                for (ChunkPos pos : tile.held) cache.removeRegionTicket(TICKET, pos, TICKET_RADIUS, tile.positions[0]);
+                for (ChunkPos pos : tile.held) TICKET.remove(cache, pos, TICKET_RADIUS, tile.positions[0]);
             });
         }
 

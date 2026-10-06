@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.compat;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import dev.worldgennext.neoforge.loader.Loader;
 
 import net.minecraft.server.MinecraftServer;
@@ -196,7 +198,7 @@ final class DistantHorizonsHandover {
                 for (int x = centreX - reach; x <= centreX + reach; x++) release(x, z);
             }
         }
-        level.getForcedChunks().forEach(forced -> release(ChunkPos.getX(forced), ChunkPos.getZ(forced)));
+        Version.forcedChunks(level).forEach(forced -> release(ChunkPos.getX(forced), ChunkPos.getZ(forced)));
         long now = System.nanoTime();
         Iterator<Map.Entry<Long, Long>> entries = ignored.entrySet().iterator();
         while (entries.hasNext()) {

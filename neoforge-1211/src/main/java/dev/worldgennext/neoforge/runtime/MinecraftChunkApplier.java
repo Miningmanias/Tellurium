@@ -325,7 +325,7 @@ public final class MinecraftChunkApplier {
                 BlockState previous = target.getBlockState(position);
                 if (previous.equals(next)) continue;
                 originalBlocks.add(new OriginalBlock(x, worldY, z, previous));
-                target.setBlockState(position, next, false);
+                Version.setBlock(target, position, next);
                 changed++;
             }
         }
@@ -374,9 +374,8 @@ public final class MinecraftChunkApplier {
             OriginalBlock original = originalBlocks.get(index);
             int baseX = target.getPos().getMinBlockX();
             int baseZ = target.getPos().getMinBlockZ();
-            target.setBlockState(new BlockPos(Math.addExact(baseX, original.x()), original.y(),
-                            Math.addExact(baseZ, original.z())),
-                    original.state(), false);
+            Version.setBlock(target, new BlockPos(Math.addExact(baseX, original.x()), original.y(),
+                            Math.addExact(baseZ, original.z())), original.state());
         }
     }
 

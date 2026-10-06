@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.pregen;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import dev.worldgennext.neoforge.config.UserSettings;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -8,7 +10,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.TicketType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.storage.LevelResource;
@@ -44,8 +45,7 @@ import net.minecraft.world.level.Level;
  */
 public final class Pregenerator {
     private static final Logger LOG = LoggerFactory.getLogger("worldgennext");
-    private static final TicketType<ChunkPos> TICKET =
-            TicketType.create("worldgennext_pregen", Comparator.comparingLong(ChunkPos::toLong));
+    private static final Version.Ticket TICKET = Version.ticket("worldgennext_pregen");
     private static final String STATE_FILE = "worldgennext-pregen.properties";
     /** Largest radius accepted, in chunks (a 160,000-block-wide square). */
     public static final int MAX_RADIUS = 5000;
@@ -238,11 +238,11 @@ public final class Pregenerator {
                         long packed = order.at(index++);
                         submitted = index;
                         ChunkPos pos = new ChunkPos((int) packed, (int) (packed >> 32));
-                        server.execute(() -> cache.addRegionTicket(TICKET, pos, 0, pos));
+                        server.execute(() -> TICKET.add(cache, pos, 0, pos));
                         cache.getChunkFuture(pos.x, pos.z, ChunkStatus.FULL, true).whenComplete((result, error) -> {
                             if (error == null && result != null && result.isSuccess()) completed.incrementAndGet();
                             else failed.incrementAndGet();
-                            server.execute(() -> cache.removeRegionTicket(TICKET, pos, 0, pos));
+                            server.execute(() -> TICKET.remove(cache, pos, 0, pos));
                             permits.release();
                         });
                     } else if (!submit) {

@@ -1,20 +1,30 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.version;
 
+import it.unimi.dsi.fastutil.longs.LongSet;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.GenerationChunkHolder;
+import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.TicketType;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelHeightAccessor;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.storage.SerializableChunkData;
 
+import java.util.Comparator;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -81,5 +91,71 @@ public final class Version {
 
     public static void teleport(ServerPlayer player, ServerLevel level, double x, double y, double z, float yRot, float xRot) {
         player.teleportTo(level, x, y, z, java.util.Set.of(), yRot, xRot, false);
+    }
+
+    /**
+     * A kind of chunk ticket of the mod's own.  Each ticket has a position, a radius (0 keeps one chunk at FULL;
+     * each step up adds a ring, each step down lowers the status asked for) and a key: tickets of one position
+     * and radius under different keys are held separately.
+     */
+    public static final class Ticket {
+        private final TicketType<ChunkPos> type;
+
+        private Ticket(String name) {
+            type = TicketType.create(name, Comparator.comparingLong(ChunkPos::toLong));
+        }
+
+        public void add(ServerChunkCache cache, ChunkPos position, int radius, ChunkPos key) {
+            cache.addRegionTicket(type, position, radius, key);
+        }
+
+        public void remove(ServerChunkCache cache, ChunkPos position, int radius, ChunkPos key) {
+            cache.removeRegionTicket(type, position, radius, key);
+        }
+    }
+
+    public static Ticket ticket(String name) {
+        return new Ticket(name);
+    }
+
+    /** The name of the kind of a ticket taken from the game's own ticket lists (a diagnostic). */
+    public static String ticketTypeName(Object ticket) {
+        return ((net.minecraft.server.level.Ticket<?>) ticket).getType().toString();
+    }
+
+    public static ServerLevel level(ServerPlayer player) {
+        return player.serverLevel();
+    }
+
+    /** The chunks kept loaded by /forceload, as packed positions. */
+    public static LongSet forcedChunks(ServerLevel level) {
+        return level.getForcedChunks();
+    }
+
+    public static Set<String> keys(CompoundTag tag) {
+        return tag.getAllKeys();
+    }
+
+    /** The list of compounds under the name; empty when there is none. */
+    public static ListTag compounds(CompoundTag tag, String name) {
+        return tag.getList(name, Tag.TAG_COMPOUND);
+    }
+
+    public static CompoundTag compoundAt(ListTag list, int index) {
+        return list.getCompound(index);
+    }
+
+    public static short shortAt(ListTag list, int index) {
+        return list.getShort(index);
+    }
+
+    /** The flag under the name; false when there is none. */
+    public static boolean flag(CompoundTag tag, String name) {
+        return tag.getBoolean(name);
+    }
+
+    /** Sets a block in a chunk the way world generation does: not as a piston move. */
+    public static void setBlock(ChunkAccess chunk, BlockPos position, BlockState state) {
+        chunk.setBlockState(position, state, false);
     }
 }

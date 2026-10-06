@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.compat;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import dev.worldgennext.neoforge.loader.Loader;
 
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -8,7 +10,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.level.TicketType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -55,8 +56,7 @@ public final class VoxyBridge {
     private static final AtomicLong HELD_BACK = new AtomicLong();
     private static final boolean PERIODIC_LOG = Boolean.getBoolean("worldgennext.voxy.log");
     private static final Logger LOG = LoggerFactory.getLogger("worldgennext");
-    private static final TicketType<ChunkPos> TICKET =
-            TicketType.create("worldgennext_voxy", Comparator.comparingLong(ChunkPos::toLong));
+    private static final Version.Ticket TICKET = Version.ticket("worldgennext_voxy");
 
     private static volatile boolean looked, available, listening;
     private static final java.util.concurrent.ExecutorService HAND_OVER = java.util.concurrent.Executors.newFixedThreadPool(
@@ -272,7 +272,7 @@ public final class VoxyBridge {
             if (done.contains(key) || !inFlight.add(key)) return 0;
             ChunkPos pos = new ChunkPos(x, z);
             ServerChunkCache cache = level.getChunkSource();
-            cache.addRegionTicket(TICKET, pos, 0, pos);
+            TICKET.add(cache, pos, 0, pos);
             // Asked from the server thread the chunk system waits for the chunk; from another thread it does not.
             // The hand-over copies the chunk's light, which is too much work for the server thread at this rate:
             // it runs on a worker while the ticket keeps the chunk loaded, and only the bookkeeping comes back.
@@ -290,7 +290,7 @@ public final class VoxyBridge {
                         restAfterRefusalUntilTick = server.getTickCount() + 600;
                     }
                     inFlight.remove(key);
-                    cache.removeRegionTicket(TICKET, pos, 0, pos);
+                    TICKET.remove(cache, pos, 0, pos);
                 });
             }, HAND_OVER));
             return 1;

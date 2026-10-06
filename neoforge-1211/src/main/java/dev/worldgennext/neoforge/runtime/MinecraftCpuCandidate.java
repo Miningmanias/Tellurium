@@ -445,7 +445,7 @@ public final class MinecraftCpuCandidate {
         if (tag == null) return "<missing>";
         if (tag instanceof CompoundTag compound) {
             StringBuilder out = new StringBuilder("{");
-            compound.getAllKeys().stream().sorted().forEachOrdered(key -> {
+            Version.keys(compound).stream().sorted().forEachOrdered(key -> {
                 if (out.length() > 1) out.append(',');
                 out.append(quote(key)).append(':').append(canonical(compound.get(key)));
             });

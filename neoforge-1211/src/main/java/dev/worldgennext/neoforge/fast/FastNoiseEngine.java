@@ -92,6 +92,9 @@ public final class FastNoiseEngine {
             if (in != null) {
                 var properties = new Properties();
                 properties.load(in);
+                // A list holds for the Minecraft version it was produced on and no other: the original
+                // generator's code differs between versions in ways the kernel fingerprints do not show.
+                if (!Version.minecraft().equals(properties.remove("minecraft"))) return Map.of();
                 for (String key : properties.stringPropertyNames()) out.put(key, properties.getProperty(key));
             }
         } catch (IOException ignored) {

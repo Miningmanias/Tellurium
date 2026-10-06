@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.threading;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import dev.worldgennext.neoforge.loader.Names;
 
 import com.mojang.serialization.Codec;
@@ -185,7 +187,7 @@ public final class AsyncSectionEncoding {
         int top = collector.topPlaceholders.size();
         if (top > 0) {
             int found = 0;
-            for (String key : new ArrayList<>(chunkTag.getAllKeys())) {
+            for (String key : new ArrayList<>(Version.keys(chunkTag))) {
                 Tag current = chunkTag.get(key);
                 for (int i = 0; i < top; i++) {
                     if (collector.topPlaceholders.get(i) == current) {
@@ -199,12 +201,12 @@ public final class AsyncSectionEncoding {
                 throw new IllegalStateException("Deferred chunk values were not all located in the chunk tag: " + found + " of " + top);
             }
         }
-        ListTag sections = chunkTag.getList("sections", Tag.TAG_COMPOUND);
+        ListTag sections = Version.compounds(chunkTag, "sections");
         int total = collector.placeholders.size();
         boolean[] done = new boolean[total];
         int next = 0, resolved = 0;
         for (int i = 0; i < sections.size(); i++) {
-            CompoundTag section = sections.getCompound(i);
+            CompoundTag section = Version.compoundAt(sections, i);
             for (String key : new String[]{"block_states", "biomes"}) {
                 Tag current = section.get(key);
                 if (current == null) continue;
