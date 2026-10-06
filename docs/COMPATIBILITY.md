@@ -13,6 +13,11 @@ run with the Fabric builds of Terralith, Tectonic and Lithostitched (15 of 15
 contexts identical) and nothing else from the table was repeated; see
 `docs/evidence/fabric-port.md`.
 
+Fabric for Minecraft 1.21.4 and 1.21.8: nothing from the table was run. Only
+vanilla generation is on those versions' tested lists, so every world
+generator mod below generates with vanilla code there unless `gpu.mode` is
+set to `"check"` or `"force"`; see `docs/evidence/minecraft-versions.md`.
+
 ## How to read the table
 
 Each group ran on a fresh dev server with `gpu.mode = "check"` and the built-in

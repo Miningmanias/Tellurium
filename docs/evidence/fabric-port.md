@@ -69,6 +69,8 @@ Overworld, Nether, End, Terralith and Terralith with Tectonic, 5 of 5
 identical; Fabric vanilla Overworld, frozen ocean and Tectonic, 3 of 3; Fabric
 vanilla Overworld at CARVERS, identical.
 
+Minecraft 1.21.4 and 1.21.8 on Fabric: `docs/evidence/minecraft-versions.md`.
+
 ## Not done on Fabric
 
 - Save/reopen, kill-recovery and the console command walk-through were not

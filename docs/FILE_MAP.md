@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **641**, plus this generated index.
+Indexed project files: **661**, plus this generated index.
 
 ## semantic-core
 
@@ -131,6 +131,7 @@ Vulkan GLSL source generation.
 | [compiler-vulkan/src/main/resources/shaders/worldgen/material.comp](../compiler-vulkan/src/main/resources/shaders/worldgen/material.comp) | Packaged metadata/resource |
 | [compiler-vulkan/src/main/resources/shaders/worldgen/metadata.comp](../compiler-vulkan/src/main/resources/shaders/worldgen/metadata.comp) | Packaged metadata/resource |
 | [compiler-vulkan/src/main/resources/shaders/worldgen/noise.comp](../compiler-vulkan/src/main/resources/shaders/worldgen/noise.comp) | Packaged metadata/resource |
+| [compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/fused/FusedKernelsFluidUpdatesTest.java](../compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/fused/FusedKernelsFluidUpdatesTest.java) | Executable CPU test |
 | [compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/GlslCompilerTest.java](../compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/GlslCompilerTest.java) | Executable CPU test |
 | [compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/IntegerIeeeLimbOrderTest.java](../compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/IntegerIeeeLimbOrderTest.java) | Executable CPU test |
 | [compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/NativeDraftMathTest.java](../compiler-vulkan/src/test/java/dev/worldgennext/compiler/vulkan/NativeDraftMathTest.java) | Executable CPU test |
@@ -539,6 +540,7 @@ Minecraft snapshot/runtime composition and bootstrap tests.
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/PendingChunkSaves.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/PendingChunkSaves.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/PrecompressedChunks.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/PrecompressedChunks.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/ShapeFullBlockCache.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/threading/ShapeFullBlockCache.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/version/Version.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/version/Version.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/WorldgenNextMod.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/WorldgenNextMod.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/resources/META-INF/neoforge.mods.toml](../neoforge-1211/src/main/resources/META-INF/neoforge.mods.toml) | Packaged metadata/resource |
 | [neoforge-1211/src/main/resources/worldgennext/fused-qualified.properties](../neoforge-1211/src/main/resources/worldgennext/fused-qualified.properties) | Packaged metadata/resource |
@@ -607,6 +609,7 @@ Deferred loader frame.
 | [docs/evidence/comparison-distant-horizons.md](../docs/evidence/comparison-distant-horizons.md) | Documentation |
 | [docs/evidence/comparison-voxy.md](../docs/evidence/comparison-voxy.md) | Documentation |
 | [docs/evidence/fabric-port.md](../docs/evidence/fabric-port.md) | Documentation |
+| [docs/evidence/minecraft-versions.md](../docs/evidence/minecraft-versions.md) | Documentation |
 | [docs/evidence/throughput-fused-gpu.md](../docs/evidence/throughput-fused-gpu.md) | Documentation |
 | [docs/evidence/v0.1-cpu-replay.json](../docs/evidence/v0.1-cpu-replay.json) | Tooling, data or provenance |
 | [docs/evidence/v0.1-cpu-tests.json](../docs/evidence/v0.1-cpu-tests.json) | Tooling, data or provenance |
@@ -651,6 +654,22 @@ Deferred loader frame.
 | [docs/v0.2/TESTS.md](../docs/v0.2/TESTS.md) | Documentation |
 | [docs/v0.2/WORK_PACKAGES.json](../docs/v0.2/WORK_PACKAGES.json) | Tooling, data or provenance |
 | [docs/V0.2-PLAN.md](../docs/V0.2-PLAN.md) | Documentation |
+| [fabric-1214/build.gradle](../fabric-1214/build.gradle) | Build configuration/tooling |
+| [fabric-1214/README.md](../fabric-1214/README.md) | Documentation |
+| [fabric-1214/removed.txt](../fabric-1214/removed.txt) | Tooling, data or provenance |
+| [fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/ChunkMapUnloadTypeMixin.java](../fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/ChunkMapUnloadTypeMixin.java) | Implementation or explicit public contract |
+| [fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerGroupCommitMixin.java](../fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerGroupCommitMixin.java) | Implementation or explicit public contract |
+| [fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerHeaderFlushMixin.java](../fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/IOWorkerHeaderFlushMixin.java) | Implementation or explicit public contract |
+| [fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/SerializableChunkDataSurfaceMixin.java](../fabric-1214/src/main/java/dev/worldgennext/neoforge/mixin/SerializableChunkDataSurfaceMixin.java) | Implementation or explicit public contract |
+| [fabric-1214/src/main/java/dev/worldgennext/neoforge/version/Version.java](../fabric-1214/src/main/java/dev/worldgennext/neoforge/version/Version.java) | Implementation or explicit public contract |
+| [fabric-1214/src/main/resources/fabric.mod.json](../fabric-1214/src/main/resources/fabric.mod.json) | Packaged metadata/resource |
+| [fabric-1214/src/main/resources/worldgennext/fused-qualified.properties](../fabric-1214/src/main/resources/worldgennext/fused-qualified.properties) | Packaged metadata/resource |
+| [fabric-1214/src/main/resources/worldgennext.mixins.json](../fabric-1214/src/main/resources/worldgennext.mixins.json) | Packaged metadata/resource |
+| [fabric-1218/build.gradle](../fabric-1218/build.gradle) | Build configuration/tooling |
+| [fabric-1218/README.md](../fabric-1218/README.md) | Documentation |
+| [fabric-1218/src/main/java/dev/worldgennext/neoforge/version/Version.java](../fabric-1218/src/main/java/dev/worldgennext/neoforge/version/Version.java) | Implementation or explicit public contract |
+| [fabric-1218/src/main/resources/worldgennext/fused-qualified.properties](../fabric-1218/src/main/resources/worldgennext/fused-qualified.properties) | Packaged metadata/resource |
+| [gradle/fabric-port.gradle](../gradle/fabric-port.gradle) | Build configuration/tooling |
 | [gradle/gpu-runtime.gradle](../gradle/gpu-runtime.gradle) | Build configuration/tooling |
 | [gradle/wrapper/gradle-wrapper.jar](../gradle/wrapper/gradle-wrapper.jar) | Tooling, data or provenance |
 | [gradle/wrapper/gradle-wrapper.properties](../gradle/wrapper/gradle-wrapper.properties) | Build configuration/tooling |
@@ -682,6 +701,7 @@ Deferred loader frame.
 | [scripts/compare-flight.sh](../scripts/compare-flight.sh) | Tooling, data or provenance |
 | [scripts/CompiledReplayInputs.ps1](../scripts/CompiledReplayInputs.ps1) | Tooling, data or provenance |
 | [scripts/dh-database-steps.py](../scripts/dh-database-steps.py) | Tooling, data or provenance |
+| [scripts/fetch-fabric-test-files.py](../scripts/fetch-fabric-test-files.py) | Tooling, data or provenance |
 | [scripts/Invoke-ReplayProcess.ps1](../scripts/Invoke-ReplayProcess.ps1) | Tooling, data or provenance |
 | [scripts/jfr-stage-profile.py](../scripts/jfr-stage-profile.py) | Tooling, data or provenance |
 | [scripts/LogicalEndpointMatrix.ps1](../scripts/LogicalEndpointMatrix.ps1) | Tooling, data or provenance |

@@ -1,7 +1,8 @@
 # WorldgenNext
 
-Faster chunk generation for Minecraft 1.21.1 (NeoForge) that produces the same
-world. No CUDA: the GPU part runs on Vulkan.
+Faster chunk generation for Minecraft that produces the same world: NeoForge
+and Fabric on 1.21.1, Fabric on 1.21.4 and 1.21.8. No CUDA: the GPU part runs
+on Vulkan.
 
 - **Terrain and surface on the GPU** for world generators on the tested list:
   vanilla Overworld, Nether and End, Terralith, Tectonic, Terralith with
@@ -22,6 +23,13 @@ world. No CUDA: the GPU part runs on Vulkan.
    the mod logs why and keeps the CPU-side improvements.
 3. Put `worldgennext-neoforge-1.21.1-0.2.0.jar` (NeoForge) or
    `worldgennext-fabric-1.21.1-0.2.0.jar` (Fabric) in `mods/`.
+   For Minecraft 1.21.4 or 1.21.8 on Fabric the jar is
+   `worldgennext-fabric-1.21.4-0.2.0.jar` or
+   `worldgennext-fabric-1.21.8-0.2.0.jar`. On those two versions only the
+   vanilla Overworld, Nether and End are on the tested list so far, and
+   everything below about other mods, Distant Horizons, Voxy and singleplayer
+   was measured on 1.21.1
+   ([docs/evidence/minecraft-versions.md](docs/evidence/minecraft-versions.md)).
 4. Recommended: also install ScalableLux.
    Lighting is not part of this mod, and every throughput figure below was
    measured with ScalableLux installed.
@@ -298,6 +306,7 @@ The mod jar is `neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-0.2.0.jar`
 | oracle-1211 | Independent original-only NeoForge/Minecraft capture process; no WorldgenNext candidate dependency |
 | neoforge-1211 | Config/lazy-native/snapshot/commit lifecycle composition and loader bootstrap checks |
 | fabric-1211 | The Fabric build of the same mod: loader glue, one thread-safety mixin, and the name table a released Fabric game needs ([docs/evidence/fabric-port.md](docs/evidence/fabric-port.md)) |
+| fabric-1214, fabric-1218 | The Fabric builds for Minecraft 1.21.4 and 1.21.8: only the files that differ from the shared 1.21.1 source, assembled by `gradle/fabric-port.gradle` ([docs/evidence/minecraft-versions.md](docs/evidence/minecraft-versions.md)) |
 
 See the module READMEs for runnable diagnostics and detailed API limits. [docs/CONTRACTS.md](docs/CONTRACTS.md) fixes the shared boundaries for contributors.
 

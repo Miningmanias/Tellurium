@@ -1,5 +1,22 @@
 # WorldgenNext status — 2026-10-03
 
+## 2026-10-06 — Minecraft 1.21.4 and 1.21.8 on Fabric
+
+`fabric-1214` and `fabric-1218` build from the shared 1.21.1 source; each
+holds only the files that differ, and version differences in shared code go
+through `version/Version`. Minecraft 1.21.2 changed which aquifer blocks are
+marked for a fluid update, which the GPU kernels now take as an option without
+changing the 1.21.1 kernel text. The list of tested generators names its
+Minecraft version and is ignored on any other. Verified on each of the two
+versions: SURFACE matrix 12 of 12 vanilla contexts identical; the built jar on
+a real Fabric server with terrain on the GPU and no errors (40,401 chunks at
+3,096 and 2,620 chunks/s); check mode 0 differences over 7,104 Overworld,
+7,225 Nether and 7,225 End chunks; save and reopen. Not verified there: any
+datapack or mod generator, a client, Distant Horizons, Voxy, kill-recovery,
+the command walk-through. Not ported: NeoForge after 1.21.1, Minecraft 1.21.5
+to 1.21.7, and 1.21.9 or later, whose world generator computes the aquifers'
+surface level differently. Evidence: `docs/evidence/minecraft-versions.md`.
+
 ## 2026-10-06 — Fabric 1.21.1
 
 `fabric-1211` builds a Fabric jar from the same source. Loader-specific code
