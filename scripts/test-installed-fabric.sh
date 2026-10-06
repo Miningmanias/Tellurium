@@ -13,7 +13,11 @@ set -u
 cd "$(dirname "$0")/.."
 radius="${1:-60}"
 jvm="${2:-}"
-server=build/installed-fabric
+# FABRIC_MC=<Minecraft version> tests that version's build (module fabric-<version without dots>) on its own server.
+mc="${FABRIC_MC:-1.21.1}"
+module="fabric-$(echo "$mc" | tr -d .)"
+if [ "$mc" = 1.21.1 ]; then server=build/installed-fabric; api=build/test-mods/fabric-api; lux=build/test-mods/fabric-vanilla
+else server="build/installed-fabric-$mc"; api="build/test-mods/fabric-api-$mc"; lux="build/test-mods/$module/vanilla"; fi
 export PATH="${JDK:-/c/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot}/bin:$PATH"
 [ -f "$server/fabric-server-launch.jar" ] || { echo "no Fabric server launcher in $server"; exit 2; }
 free=$(df -Pk . | awk 'NR==2 {print int($4 / 1048576)}')
@@ -22,8 +26,8 @@ free=$(df -Pk . | awk 'NR==2 {print int($4 / 1048576)}')
 stash=build/_to_delete/fabric-worlds
 mkdir -p "$stash" "$server/mods"
 mv "$server"/mods/*.jar "$stash/" 2>/dev/null
-cp "$(ls -t fabric-1211/build/libs/worldgennext-fabric-1.21.1-*.jar | grep -v sources | head -1)" "$server/mods/"
-cp build/test-mods/fabric-api/*.jar build/test-mods/fabric-vanilla/*.jar "$server/mods/"
+cp "$(ls -t "$module"/build/libs/worldgennext-fabric-"$mc"-*.jar | grep -v sources | head -1)" "$server/mods/"
+cp "$api"/*.jar "$lux"/*.jar "$server/mods/"
 [ -d "$server/world" ] && mv "$server/world" "$stash/world-$(date +%Y%m%d-%H%M%S)"
 rm -f "$server/logs/latest.log"
 printf 'eula=true\n' > "$server/eula.txt"

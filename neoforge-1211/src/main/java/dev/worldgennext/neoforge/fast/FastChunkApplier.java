@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.fast;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import dev.worldgennext.neoforge.loader.Loader;
 
 import dev.worldgennext.neoforge.mixin.LevelChunkSectionAccessor;
@@ -120,7 +122,7 @@ public final class FastChunkApplier {
         // Post-processing marks in doFill order: cellX, cellZ, y descending, x in cell, z in cell.
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         int baseX = chunk.getPos().getMinBlockX(), baseZ = chunk.getPos().getMinBlockZ();
-        int bottom = chunk.getMinBuildHeight();
+        int bottom = Version.minY(chunk);
         boolean[] surfaceFluid = info.surfaceFluid;
         boolean surfaceMarks = false;
         int cells = 16 / cellWidth;

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.bench;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.shorts.ShortList;
 import net.minecraft.core.Registry;
@@ -58,7 +60,7 @@ public final class ChunkDigest {
     }
 
     private static String biomes(ServerLevel level, ChunkAccess chunk) {
-        var registry = level.registryAccess().registryOrThrow(Registries.BIOME);
+        var registry = Version.registry(level.registryAccess(), Registries.BIOME);
         MessageDigest digest = sha256();
         ByteBuffer buffer = ByteBuffer.allocate(64 * 4);
         for (LevelChunkSection section : chunk.getSections()) {
@@ -114,7 +116,7 @@ public final class ChunkDigest {
     }
 
     private static String structures(ServerLevel level, ChunkAccess chunk) {
-        Registry<Structure> registry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+        Registry<Structure> registry = Version.registry(level.registryAccess(), Registries.STRUCTURE);
         StringBuilder text = new StringBuilder();
         List<String> starts = new ArrayList<>();
         for (Map.Entry<Structure, StructureStart> entry : chunk.getAllStarts().entrySet()) {

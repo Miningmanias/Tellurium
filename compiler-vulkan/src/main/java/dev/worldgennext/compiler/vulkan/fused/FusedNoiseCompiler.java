@@ -57,11 +57,25 @@ public final class FusedNoiseCompiler {
         }
     }
 
+    /**
+     * Which aquifer blocks are marked for a fluid update after generation.  Minecraft changed the rule in
+     * 1.21.2: before, every fluid block between aquifers that are about equally near; since, only where the
+     * aquifers concerned differ in level or fluid, which also looks at the fourth nearest aquifer.
+     */
+    public enum FluidUpdates { BETWEEN_AQUIFERS, WHERE_NEIGHBOURS_DIFFER }
+
     public record Request(Map<String, ProgramNode> roots, GeneratorSettingsSnapshot settings,
                           PositionalRandomFactorySnapshot aquiferRandom, PositionalRandomFactorySnapshot oreRandom,
-                          MaterialPalette palette, float[] beardKernel, SurfaceProgram surface) {
+                          MaterialPalette palette, float[] beardKernel, SurfaceProgram surface, FluidUpdates fluidUpdates) {
+        public Request(Map<String, ProgramNode> roots, GeneratorSettingsSnapshot settings,
+                       PositionalRandomFactorySnapshot aquiferRandom, PositionalRandomFactorySnapshot oreRandom,
+                       MaterialPalette palette, float[] beardKernel, SurfaceProgram surface) {
+            this(roots, settings, aquiferRandom, oreRandom, palette, beardKernel, surface, FluidUpdates.BETWEEN_AQUIFERS);
+        }
+
         public Request {
             Objects.requireNonNull(roots, "roots");
+            Objects.requireNonNull(fluidUpdates, "fluidUpdates");
             Objects.requireNonNull(settings, "settings");
             Objects.requireNonNull(palette, "palette");
             Objects.requireNonNull(beardKernel, "beardKernel");
@@ -207,7 +221,7 @@ public final class FusedNoiseCompiler {
             int surfaceHeader = request.surface() == null ? 0 : tables.surface(request.surface());
             String source = header() + FusedNoiseCompiler.library() + "\n" + accessors()
                     + FusedKernels.prelude(geometry, request, beardKernelIndex) + FusedSurfaceKernels.constants(geometry) + functions
-                    + FusedKernels.kernels(flats.size(), interps.size(), xzNodes.size()) + FusedSurfaceKernels.BODY;
+                    + FusedKernels.kernels(flats.size(), interps.size(), xzNodes.size(), request.fluidUpdates()) + FusedSurfaceKernels.BODY;
             String fingerprint = sha256(source);
             List<ProgramNode> flatChildren = new ArrayList<>();
             for (ProgramNode.Marker flat : flats) flatChildren.add(flat.child());

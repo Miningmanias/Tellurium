@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.bench;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import dev.worldgennext.neoforge.loader.Names;
 
 import net.minecraft.server.MinecraftServer;
@@ -358,7 +360,7 @@ public final class ChunkThroughputBenchmark {
             int referenced = 0;
             for (long pos : toDrop) {
                 Object holder = updating.get(pos);
-                if (holder instanceof net.minecraft.server.level.GenerationChunkHolder generation && generation.getGenerationRefCount() != 0) referenced++;
+                if (holder instanceof net.minecraft.server.level.GenerationChunkHolder generation && Version.generationRefCount(generation) != 0) referenced++;
             }
             int loadedLevels = 0, unloadedLevels = 0;
             for (Object holder : updating.values()) {

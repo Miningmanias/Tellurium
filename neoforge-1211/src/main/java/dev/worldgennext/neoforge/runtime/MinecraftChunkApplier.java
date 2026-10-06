@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.runtime;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import dev.worldgennext.neoforge.loader.Names;
 
 import dev.worldgennext.material.chunk.BlockStateTable;
@@ -136,7 +138,7 @@ public final class MinecraftChunkApplier {
         // Register restoration in reverse dependency order.  Sections restore
         // first, then explicit heightmaps and postprocessing, and finally the
         // dirty bit/lifecycle marker.
-        journal.record("dirty/lifecycle", () -> target.setUnsaved(originalUnsaved));
+        journal.record("dirty/lifecycle", () -> Version.setUnsaved(target, originalUnsaved));
         journal.record("fluid/postprocessing metadata", () -> restorePostProcessing(postProcessing, originalPostProcessing));
         journal.record("heightmaps", () -> restoreHeightmaps(target, encodedHeightmaps.keySet(), originalHeightmaps));
         journal.record("sections/storage/counts", () -> restoreBlocks(target, originalBlocks));
@@ -150,7 +152,7 @@ public final class MinecraftChunkApplier {
             mutationHook.after(MutationPhase.AFTER_HEIGHTMAPS);
             int fluidMarksAdded = applyFluidMarks(target, result);
             mutationHook.after(MutationPhase.AFTER_FLUID_MARKS);
-            target.setUnsaved(true);
+            Version.setUnsaved(target, true);
             mutationHook.after(MutationPhase.AFTER_DIRTY_STATE);
             return new ApplicationReceipt(blocksChanged, encodedHeightmaps.size(), fluidMarksAdded);
         } catch (RuntimeException | Error failure) {
@@ -172,7 +174,7 @@ public final class MinecraftChunkApplier {
         if (position.x != result.header().chunkX() || position.z != result.header().chunkZ()) {
             throw new IllegalArgumentException("Chunk coordinate mismatch at application boundary");
         }
-        if (target.getMinBuildHeight() != result.header().minY()
+        if (Version.minY(target) != result.header().minY()
                 || target.getHeight() != result.header().height()) {
             throw new IllegalArgumentException("Chunk geometry mismatch at application boundary");
         }
@@ -357,7 +359,7 @@ public final class MinecraftChunkApplier {
                             // fillFromNoise loop can append an offset that was
                             // already present from an earlier stage, and the
                             // serialized endpoint preserves that multiplicity.
-                            target.addPackedPostProcess(packed, sectionIndex);
+                            Version.addPostProcess(target, packed, sectionIndex);
                             added++;
                         }
                     }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.fast;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunkSection;
@@ -52,7 +54,7 @@ public final class FastSurfaceState {
         Expected expected = EXPECTED.remove(chunk);
         if (expected == null) return;
         verified.incrementAndGet();
-        int minY = chunk.getMinBuildHeight();
+        int minY = Version.minY(chunk);
         int mismatches = 0;
         StringBuilder first = new StringBuilder();
         for (int ly = 0; ly < chunk.getHeight(); ly++) {

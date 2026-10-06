@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.runtime;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import dev.worldgennext.engine.GenerationStage;
 import dev.worldgennext.engine.worldgen.BackendResult;
 import dev.worldgennext.engine.worldgen.CommitCoordinator;
@@ -61,7 +63,7 @@ final class CoordinatedNoiseAttempt {
 
         GenerationRequest request = new GenerationRequest(
                 new WorkKey(context, chunk.getPos().x, chunk.getPos().z,
-                        GenerationStage.NOISE, "noise", chunk.getMinBuildHeight(),
+                        GenerationStage.NOISE, "noise", Version.minY(chunk),
                         chunk.getHeight(), EvaluationDomain.BLOCK),
                 ownership.ownershipToken(), 0,
                 resourceEstimate(chunk),

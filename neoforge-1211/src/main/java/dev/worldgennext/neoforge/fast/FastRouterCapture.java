@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.fast;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import dev.worldgennext.neoforge.snapshot.DensityNodeReader;
 import dev.worldgennext.neoforge.snapshot.MinecraftDynamicInputReader;
 import dev.worldgennext.neoforge.snapshot.MinecraftSnapshotReader;
@@ -33,7 +35,7 @@ public final class FastRouterCapture {
         RegistrySnapshot registry = new RegistrySnapshotReader().capture(
                 noiseSettings.defaultBlock(), noiseSettings.defaultFluid());
         var settings = new GeneratorSettingsSnapshot(
-                level.getMinBuildHeight(), level.getHeight(), dimensions.height(), noiseSettings.seaLevel(),
+                Version.minY(level), level.getHeight(), dimensions.height(), noiseSettings.seaLevel(),
                 registry.defaultBlock(), registry.defaultFluid(), noiseSettings.isAquifersEnabled(),
                 noiseSettings.oreVeinsEnabled(), dimensions.getCellWidth(), dimensions.getCellHeight());
         String settingsIdentity = generator.generatorSettings().unwrapKey()

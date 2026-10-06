@@ -1,0 +1,14 @@
+# Shared 1.21.1 files with no counterpart on 1.21.4 (paths under dev/worldgennext/neoforge/).
+#
+# Chunk saving: 1.21.2 replaced ChunkSerializer with SerializableChunkData and already serialises a chunk off
+# the server thread, which is what these did.
+mixin/ChunkMapAsyncSaveMixin.java
+mixin/ChunkSerializerAsyncMixin.java
+# Chunk loading off the server thread.
+mixin/ChunkSerializerAsyncLoadMixin.java
+mixin/ChunkMapAsyncLoadMixin.java
+threading/AsyncChunkLoad.java
+# ProcessorMailbox no longer exists (ConsecutiveExecutor took its place).
+mixin/ProcessorMailboxDispatchMixin.java
+# The surface mark of a chunk saved at NOISE status: mixin/SerializableChunkDataSurfaceMixin here.
+mixin/ChunkSerializerSurfaceMixin.java

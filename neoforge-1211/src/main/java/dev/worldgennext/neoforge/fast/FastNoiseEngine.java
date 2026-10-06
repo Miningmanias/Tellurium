@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.fast;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import dev.worldgennext.neoforge.loader.Names;
 
 import dev.worldgennext.compiler.jvm.worldgen.DenseNoiseGenerator;
@@ -290,7 +292,7 @@ public final class FastNoiseEngine {
                                                        FastSurfaceCapture.Captured surface) throws Exception {
         return new FusedNoiseCompiler().compile(new FusedNoiseCompiler.Request(snapshot.router().roots(), snapshot.generatorSettings(),
                 snapshot.randomState().aquiferRandom(), snapshot.randomState().oreRandom(), materialPalette, beardKernel(),
-                surface == null ? null : surface.program()));
+                surface == null ? null : surface.program(), Version.fluidUpdates()));
     }
 
     /** Captures on the calling (server) thread; the returned job compiles and installs off-thread. */
@@ -444,7 +446,7 @@ public final class FastNoiseEngine {
             fallbackChunks.incrementAndGet();
             return null;
         }
-        if (chunk.getMinBuildHeight() != program.geometry().minY() || chunk.getHeight() != program.geometry().storageHeight()) return null;
+        if (Version.minY(chunk) != program.geometry().minY() || chunk.getHeight() != program.geometry().storageHeight()) return null;
         // fillFromNoise is called on the single worldgen mailbox thread; the structure and biome
         // gathering below runs on a worker (the original does the same work inside its own async task).
         CompletableFuture<ChunkAccess> result = new CompletableFuture<>();
@@ -888,7 +890,7 @@ public final class FastNoiseEngine {
     private void verify(Request r, ChunkAccess vanilla, byte[] data, int[] heights, double[][] debug) {
         verifiedChunks.incrementAndGet();
         var palette = r.program().palette();
-        int minY = vanilla.getMinBuildHeight();
+        int minY = Version.minY(vanilla);
         int mismatches = 0;
         String first = null;
         for (int ly = 0; ly < vanilla.getHeight(); ly++) {

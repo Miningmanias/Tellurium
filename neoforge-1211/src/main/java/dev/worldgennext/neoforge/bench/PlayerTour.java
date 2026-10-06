@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.bench;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -59,7 +61,7 @@ public final class PlayerTour {
                 double x = startX + (double) step * stride;
                 CompletableFuture.runAsync(() -> {
                     ServerLevel level = traveller.serverLevel();
-                    traveller.teleportTo(level, x, 200.0, z, traveller.getYRot(), traveller.getXRot());
+                    Version.teleport(traveller, level, x, 200.0, z, traveller.getYRot(), traveller.getXRot());
                 }, server).join();
                 Thread.sleep(pause);
                 worstTickNanos = Math.max(worstTickNanos, max(server.getTickTimesNanos()));

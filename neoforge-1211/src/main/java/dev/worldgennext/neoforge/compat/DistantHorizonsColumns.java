@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.compat;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
@@ -202,7 +204,7 @@ final class DistantHorizonsColumns {
         int top = (int) exclusiveMaxHeight.invokeExact(wrapper);
         int bottom = (int) inclusiveMinHeight.invokeExact(wrapper);
         LevelChunkSection[] sections = chunk.getSections();
-        int sectionBase = chunk.getMinBuildHeight();
+        int sectionBase = Version.minY(chunk);
         Block airBlock = new Block(air, true, false);
         boolean anything = false;
         for (int x = 0; x < 16; x++) {

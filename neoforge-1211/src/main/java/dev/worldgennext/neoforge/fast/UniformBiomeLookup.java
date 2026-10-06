@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.fast;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import net.minecraft.core.Holder;
 import net.minecraft.core.QuartPos;
 import net.minecraft.server.level.WorldGenRegion;
@@ -86,7 +88,7 @@ public final class UniformBiomeLookup {
         int quartY = (blockY - 2) >> 2;
         int quartZ = (blockZ - 2) >> 2;
         // ChunkAccess.getNoiseBiome clamps the cell's y into the chunk before choosing the section.
-        int minQuartY = QuartPos.fromBlock(region.getMinBuildHeight());
+        int minQuartY = QuartPos.fromBlock(Version.minY(region));
         int maxQuartY = minQuartY + QuartPos.fromBlock(region.getHeight()) - 1;
         int sectionY0 = Mth.clamp(quartY, minQuartY, maxQuartY) >> 2;
         int sectionY1 = Mth.clamp(quartY + 1, minQuartY, maxQuartY) >> 2;
@@ -98,7 +100,7 @@ public final class UniformBiomeLookup {
             for (int chunkZ = chunkZ0; chunkZ <= chunkZ1; chunkZ++) {
                 ChunkAccess chunk = region.getChunk(chunkX, chunkZ, ChunkStatus.BIOMES, false);
                 if (chunk == null) return miss(0);
-                if (chunk.getMinBuildHeight() != region.getMinBuildHeight() || chunk.getHeight() != region.getHeight()) return miss(1);
+                if (Version.minY(chunk) != Version.minY(region) || chunk.getHeight() != region.getHeight()) return miss(1);
                 LevelChunkSection[] sections = chunk.getSections();
                 for (int sectionY = sectionY0; sectionY <= sectionY1; sectionY++) {
                     int index = chunk.getSectionIndexFromSectionY(sectionY);

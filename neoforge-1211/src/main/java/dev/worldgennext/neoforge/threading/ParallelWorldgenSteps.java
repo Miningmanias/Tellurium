@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.threading;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import com.mojang.math.OctahedralGroup;
 import net.minecraft.Util;
 import net.minecraft.core.Direction;
@@ -65,7 +67,7 @@ public final class ParallelWorldgenSteps {
     }
 
     public static <T> CompletableFuture<T> offload(String name, Supplier<CompletableFuture<T>> original) {
-        return CompletableFuture.supplyAsync(Util.wrapThreadWithTaskName("wgen_" + name, () -> {
+        return CompletableFuture.supplyAsync(Version.named("wgen_" + name, () -> {
             RUNNING_ORIGINAL.set(Boolean.TRUE);
             try {
                 return original.get();

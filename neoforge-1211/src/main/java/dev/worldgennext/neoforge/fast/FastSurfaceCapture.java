@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.fast;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import dev.worldgennext.neoforge.loader.Names;
 
 import dev.worldgennext.neoforge.loader.Loader;
@@ -74,7 +76,7 @@ public final class FastSurfaceCapture {
         NoiseGeneratorSettings settings = generator.generatorSettings().value();
         RandomState randomState = level.getChunkSource().randomState();
         WorldGenerationContext context = new WorldGenerationContext(generator, level);
-        Registry<Biome> biomes = level.registryAccess().registryOrThrow(Registries.BIOME);
+        Registry<Biome> biomes = Version.registry(level.registryAccess(), Registries.BIOME);
         JsonElement tree = SurfaceRules.RuleSource.CODEC.encodeStart(JsonOps.INSTANCE, settings.surfaceRule())
                 .getOrThrow(message -> new UnsupportedSurfaceException("Surface rule cannot be encoded: " + message));
 
@@ -122,7 +124,7 @@ public final class FastSurfaceCapture {
             if (key == Biomes.ERODED_BADLANDS) flags |= SurfaceProgram.BIOME_ERODED_BADLANDS;
             if (key == Biomes.FROZEN_OCEAN || key == Biomes.DEEP_FROZEN_OCEAN) flags |= SurfaceProgram.BIOME_FROZEN_OCEAN;
             biomeFlags[id] = flags;
-            if (key != null) biomes.getHolder(key).ifPresent(holder -> biomeIds.put(holder, biomes.getId(biome)));
+            if (key != null) Version.holder(biomes, key).ifPresent(holder -> biomeIds.put(holder, biomes.getId(biome)));
             biomeIdentity.append(id).append('=').append(key == null ? "?" : key.location()).append(':')
                     .append(Float.floatToRawIntBits(temperatures[id])).append(':').append(flags).append(';');
         }
@@ -267,7 +269,7 @@ public final class FastSurfaceCapture {
                 case "minecraft:biome" -> {
                     int[] mask = new int[maskWords];
                     for (JsonElement name : condition.getAsJsonArray("biome_is")) {
-                        Biome biome = biomes.get(ResourceLocation.parse(name.getAsString()));
+                        Biome biome = Version.value(biomes, ResourceLocation.parse(name.getAsString()));
                         if (biome == null) continue; // a key with no registered biome never matches
                         int id = biomes.getId(biome);
                         mask[id >> 5] |= 1 << (id & 31);

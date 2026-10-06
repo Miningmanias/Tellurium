@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.mixin;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import dev.worldgennext.neoforge.fast.BaseHeightCache;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -18,7 +20,7 @@ public abstract class NoiseBasedChunkGeneratorHeightCacheMixin {
     private void worldgenNext$rememberedHeight(int x, int z, Heightmap.Types type, LevelHeightAccessor level, RandomState randomState,
                                                CallbackInfoReturnable<Integer> callback) {
         if (!BaseHeightCache.ENABLED) return;
-        int height = BaseHeightCache.get(this, randomState, x, z, type.ordinal(), level.getMinBuildHeight(), level.getHeight());
+        int height = BaseHeightCache.get(this, randomState, x, z, type.ordinal(), Version.minY(level), level.getHeight());
         if (height != Integer.MIN_VALUE) callback.setReturnValue(height);
     }
 
@@ -26,6 +28,6 @@ public abstract class NoiseBasedChunkGeneratorHeightCacheMixin {
     private void worldgenNext$rememberHeight(int x, int z, Heightmap.Types type, LevelHeightAccessor level, RandomState randomState,
                                              CallbackInfoReturnable<Integer> callback) {
         if (!BaseHeightCache.ENABLED) return;
-        BaseHeightCache.put(this, randomState, x, z, type.ordinal(), level.getMinBuildHeight(), level.getHeight(), callback.getReturnValueI());
+        BaseHeightCache.put(this, randomState, x, z, type.ordinal(), Version.minY(level), level.getHeight(), callback.getReturnValueI());
     }
 }

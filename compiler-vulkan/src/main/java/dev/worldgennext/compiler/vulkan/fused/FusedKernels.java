@@ -52,7 +52,7 @@ final class FusedKernels {
     }
 
     /** Aquifer, ore, material and the five kernel entry points; placed after generated functions. */
-    static String kernels(int flatCount, int interpCount, int xzCount) {
+    static String kernels(int flatCount, int interpCount, int xzCount, FusedNoiseCompiler.FluidUpdates fluidUpdates) {
         StringBuilder s = new StringBuilder();
         StringBuilder columnStores = new StringBuilder();
         for (int f = 0; f < flatCount; f++) {
@@ -69,9 +69,89 @@ final class FusedKernels {
             xzStores.append("xzcache[(int(slot) * XZS + ").append(k).append(") * 256 + col] = xz_").append(k)
                     .append("_col(p);").append(System.lineSeparator()).append("            ");
         }
-        s.append(KERNEL_BODY.replace("COLUMN_STORES", columnStores.toString()).replace("CORNER_STORES", cornerStores.toString())
+        String body = fluidUpdates == FusedNoiseCompiler.FluidUpdates.WHERE_NEIGHBOURS_DIFFER ? comparingFluidUpdates(KERNEL_BODY) : KERNEL_BODY;
+        s.append(body.replace("COLUMN_STORES", columnStores.toString()).replace("CORNER_STORES", cornerStores.toString())
                 .replace("XZ_STORES", xzStores.toString()));
         return s.toString();
+    }
+
+    /**
+     * The kernel text with Minecraft 1.21.2's fluid-update rule in computeSubstance.  The rule is put in by
+     * rewriting the text, so the kernels of the earlier rule stay character for character what they were:
+     * their text is what the list of tested generators is keyed on.
+     */
+    private static String comparingFluidUpdates(String body) {
+        body = swap(body, """
+            int k1 = 2147483647, l1 = 2147483647, i2 = 2147483647;
+            int j2 = -1, k2 = -1, l2 = -1;
+        """, """
+            int k1 = 2147483647, l1 = 2147483647, i2 = 2147483647, i4 = 2147483647;
+            int j2 = -1, k2 = -1, l2 = -1, m2 = -1;
+        """);
+        body = swap(body, """
+                        if (k1 >= dist) {
+                            l2 = k2; k2 = j2; j2 = slot;
+                            i2 = l1; l1 = k1; k1 = dist;
+                        } else if (l1 >= dist) {
+                            l2 = k2; k2 = slot;
+                            i2 = l1; l1 = dist;
+                        } else if (i2 >= dist) {
+                            l2 = slot; i2 = dist;
+                        }
+        """, """
+                        if (k1 >= dist) {
+                            m2 = l2; l2 = k2; k2 = j2; j2 = slot;
+                            i4 = i2; i2 = l1; l1 = k1; k1 = dist;
+                        } else if (l1 >= dist) {
+                            m2 = l2; l2 = k2; k2 = slot;
+                            i4 = i2; i2 = l1; l1 = dist;
+                        } else if (i2 >= dist) {
+                            m2 = l2; l2 = slot;
+                            i4 = i2; i2 = dist;
+                        } else if (i4 >= dist) {
+                            m2 = slot; i4 = dist;
+                        }
+        """);
+        body = swap(body, """
+                schedule = d1 >= FLOWING_UPDATE_SIMILARITY;
+                return fluidPalette(blockstate);
+        """, """
+                schedule = d1 >= FLOWING_UPDATE_SIMILARITY && !sameStatus(s1, ivec2(aquifer[k2 + 3], aquifer[k2 + 4]));
+                return fluidPalette(blockstate);
+        """);
+        body = swap(body, """
+                if (density + d5 > 0.0lf) return -1;
+            }
+            schedule = true;
+            return fluidPalette(blockstate);
+        """, """
+                if (density + d5 > 0.0lf) return -1;
+            }
+            schedule = true;
+            if (sameStatus(s1, s2)
+                    && !(d4 >= FLOWING_UPDATE_SIMILARITY && !sameStatus(s2, s3))
+                    && !(d0 >= FLOWING_UPDATE_SIMILARITY && !sameStatus(s1, s3))) {
+                schedule = d0 >= FLOWING_UPDATE_SIMILARITY && similarity(k1, i4) >= FLOWING_UPDATE_SIMILARITY
+                        && !sameStatus(s1, ivec2(aquifer[m2 + 3], aquifer[m2 + 4]));
+            }
+            return fluidPalette(blockstate);
+        """);
+        return swap(body, """
+        // Returns palette index, or -1 for the null (solid) result; writes the schedule flag.
+        """, """
+        // Equal fluid level and equal fluid block state; codes 1 and 2 are the same state when the default fluid is lava.
+        bool sameStatus(ivec2 a, ivec2 b) {
+            return a.x == b.x && (a.y == b.y || (DF_IS_LAVA_DEFAULT && a.y != 0 && b.y != 0));
+        }
+
+        // Returns palette index, or -1 for the null (solid) result; writes the schedule flag.
+        """);
+    }
+
+    private static String swap(String text, String from, String to) {
+        int at = text.indexOf(from);
+        if (at < 0 || text.indexOf(from, at + 1) >= 0) throw new IllegalStateException("Kernel text to replace is not there exactly once: " + from);
+        return text.substring(0, at) + to + text.substring(at + from.length());
     }
 
     private static void appendRandom(StringBuilder s, String prefix, PositionalRandomFactorySnapshot random) {

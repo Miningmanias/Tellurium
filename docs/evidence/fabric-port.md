@@ -58,6 +58,11 @@ names; this is what a player runs and what development runs do not exercise):
 | The same in the Nether | 2,809 compared, 0 differ |
 | The same in the End | 2,809 compared, 0 differ |
 
+A Fabric client in the development environment (`MODULE=fabric-1211
+scripts/run-client-pregen.sh 45 fabric/vanilla`): a singleplayer world opened,
+8,281 chunks pregenerated at 1,172 chunks/s, no errors. A released client was
+not run.
+
 Re-run after the name layer went in, because it changes shared code (SURFACE
 digests, 8,281 chunks per context, development environment): NeoForge vanilla
 Overworld, Nether, End, Terralith and Terralith with Tectonic, 5 of 5
@@ -66,8 +71,6 @@ vanilla Overworld at CARVERS, identical.
 
 ## Not done on Fabric
 
-- A Fabric client (singleplayer) was not started. The mod has no client-only
-  code, but that is an argument, not a test.
 - Save/reopen, kill-recovery and the console command walk-through were not
   repeated on Fabric; they exercise shared code that passed on NeoForge.
 - Distant Horizons and Voxy on Fabric: the bridges are loader-neutral

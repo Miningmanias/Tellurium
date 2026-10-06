@@ -33,7 +33,7 @@ import net.minecraft.nbt.LongArrayTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.storage.ChunkSerializer;
+import dev.worldgennext.neoforge.version.Version;
 import net.minecraft.world.level.chunk.status.ChunkStep;
 import net.minecraft.world.level.levelgen.Beardifier;
 import net.minecraft.world.level.levelgen.blending.Blender;
@@ -154,11 +154,11 @@ public final class MinecraftCpuCandidate {
             throw new IllegalStateException("CPU candidate capture requires BIOMES prerequisite; got "
                     + prerequisite.getPersistedStatus());
         }
-        CompoundTag prerequisiteNbt = ChunkSerializer.write(level, prerequisite);
+        CompoundTag prerequisiteNbt = Version.chunkNbt(level, prerequisite);
 
         NoiseGeneratorSettings noiseSettings = generator.generatorSettings().value();
         NoiseSettings dimensions = noiseSettings.noiseSettings().clampToHeightAccessor(level);
-        int storageMinY = level.getMinBuildHeight();
+        int storageMinY = Version.minY(level);
         int storageHeight = level.getHeight();
         if (dimensions.minY() != storageMinY || dimensions.height() > storageHeight) {
             throw new IllegalStateException("Noise generation bounds do not fit the loaded dimension: generation="
@@ -340,8 +340,8 @@ public final class MinecraftCpuCandidate {
             if (serialized.contains(key)) lifecycle.put(key, serialized.get(key).copy());
         }
         lifecycle.putString("Status", "minecraft:noise");
-        lifecycle.putString("minBuildHeight", Integer.toString(chunk.getMinBuildHeight()));
-        lifecycle.putString("maxBuildHeight", Integer.toString(chunk.getMaxBuildHeight()));
+        lifecycle.putString("minBuildHeight", Integer.toString(Version.minY(chunk)));
+        lifecycle.putString("maxBuildHeight", Integer.toString(Version.maxYExclusive(chunk)));
         fields.put("LIFECYCLE", canonical(lifecycle));
         return fields;
     }

@@ -1,33 +1,46 @@
 plugins { id 'fabric-loom' version '1.11.8' }
 
-base { archivesName = 'worldgennext-fabric-1.21.1' }
+base { archivesName = 'worldgennext-fabric-1.21.4' }
 
-// The mod's code is the same on every loader and lives in the NeoForge module; only the two classes in
-// dev.worldgennext.neoforge.loader and the loader metadata differ.
+// Minecraft 1.21.4 on Fabric.  The mod's code is the 1.21.1 source in the NeoForge module and the Fabric glue in
+// fabric-1211; this module holds only what 1.21.4 needs differently:
+//   src/main/java     files that replace the shared file of the same path
+//   removed.txt       shared files that have no counterpart here (one path per line, under dev/worldgennext/neoforge/)
+//   src/main/resources  this version's mixin list and mod metadata
 def pureModules = ['semantic-core', 'compiler-jvm', 'compiler-vulkan', 'material-codec', 'spatial-data', 'chunk-engine', 'frontend-mc1211', 'runtime-vulkan']
 def shared = project(':neoforge-1211').projectDir
+def fabricGlue = project(':fabric-1211').projectDir
+def removed = file('removed.txt').readLines('UTF-8').collect { it.trim() }.findAll { it && !it.startsWith('#') }.collect { 'dev/worldgennext/neoforge/' + it }
+def overlay = file('src/main/java')
 
 dependencies {
-    // -Pworldgennext.minecraft=<version> -Pworldgennext.fabricApi=<version> compiles against another Minecraft
-    // version, to see what a port to it would take; only 1.21.1 is supported.
-    minecraft "com.mojang:minecraft:${providers.gradleProperty('worldgennext.minecraft').getOrElse('1.21.1')}"
+    minecraft 'com.mojang:minecraft:1.21.4'
     mappings loom.officialMojangMappings()
     modImplementation 'net.fabricmc:fabric-loader:0.19.5'
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${providers.gradleProperty('worldgennext.fabricApi').getOrElse('0.116.17+1.21.1')}"
+    modImplementation 'net.fabricmc.fabric-api:fabric-api:0.119.4+1.21.4'
     implementation project(':compiler-vulkan')
 }
 
+def replacedHere = { String path -> new File(overlay, path).isFile() }
 sourceSets.main {
     java {
         srcDir new File(shared, 'src/main/java')
-        exclude { element -> element.file.toPath().startsWith(shared.toPath()) && element.path in ['dev/worldgennext/neoforge/loader/Loader.java', 'dev/worldgennext/neoforge/loader/NeoForgeEntry.java'] }
-        // Port-size experiments: -Pworldgennext.exclude=<comma-separated paths under dev/worldgennext/neoforge/> leaves files out.
-        def left = providers.gradleProperty('worldgennext.exclude').getOrElse('').split(',').collect { it.trim() }.findAll { it }
-        if (left) exclude { element -> left.any { element.path == 'dev/worldgennext/neoforge/' + it } }
+        srcDir new File(fabricGlue, 'src/main/java')
+        exclude { element ->
+            def fromShared = element.file.toPath().startsWith(shared.toPath())
+            def fromGlue = element.file.toPath().startsWith(fabricGlue.toPath())
+            if (!fromShared && !fromGlue) return false
+            if (fromShared && element.path in ['dev/worldgennext/neoforge/loader/Loader.java', 'dev/worldgennext/neoforge/loader/NeoForgeEntry.java']) return true
+            return !element.isDirectory() && (element.path in removed || replacedHere(element.path))
+        }
     }
     resources {
         srcDir new File(shared, 'src/main/resources')
-        exclude 'META-INF/neoforge.mods.toml'
+        srcDir new File(fabricGlue, 'src/main/resources')
+        exclude { element ->
+            (element.file.toPath().startsWith(shared.toPath()) || element.file.toPath().startsWith(fabricGlue.toPath()))
+                    && (element.path == 'META-INF/neoforge.mods.toml' || new File(file('src/main/resources'), element.path).isFile())
+        }
     }
 }
 
@@ -46,7 +59,7 @@ tasks.named('sourcesJar', Jar) {
 }
 
 loom {
-    accessWidenerPath = file('src/main/resources/worldgennext.accesswidener')
+    accessWidenerPath = new File(fabricGlue, 'src/main/resources/worldgennext.accesswidener')
     runs {
         configureEach {
             // Same switches as the NeoForge dev runs: every -Dworldgennext.* given to Gradle reaches the game.
@@ -79,7 +92,7 @@ apply from: rootProject.file('gradle/gpu-runtime.gradle')
 // literals in the mod's source, and only those, from the mappings this build uses; loader/Loader reads it.
 def nameTableDir = layout.buildDirectory.dir('generated/nameTable')
 tasks.register('generateNameTable') {
-    def sources = fileTree(new File(shared, 'src/main/java')) { include '**/*.java' } + fileTree('src/main/java') { include '**/*.java' }
+    def sources = fileTree(new File(shared, 'src/main/java')) { include '**/*.java' } + fileTree(new File(fabricGlue, 'src/main/java')) { include '**/*.java' } + fileTree('src/main/java') { include '**/*.java' }
     inputs.files(sources)
     outputs.dir(nameTableDir)
     doLast {

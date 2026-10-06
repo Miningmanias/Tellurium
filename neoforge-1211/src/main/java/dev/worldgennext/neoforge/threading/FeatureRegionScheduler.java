@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.threading;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.Util;
 import net.minecraft.world.level.ChunkPos;
@@ -63,7 +65,7 @@ public final class FeatureRegionScheduler {
     }
 
     private <T> void run(Pending<T> pending) {
-        CompletableFuture.supplyAsync(Util.wrapThreadWithTaskName("wgen_features", pending.body::get), Util.backgroundExecutor())
+        CompletableFuture.supplyAsync(Version.named("wgen_features", pending.body::get), Util.backgroundExecutor())
                 .thenCompose(future -> future)
                 .whenComplete((value, error) -> {
                     release(pending.x, pending.z);

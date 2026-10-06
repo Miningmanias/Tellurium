@@ -7,7 +7,7 @@ import net.minecraft.nbt.LongArrayTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.storage.ChunkSerializer;
+import dev.worldgennext.neoforge.version.Version;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -64,7 +64,7 @@ public final class MinecraftLogicalSnapshotWriter {
         String context = contextFingerprint(seed, dimension, normalizedEndpoint, chunkX, chunkZ);
         String identity = String.join("/", source, stackFingerprint, seed, dimension,
                 Integer.toString(chunkX), Integer.toString(chunkZ), normalizedEndpoint, context);
-        CompoundTag serialized = ChunkSerializer.write(level, chunk);
+        CompoundTag serialized = Version.chunkNbt(level, chunk);
 
         List<String> fields = new ArrayList<>();
         fields.add("BLOCK_STATES=" + canonicalPalettedSections(serialized, "block_states"));
@@ -90,8 +90,8 @@ public final class MinecraftLogicalSnapshotWriter {
         for (String key : List.of("xPos", "yPos", "zPos", "Status", "isLightOn")) {
             if (serialized.contains(key)) lifecycle.put(key, serialized.get(key).copy());
         }
-        lifecycle.putString("minBuildHeight", Integer.toString(chunk.getMinBuildHeight()));
-        lifecycle.putString("maxBuildHeight", Integer.toString(chunk.getMaxBuildHeight()));
+        lifecycle.putString("minBuildHeight", Integer.toString(Version.minY(chunk)));
+        lifecycle.putString("maxBuildHeight", Integer.toString(Version.maxYExclusive(chunk)));
         fields.add("LIFECYCLE=" + canonical(lifecycle));
 
         StringBuilder encoded = new StringBuilder(FORMAT);
