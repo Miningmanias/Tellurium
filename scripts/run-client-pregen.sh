@@ -34,11 +34,13 @@ mv "$run/logs/latest.log" "$run/logs/server-create.log"
 fi
 # A first launch otherwise stops at the accessibility onboarding screen instead of entering the world.
 printf 'onboardAccessibility:false\nskipMultiplayerWarning:true\ntutorialStep:none\npauseOnLostFocus:false\n' > "$run/options.txt"
+# OPTIONS=<file>: lines appended to the client's options.txt (a window size, a render distance).
+[ -n "${OPTIONS:-}" ] && cat "$OPTIONS" >> "$run/options.txt"
 
 # CONFIG_TOML=<file>: use that as config/worldgennext.toml in the client (for example one with enabled = false).
 [ -n "${CONFIG_TOML:-}" ] && cp "$CONFIG_TOML" "$run/config/worldgennext.toml"
 # NEOFORGE=<version>: run the client on that NeoForge 21.1.x instead of the one the mod is built against.
-args=(":${MODULE:-neoforge-1211}:runClient" "--no-daemon" "--console=plain" "-Dworldgennext.candidate.runDir=$run" "-Dworldgennext.prototype.resume=true"
+args=(${WINDOW:+"-Dworldgennext.client.window=$WINDOW"} ":${MODULE:-neoforge-1211}:runClient" "--no-daemon" "--console=plain" "-Dworldgennext.candidate.runDir=$run" "-Dworldgennext.prototype.resume=true"
       "-Dworldgennext.client.quickPlay=sp-world" "-Dworldgennext.run.maxHeap=${HEAP:-8G}" "-Dworldgennext.statusOnStop=true"
       "-Dworldgennext.fast.pipelineCacheDir=$root/build/fast-cache")
 # DIGEST=<file.json>: instead of pregenerating, run the benchmark driver at SURFACE status over the matrix's

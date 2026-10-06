@@ -21,6 +21,12 @@ import java.util.concurrent.CompletableFuture;
  * {@code worldgennext.bench.tourMillis} ms (default 500).  Chunks around the player are generated, sent,
  * ticked, and unloaded behind them through the normal player-ticket path, which the pregenerator and the
  * benchmark driver do not use.</p>
+ *
+ * <p>For recordings: {@code worldgennext.bench.tourY} is the height (default 200),
+ * {@code worldgennext.bench.tourYaw} and {@code tourPitch} fix where the player looks,
+ * {@code tourYawStep} turns the view by that many degrees per step (with a stride of 0 the player stays in
+ * place and looks around), and {@code tourSpectator=true} puts the player in spectator mode first, so that
+ * nothing falls between steps.</p>
  */
 public final class PlayerTour {
     private static final Logger LOG = LoggerFactory.getLogger("worldgennext-bench");
@@ -55,13 +61,22 @@ public final class PlayerTour {
             double startX = CompletableFuture.supplyAsync(traveller::getX, server).join();
             double z = CompletableFuture.supplyAsync(traveller::getZ, server).join();
             LOG.info("WorldgenNext player tour: {} steps of {} blocks every {} ms from x={}", steps, stride, pause, (int) startX);
+            double height = Double.parseDouble(System.getProperty("worldgennext.bench.tourY", "200"));
+            String fixedYaw = System.getProperty("worldgennext.bench.tourYaw"), fixedPitch = System.getProperty("worldgennext.bench.tourPitch");
+            float yawStep = Float.parseFloat(System.getProperty("worldgennext.bench.tourYawStep", "0"));
+            if (Boolean.getBoolean("worldgennext.bench.tourSpectator")) {
+                CompletableFuture.runAsync(() -> traveller.setGameMode(net.minecraft.world.level.GameType.SPECTATOR), server).join();
+            }
             long worstTickNanos = 0;
             long begin = System.nanoTime();
             for (int step = 1; step <= steps; step++) {
                 double x = startX + (double) step * stride;
+                int turned = step;
                 CompletableFuture.runAsync(() -> {
                     ServerLevel level = Version.level(traveller);
-                    Version.teleport(traveller, level, x, 200.0, z, traveller.getYRot(), traveller.getXRot());
+                    float yaw = fixedYaw == null ? traveller.getYRot() + yawStep : Float.parseFloat(fixedYaw) + turned * yawStep;
+                    float pitch = fixedPitch == null ? traveller.getXRot() : Float.parseFloat(fixedPitch);
+                    Version.teleport(traveller, level, x, height, z, yaw, pitch);
                 }, server).join();
                 Thread.sleep(pause);
                 worstTickNanos = Math.max(worstTickNanos, max(server.getTickTimesNanos()));

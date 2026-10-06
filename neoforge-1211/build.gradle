@@ -56,6 +56,9 @@ neoForge {
             // Straight into an existing singleplayer world (a folder under <gameDirectory>/saves).
             def quickPlay = System.getProperty('worldgennext.client.quickPlay', '').trim()
             if (!quickPlay.isEmpty()) programArguments.addAll '--quickPlaySingleplayer', quickPlay
+            // -Dworldgennext.client.window=1920x1080: the window's size (for recordings).
+            def window = System.getProperty('worldgennext.client.window', '').trim() =~ /^(\d+)x(\d+)$/
+            if (window.matches()) programArguments.addAll '--width', window.group(1), '--height', window.group(2)
         }
         gameTestServer {
             type = 'gameTestServer'
