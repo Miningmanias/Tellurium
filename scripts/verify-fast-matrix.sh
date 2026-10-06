@@ -21,7 +21,9 @@ CACHE="worldgennext.fast.pipelineCacheDir=$(pwd -W 2>/dev/null || pwd)/build/fas
 # force: qualify the current kernels regardless of the shipped list (auto would silently use vanilla).
 G="worldgennext.fast.gpu=force;$CACHE"
 D="worldgennext.bench.release=end;worldgennext.bench.digest=true"
-MODS=build/test-mods
+# MODULE=fabric-1211 MODS_ROOT=build/test-mods/fabric PREFIX=fabric- runs the matrix on Fabric, with its own labels.
+MODS="${MODS_ROOT:-build/test-mods}"
+P="${PREFIX:-}"
 passed=0
 total=0
 cps() { grep -E "measured phase" "$1" 2>/dev/null | tail -1 | sed -E 's/.*, ([0-9.]+) cps.*/\1/'; }
@@ -32,19 +34,19 @@ pair() { # name, mods subdirectory, extra script args, extra properties, "terrai
   total=$((total + 1))
   if [ -z "${EVALUATE_ONLY:-}" ]; then
     # shellcheck disable=SC2086
-    powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bench-cps.ps1 -Status "$STATUS" -Label "mv-$name" -RadiusChunks "$RADIUS" \
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bench-cps.ps1 -Status "$STATUS" -Label "${P}mv-$name" -RadiusChunks "$RADIUS" \
         -ModsDir "$MODS/$mods" $args \
         -Properties "$D;worldgennext.fast.gpu=off;worldgennext.parallelStructureSteps=false;worldgennext.parallelSurfaceCarvers=false;worldgennext.parallelFeatures=false;worldgennext.asyncChunkSave=false;worldgennext.asyncChunkCompress=false;worldgennext.biomeColumnCache=false;worldgennext.unloadTypeCache=false;worldgennext.fast.rtreeStoreSkip=false;worldgennext.fast.biomeIndex=false;worldgennext.fast.aquiferPrefill=false;worldgennext.fast.orePlacement=false;worldgennext.fast.lazyNoiseWrap=false;worldgennext.fast.uniformBiome=false;worldgennext.fast.cavePlans=false;worldgennext.fast.heightCache=false;worldgennext.asyncIoMailboxBatch=1;worldgennext.asyncGroupCommit=false;worldgennext.asyncChunkLoad=false;worldgennext.parallelMailboxThreads=false;worldgennext.fast.regionChunkCache=false;worldgennext.regionHeaderBatch=false;worldgennext.fast.freshRegionShortcut=false;worldgennext.fast.shapeCache=false;worldgennext.unloadPacing=false;worldgennext.promptTaskRelease=false;worldgennext.bench.productionThreadNames=false;$props" >/dev/null 2>&1
     # shellcheck disable=SC2086
-    powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bench-cps.ps1 -Status "$STATUS" -Label "mg-$name" -RadiusChunks "$RADIUS" \
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bench-cps.ps1 -Status "$STATUS" -Label "${P}mg-$name" -RadiusChunks "$RADIUS" \
         -ModsDir "$MODS/$mods" $args \
         -Properties "$G;$D;$props;$EXTRA" >/dev/null 2>&1
   fi
   local vdigest gdigest vlog glog
-  vdigest=$(ls -t build/bench/mv-"$name"-"$status_lc"-*.digest.txt 2>/dev/null | head -1)
-  gdigest=$(ls -t build/bench/mg-"$name"-"$status_lc"-*.digest.txt 2>/dev/null | head -1)
-  vlog=$(ls -td build/run/bench-mv-"$name"-"$status_lc"-* 2>/dev/null | head -1)/logs/latest.log
-  glog=$(ls -td build/run/bench-mg-"$name"-"$status_lc"-* 2>/dev/null | head -1)/logs/latest.log
+  vdigest=$(ls -t build/bench/"$P"mv-"$name"-"$status_lc"-*.digest.txt 2>/dev/null | head -1)
+  gdigest=$(ls -t build/bench/"$P"mg-"$name"-"$status_lc"-*.digest.txt 2>/dev/null | head -1)
+  vlog=$(ls -td build/run/bench-"$P"mv-"$name"-"$status_lc"-* 2>/dev/null | head -1)/logs/latest.log
+  glog=$(ls -td build/run/bench-"$P"mg-"$name"-"$status_lc"-* 2>/dev/null | head -1)/logs/latest.log
   local comparison="no digests"
   if [ -n "$vdigest" ] && [ -n "$gdigest" ]; then
     comparison=$(python scripts/compare-digests.py "$vdigest" "$gdigest" | tr '\n' ' ')

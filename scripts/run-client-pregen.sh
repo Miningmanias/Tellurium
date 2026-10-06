@@ -38,7 +38,7 @@ printf 'onboardAccessibility:false\nskipMultiplayerWarning:true\ntutorialStep:no
 # CONFIG_TOML=<file>: use that as config/worldgennext.toml in the client (for example one with enabled = false).
 [ -n "${CONFIG_TOML:-}" ] && cp "$CONFIG_TOML" "$run/config/worldgennext.toml"
 # NEOFORGE=<version>: run the client on that NeoForge 21.1.x instead of the one the mod is built against.
-args=(":neoforge-1211:runClient" "--no-daemon" "--console=plain" "-Dworldgennext.candidate.runDir=$run" "-Dworldgennext.prototype.resume=true"
+args=(":${MODULE:-neoforge-1211}:runClient" "--no-daemon" "--console=plain" "-Dworldgennext.candidate.runDir=$run" "-Dworldgennext.prototype.resume=true"
       "-Dworldgennext.client.quickPlay=sp-world" "-Dworldgennext.run.maxHeap=${HEAP:-8G}" "-Dworldgennext.statusOnStop=true"
       "-Dworldgennext.fast.pipelineCacheDir=$root/build/fast-cache")
 # DIGEST=<file.json>: instead of pregenerating, run the benchmark driver at SURFACE status over the matrix's

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.snapshot;
 
+import dev.worldgennext.neoforge.loader.Names;
+
 import dev.worldgennext.frontend.mc1211.SourceNodeSnapshot;
 import dev.worldgennext.frontend.mc1211.DensityNodeLowerer;
 import dev.worldgennext.semantic.program.ProgramNode;
@@ -114,7 +116,7 @@ public final class DensityNodeReader {
         if (++count[0] > MAX_NODES) throw new IllegalArgumentException("Density graph exceeds capture node limit " + MAX_NODES);
         if (active.put(function, Boolean.TRUE) != null) throw new IllegalArgumentException("Cyclic density graph at " + path);
         try {
-            String kind = function.getClass().getSimpleName();
+            String kind = Names.simpleName(function.getClass());
             SourceNodeSnapshot captured;
             if (kind.equals("Constant")) captured = constant(path, number(invoke(function, "value")));
             else if (kind.equals("BeardifierMarker")) captured = node("beardifier", path, Map.of());
@@ -278,7 +280,7 @@ public final class DensityNodeReader {
                                                   IdentityHashMap<DensityFunction, Boolean> active, int[] count) {
         ProgramNode.SplineNode cached = capturedSplines.get(spline);
         if (cached != null) return cached;
-        String kind = spline.getClass().getSimpleName();
+        String kind = Names.simpleName(spline.getClass());
         if (kind.equals("Constant")) {
             var result = new ProgramNode.SplineConstant((float) number(invoke(spline, "value")));
             capturedSplines.put(spline, result);
@@ -368,7 +370,7 @@ public final class DensityNodeReader {
 
     private PositionalRandomFactorySnapshot captureFactory(String fieldName) {
         Object factory = field(randomState, fieldName);
-        String kind = factory.getClass().getSimpleName();
+        String kind = Names.simpleName(factory.getClass());
         if (kind.contains("XoroshiroPositionalRandomFactory")) {
             return PositionalRandomFactorySnapshot.xoroshiro(
                     ((Number) field(factory, "seedLo")).longValue(), ((Number) field(factory, "seedHi")).longValue());
@@ -434,7 +436,7 @@ public final class DensityNodeReader {
     }
 
     private static DensityFunction functionValue(Object target, String method) { return (DensityFunction) invoke(target, method); }
-    private static boolean hasMethod(Object target, String name) { for (Method method : target.getClass().getMethods()) if (method.getName().equals(name) && method.getParameterCount() == 0) return true; return false; }
+    private static boolean hasMethod(Object target, String name) { return Names.hasPublicNoArgMethod(target, name); }
     private static String enumName(Object value) { return value instanceof Enum<?> enumeration ? enumeration.name() : text(value); }
     private static double number(Object value) { return ((Number) value).doubleValue(); }
     private static boolean booleanValue(Object value) { return Boolean.TRUE.equals(value); }
@@ -442,7 +444,7 @@ public final class DensityNodeReader {
 
     private static Object invoke(Object target, String method, Class<?> parameterType, Object argument) {
         try {
-            Method found = target.getClass().getMethod(method, parameterType);
+            Method found = Names.publicMethod(target.getClass(), method, parameterType);
             if (!found.canAccess(target)) found.setAccessible(true);
             return found.invoke(target, argument);
         } catch (ReflectiveOperationException failure) {
@@ -452,7 +454,7 @@ public final class DensityNodeReader {
 
     private static Object invoke(Object target, String method) {
         try {
-            Method found = target.getClass().getMethod(method);
+            Method found = Names.publicMethod(target.getClass(), method);
             if (!found.canAccess(target)) found.setAccessible(true);
             return found.invoke(target);
         } catch (ReflectiveOperationException failure) {
@@ -462,7 +464,7 @@ public final class DensityNodeReader {
 
     private static Object field(Object target, String name) {
         try {
-            Field found = target.getClass().getDeclaredField(name);
+            Field found = Names.declaredField(target.getClass(), name);
             if (!found.canAccess(target)) found.setAccessible(true);
             return found.get(target);
         } catch (ReflectiveOperationException failure) {

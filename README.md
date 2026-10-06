@@ -15,12 +15,13 @@ world. No CUDA: the GPU part runs on Vulkan.
 
 ## Install
 
-1. NeoForge 21.1.176+ for Minecraft 1.21.1, on Java 21: a dedicated server, or
-   the client for singleplayer worlds. On a multiplayer server only the server
-   needs the mod.
+1. Minecraft 1.21.1 on Java 21, with NeoForge 21.1.176+ or with Fabric
+   (loader 0.16+ and Fabric API): a dedicated server, or the client for
+   singleplayer worlds. On a multiplayer server only the server needs the mod.
 2. A GPU with Vulkan and 64-bit float support for the GPU part. Without one
    the mod logs why and keeps the CPU-side improvements.
-3. Put `worldgennext-neoforge-1.21.1-0.2.0.jar` in `mods/`.
+3. Put `worldgennext-neoforge-1.21.1-0.2.0.jar` (NeoForge) or
+   `worldgennext-fabric-1.21.1-0.2.0.jar` (Fabric) in `mods/`.
 4. Recommended: also install ScalableLux.
    Lighting is not part of this mod, and every throughput figure below was
    measured with ScalableLux installed.
@@ -296,7 +297,7 @@ The mod jar is `neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-0.2.0.jar`
 | oracle-and-replay | Isolated corpus API, field-by-field comparator, failure bundles and endpoint baseline contracts |
 | oracle-1211 | Independent original-only NeoForge/Minecraft capture process; no WorldgenNext candidate dependency |
 | neoforge-1211 | Config/lazy-native/snapshot/commit lifecycle composition and loader bootstrap checks |
-| fabric-1211 | Deferred adapter frame; no loadable Fabric release |
+| fabric-1211 | The Fabric build of the same mod: loader glue, one thread-safety mixin, and the name table a released Fabric game needs ([docs/evidence/fabric-port.md](docs/evidence/fabric-port.md)) |
 
 See the module READMEs for runnable diagnostics and detailed API limits. [docs/CONTRACTS.md](docs/CONTRACTS.md) fixes the shared boundaries for contributors.
 

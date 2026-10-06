@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.fast;
 
+import dev.worldgennext.neoforge.loader.Names;
+
 import dev.worldgennext.compiler.jvm.worldgen.DenseNoiseGenerator;
 import dev.worldgennext.compiler.vulkan.fused.FusedGpuBackend;
 import dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler;
@@ -215,7 +217,9 @@ public final class FastNoiseEngine {
                 report(dimension, false, false, "vanilla generation: this world generator uses something the GPU kernels do not support ("
                         + reason(failure) + ")");
                 LOG.warn("{} generates with vanilla code: the GPU kernels do not support this world generator ({})", dimension, reason(failure));
-                LOG.debug("Capture failure for {}", dimension, failure);
+                // -Dworldgennext.fast.traceCapture=true puts the stack trace in the log at the normal level.
+                if (Boolean.getBoolean("worldgennext.fast.traceCapture")) LOG.warn("Capture failure for {}", dimension, failure);
+                else LOG.debug("Capture failure for {}", dimension, failure);
             }
         }
         Thread compiler = new Thread(() -> {
@@ -421,7 +425,7 @@ public final class FastNoiseEngine {
     }
 
     private static float[] beardKernel() throws ReflectiveOperationException {
-        Field field = Beardifier.class.getDeclaredField("BEARD_KERNEL");
+        Field field = Names.declaredField(Beardifier.class, "BEARD_KERNEL");
         field.setAccessible(true);
         return ((float[]) field.get(null)).clone();
     }
@@ -512,7 +516,7 @@ public final class FastNoiseEngine {
     private static final Field STRUCTURE_LEVEL = structureLevelField();
     private static Field structureLevelField() {
         try {
-            Field field = StructureManager.class.getDeclaredField("level");
+            Field field = Names.declaredField(StructureManager.class, "level");
             field.setAccessible(true);
             return field;
         } catch (ReflectiveOperationException failure) {
@@ -564,7 +568,7 @@ public final class FastNoiseEngine {
     private static final Field JUNCTIONS = beardField("junctionIterator");
     private static Field beardField(String name) {
         try {
-            Field field = Beardifier.class.getDeclaredField(name);
+            Field field = Names.declaredField(Beardifier.class, name);
             field.setAccessible(true);
             return field;
         } catch (NoSuchFieldException failure) {

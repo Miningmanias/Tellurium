@@ -1,5 +1,27 @@
 # WorldgenNext status — 2026-10-03
 
+## 2026-10-06 — Fabric 1.21.1
+
+`fabric-1211` builds a Fabric jar from the same source. Loader-specific code
+is confined to `dev.worldgennext.neoforge.loader` (NeoForge: `Loader`,
+`NeoForgeEntry`; Fabric: its own `Loader`, `FabricEntry`, one mixin);
+`loader/Names` translates the Minecraft names the mod reads by reflection for
+a released Fabric game through a table the build writes. Verified: SURFACE
+matrix in the Fabric development environment 15 of 15 identical; the built
+jar on a real Fabric server 40,401 chunks at 2,479 chunks/s with terrain on
+the GPU and no errors; check mode there 7,102 Overworld, 2,809 Nether and
+2,809 End chunks compared with vanilla, none differing. Not done on Fabric:
+a client, save/reopen, kill-recovery, the command walk-through, Distant
+Horizons and Voxy. Evidence: `docs/evidence/fabric-port.md`.
+
+Release check of 3074a1f on NeoForge (`FULL_MATRIX=1 CLIENT=1`): build,
+exactness 18 of 18 contexts, carvers, save/reopen, kill-recovery, console
+commands, singleplayer digest and player tour all passed; two of them were
+first reported as failures by faulty patterns in the script (it expected
+exactly 15 contexts, and a carriage return in the client line), since fixed.
+Also run: mod disabled in the config (generates at vanilla speed), GPU off
+(666 chunks/s), GPU lost mid-run (falls back to the CPU, finishes).
+
 ## 2026-10-06 — Voxy
 
 `compat/VoxyBridge.java`: when Voxy is in the same game as the server

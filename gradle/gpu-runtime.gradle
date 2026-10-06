@@ -1,0 +1,32 @@
+// Applied by each loader's module: nests the Vulkan runtime and LWJGL in the mod jar.
+// ---- Bundled GPU runtime -------------------------------------------------
+// The Vulkan runtime and its LWJGL bindings/natives are nested as plain jars
+// (not jar-in-jar modules) and loaded by GpuRuntimeLoader in an isolated class
+// loader, so they cannot clash with a client's own LWJGL and are present on a
+// dedicated server that has none.
+configurations { gpuRuntime { transitive = false } }
+dependencies {
+    gpuRuntime 'org.lwjgl:lwjgl:3.3.3'
+    gpuRuntime 'org.lwjgl:lwjgl-vulkan:3.3.3'
+    gpuRuntime 'org.lwjgl:lwjgl-shaderc:3.3.3'
+    gpuRuntime 'org.lwjgl:lwjgl:3.3.3:natives-windows'
+    gpuRuntime 'org.lwjgl:lwjgl-shaderc:3.3.3:natives-windows'
+    gpuRuntime 'org.lwjgl:lwjgl:3.3.3:natives-linux'
+    gpuRuntime 'org.lwjgl:lwjgl-shaderc:3.3.3:natives-linux'
+}
+def gpuRuntimeDir = layout.buildDirectory.dir('generated/gpuRuntime')
+tasks.register('stageGpuRuntime', Sync) {
+    def runtimeJar = project(':runtime-vulkan').tasks.named('jar')
+    dependsOn runtimeJar
+    from(configurations.gpuRuntime)
+    from(runtimeJar)
+    into gpuRuntimeDir.map { it.dir('META-INF/worldgennext-gpu') }
+    doLast {
+        def directory = gpuRuntimeDir.get().dir('META-INF/worldgennext-gpu').asFile
+        def names = directory.listFiles().findAll { it.name.endsWith('.jar') }.collect { it.name }.sort()
+        new File(directory, 'index.txt').text = names.join('\n') + '\n'
+    }
+}
+sourceSets.main.resources.srcDir(gpuRuntimeDir)
+tasks.named('processResources') { dependsOn 'stageGpuRuntime' }
+tasks.matching { it.name == 'sourcesJar' }.configureEach { dependsOn 'stageGpuRuntime'; exclude 'META-INF/worldgennext-gpu/**' }

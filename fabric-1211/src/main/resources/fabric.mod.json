@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "worldgennext",
+  "version": "${version}",
+  "name": "WorldgenNext",
+  "description": "Faster chunk generation that produces the same world. Terrain and surface for tested world generators (vanilla, Terralith, Tectonic) are computed on the GPU through Vulkan; structure, carver and feature steps run in parallel; chunks are saved in the background. Includes a pregenerator: /worldgennext pregen start <radius>. Works on dedicated servers and in singleplayer; settings in config/worldgennext.toml; /worldgennext status shows what is active.",
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.worldgennext.neoforge.loader.FabricEntry"]
+  },
+  "mixins": ["worldgennext.mixins.json", "worldgennext.fabric.mixins.json"],
+  "accessWidener": "worldgennext.accesswidener",
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

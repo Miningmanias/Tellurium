@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.threading;
 
+import dev.worldgennext.neoforge.loader.Names;
+
 import com.mojang.serialization.Codec;
 import net.minecraft.Util;
 import net.minecraft.nbt.CompoundTag;
@@ -234,7 +236,7 @@ public final class AsyncSectionEncoding {
 
     private static Field dataField() {
         try {
-            Field field = PalettedContainer.class.getDeclaredField("data");
+            Field field = Names.declaredField(PalettedContainer.class, "data");
             field.setAccessible(true);
             return field;
         } catch (ReflectiveOperationException | RuntimeException failure) {
@@ -248,7 +250,7 @@ public final class AsyncSectionEncoding {
             Object data = DATA.get(container);
             Method accessor = paletteAccessor;
             if (accessor == null) {
-                accessor = data.getClass().getDeclaredMethod("palette");
+                accessor = Names.declaredMethod(data.getClass(), "palette");
                 accessor.setAccessible(true);
                 paletteAccessor = accessor;
             }

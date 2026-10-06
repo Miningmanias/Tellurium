@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.fast;
 
+import dev.worldgennext.neoforge.loader.Loader;
+
 import dev.worldgennext.neoforge.mixin.LevelChunkSectionAccessor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -59,7 +61,7 @@ public final class FastChunkApplier {
                 air[i] = state.isAir();
                 FluidState fluid = state.getFluidState();
                 surfaceFluid[i] = i >= basePaletteSize && !fluid.isEmpty();
-                if (!state.isEmpty()) {
+                if (!Loader.countsAsEmpty(state)) {
                     nonEmpty[i]++;
                     if (state.isRandomlyTicking()) tickingBlock[i]++;
                 }

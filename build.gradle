@@ -14,7 +14,7 @@ def moduleDependencies = [
     'runtime-vulkan':['semantic-core','compiler-vulkan'],
     'oracle-and-replay':['semantic-core','compiler-jvm','compiler-vulkan','material-codec','spatial-data','chunk-engine','frontend-mc1211','runtime-vulkan'],
     'neoforge-1211':['semantic-core','compiler-jvm','material-codec','spatial-data','chunk-engine','frontend-mc1211','runtime-vulkan'],
-    'fabric-1211':['semantic-core','frontend-mc1211']
+    'fabric-1211':['semantic-core','compiler-jvm','material-codec','spatial-data','chunk-engine','frontend-mc1211','runtime-vulkan']
 ]
 subprojects {
     apply plugin: 'java-library'

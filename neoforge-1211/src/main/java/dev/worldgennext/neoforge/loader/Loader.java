@@ -4,6 +4,9 @@ package dev.worldgennext.neoforge.loader;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.Climate;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.fml.ModList;
@@ -37,9 +40,47 @@ public final class Loader {
         return ModList.get().isLoaded(id);
     }
 
+    /** Whether the game runs with other names than the source uses (see {@link Names}).  Not on NeoForge. */
+    public static boolean translatesNames() {
+        return false;
+    }
+
+    public static String simpleName(Class<?> type) {
+        return type.getSimpleName();
+    }
+
+    public static String fieldName(Class<?> owner, String name) {
+        return name;
+    }
+
+    public static List<String> methodNames(Class<?> owner, String name) {
+        return List.of();
+    }
+
     /** The files of all loaded mods, in a stable order. */
     public static List<Path> modFiles() {
         return ModList.get().applyForEachModFileAlphabetical(file -> file.getFilePath()).toList();
+    }
+
+    /**
+     * Whether a chunk section leaves this block state out of its count of non-empty blocks.  NeoForge asks the
+     * block; vanilla asks whether it is air.
+     */
+    public static boolean countsAsEmpty(BlockState state) {
+        return state.isEmpty();
+    }
+
+    /** The temperature modifier the game uses for this biome: on NeoForge the one after biome modifiers. */
+    public static Biome.TemperatureModifier temperatureModifier(Biome biome) {
+        return biome.getModifiedClimateSettings().temperatureModifier();
+    }
+
+    /**
+     * Gives a climate sampler built from another whatever the loader attached to the original.  NeoForge
+     * attaches nothing.
+     */
+    public static Climate.Sampler carryOver(Climate.Sampler original, Climate.Sampler replacement) {
+        return replacement;
     }
 
     /** Called on the server thread at the end of every server tick. */

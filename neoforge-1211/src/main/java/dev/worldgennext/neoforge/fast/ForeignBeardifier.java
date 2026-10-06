@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.fast;
 
+import dev.worldgennext.neoforge.loader.Names;
+
 import net.minecraft.world.level.levelgen.Beardifier;
+import net.minecraft.world.level.levelgen.DensityFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +47,8 @@ final class ForeignBeardifier {
         List<Field> fields = new ArrayList<>();
         for (Field field : Beardifier.class.getDeclaredFields()) {
             if (Modifier.isStatic(field.getModifiers())) continue;
-            if (field.getName().equals("pieceIterator") || field.getName().equals("junctionIterator")) continue;
+            if (field.getName().equals(Names.fieldName(Beardifier.class, "pieceIterator"))
+                    || field.getName().equals(Names.fieldName(Beardifier.class, "junctionIterator"))) continue;
             try {
                 field.setAccessible(true);
                 fields.add(field);
@@ -86,8 +90,8 @@ final class ForeignBeardifier {
         Class<?>[] parameters = method.getParameterTypes();
         boolean onlyNumbers = parameters.length > 0;
         for (Class<?> parameter : parameters) {
-            String name = parameter.getName();
-            if (name.contains("FunctionContext") || name.contains("ContextProvider")) return true;
+            if (DensityFunction.FunctionContext.class.isAssignableFrom(parameter)
+                    || DensityFunction.ContextProvider.class.isAssignableFrom(parameter)) return true;
             if (!parameter.isPrimitive()) onlyNumbers = false;
         }
         return onlyNumbers || parameters.length == 0 && method.getReturnType() == double.class;

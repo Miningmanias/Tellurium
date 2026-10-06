@@ -171,7 +171,7 @@ not a promoted production or numeric/performance gate.
 runtime-vulkan package dev.worldgennext.runtime.vulkan owns LWJGL capabilities, shader compilation, tiny bounded native replay and GPU-smoke report APIs. CPU tests must run without loading Vulkan/native libraries; GPU tests explicitly opt in and strict GPU mode fails on missing capability.
 oracle-and-replay package dev.worldgennext.oracle consumes pinned APIs; synthetic replay must be clearly identified. Record actual compared counts; malformed/failed/mismatched/zero-coverage data cannot pass. CPU replay must not count GPU work.
 neoforge-1211 package dev.worldgennext.neoforge is a loadable diagnostic mod, ID worldgennext, version0.1.0, NeoForge21.1.176, Java21, ModDevGradle2.0.91. No chunk generation interception in v0.1. Include own pure modules in jar and dev runs; do not depend on old mod. Diagnostic commands/status are useful.
-fabric-1211 is a clearly deferred source/API frame, no claimed loadable Fabric artifact.
+fabric-1211 builds the Fabric jar from neoforge-1211's source plus its own loader package (Loader, entry point, one mixin); loader-specific code stays in dev.worldgennext.neoforge.loader, and Minecraft members read by reflection go through loader.Names. What was verified on Fabric is in docs/evidence/fabric-port.md.
 
 ## Worker ownership
 Compiler worker: semantic-core, compiler-jvm, compiler-vulkan, frontend-mc1211.

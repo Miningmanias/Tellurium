@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.runtime;
 
+import dev.worldgennext.neoforge.loader.Names;
+
 import dev.worldgennext.compiler.jvm.worldgen.DenseNoiseGenerator;
 import dev.worldgennext.compiler.jvm.worldgen.AquiferEvaluator;
 import dev.worldgennext.material.chunk.BlockStateTable;
@@ -492,7 +494,7 @@ public final class MinecraftCpuCandidate {
             Class<?> type = target.getClass();
             while (type != null) {
                 try {
-                    var value = type.getDeclaredField(name);
+                    var value = Names.declaredField(type, name);
                     value.setAccessible(true);
                     return value.get(target);
                 } catch (NoSuchFieldException ignored) {

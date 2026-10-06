@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.fast;
 
+import dev.worldgennext.neoforge.loader.Names;
+
+import dev.worldgennext.neoforge.loader.Loader;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -109,10 +113,10 @@ public final class FastSurfaceCapture {
             if (biome == null) continue;
             ResourceKey<Biome> key = biomes.getResourceKey(biome).orElse(null);
             temperatures[id] = biome.getBaseTemperature();
-            int flags = biome.getModifiedClimateSettings().temperatureModifier() == Biome.TemperatureModifier.FROZEN
+            int flags = Loader.temperatureModifier(biome) == Biome.TemperatureModifier.FROZEN
                     ? SurfaceProgram.BIOME_FROZEN_MODIFIER : 0;
-            if (biome.getModifiedClimateSettings().temperatureModifier() != Biome.TemperatureModifier.FROZEN
-                    && biome.getModifiedClimateSettings().temperatureModifier() != Biome.TemperatureModifier.NONE) {
+            if (Loader.temperatureModifier(biome) != Biome.TemperatureModifier.FROZEN
+                    && Loader.temperatureModifier(biome) != Biome.TemperatureModifier.NONE) {
                 throw new UnsupportedSurfaceException("Unknown temperature modifier on biome " + key);
             }
             if (key == Biomes.ERODED_BADLANDS) flags |= SurfaceProgram.BIOME_ERODED_BADLANDS;
@@ -373,7 +377,7 @@ public final class FastSurfaceCapture {
     }
 
     private static PositionalRandomFactorySnapshot factory(Object factory) {
-        String kind = factory.getClass().getSimpleName();
+        String kind = Names.simpleName(factory.getClass());
         if (kind.contains("XoroshiroPositionalRandomFactory")) {
             return PositionalRandomFactorySnapshot.xoroshiro(
                     ((Number) field(factory, "seedLo")).longValue(), ((Number) field(factory, "seedHi")).longValue());
@@ -405,7 +409,7 @@ public final class FastSurfaceCapture {
 
     private static Object field(Object target, String name) {
         try {
-            Field found = target.getClass().getDeclaredField(name);
+            Field found = Names.declaredField(target.getClass(), name);
             found.setAccessible(true);
             return found.get(target);
         } catch (ReflectiveOperationException failure) {
@@ -415,7 +419,7 @@ public final class FastSurfaceCapture {
 
     private static Object staticField(Class<?> owner, String name) {
         try {
-            Field found = owner.getDeclaredField(name);
+            Field found = Names.declaredField(owner, name);
             found.setAccessible(true);
             return found.get(null);
         } catch (ReflectiveOperationException failure) {

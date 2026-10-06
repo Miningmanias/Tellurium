@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "dev.worldgennext.neoforge.loader.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "StructurePaletteCacheMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

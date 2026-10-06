@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.fast;
 
+import dev.worldgennext.neoforge.loader.Names;
+
 import net.minecraft.world.level.biome.Climate;
 
 import java.lang.reflect.Array;
@@ -157,7 +159,7 @@ public final class ColumnBiomeIndex {
         maxs.add(max);
         kids.add(null);
         values.add(null);
-        String kind = node.getClass().getSimpleName();
+        String kind = Names.simpleName(node.getClass());
         if (kind.equals("Leaf")) {
             kids.set(index, new int[0]);
             values.set(index, field(node.getClass(), "value").get(node));
@@ -174,7 +176,7 @@ public final class ColumnBiomeIndex {
     }
 
     private static Field field(Class<?> owner, String name) throws ReflectiveOperationException {
-        Field field = owner.getDeclaredField(name);
+        Field field = Names.declaredField(owner, name);
         field.setAccessible(true);
         return field;
     }

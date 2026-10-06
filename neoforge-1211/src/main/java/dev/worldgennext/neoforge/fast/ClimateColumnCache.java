@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.fast;
 
+import dev.worldgennext.neoforge.loader.Loader;
+
 import dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler;
 import dev.worldgennext.semantic.program.ProgramNode;
 import dev.worldgennext.semantic.snapshot.WorldgenSnapshot;
@@ -100,14 +102,14 @@ public final class ClimateColumnCache {
     public static Climate.Sampler wrap(Climate.Sampler sampler, Blender blender, RandomState randomState, ChunkAccess chunk) {
         boolean[] columnOnly = COLUMN_ONLY.get(randomState);
         if (columnOnly == null || blender != Blender.empty()) return sampler;
-        return new Climate.Sampler(
+        return Loader.carryOver(sampler, new Climate.Sampler(
                 columnOnly[0] ? new PerColumn(sampler.temperature()) : sampler.temperature(),
                 columnOnly[1] ? new PerColumn(sampler.humidity()) : sampler.humidity(),
                 columnOnly[2] ? new PerColumn(sampler.continentalness()) : sampler.continentalness(),
                 columnOnly[3] ? new PerColumn(sampler.erosion()) : sampler.erosion(),
                 columnOnly[4] ? new PerColumn(sampler.depth()) : sampler.depth(),
                 columnOnly[5] ? new PerColumn(sampler.weirdness()) : sampler.weirdness(),
-                sampler.spawnTarget());
+                sampler.spawnTarget()));
     }
 
     /** One value per quart column of the chunk being filled; used by a single thread. */

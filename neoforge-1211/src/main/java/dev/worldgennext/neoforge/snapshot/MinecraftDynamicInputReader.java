@@ -43,7 +43,7 @@ public final class MinecraftDynamicInputReader {
     }
 
     private static String dataPackHash(MinecraftServer server) {
-        ResourceManager resources = server.getServerResources().resourceManager();
+        ResourceManager resources = server.getResourceManager();
         synchronized (DATA_PACK_HASHES) {
             String existing = DATA_PACK_HASHES.get(resources);
             if (existing != null) return existing;

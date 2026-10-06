@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **629**, plus this generated index.
+Indexed project files: **641**, plus this generated index.
 
 ## semantic-core
 
@@ -443,6 +443,9 @@ Minecraft snapshot/runtime composition and bootstrap tests.
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/OrePlacementVerifier.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/OrePlacementVerifier.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/UniformBiomeLookup.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/fast/UniformBiomeLookup.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/legacy/StagedRoute.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/legacy/StagedRoute.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/loader/Loader.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/loader/Loader.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/loader/Names.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/loader/Names.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/loader/NeoForgeEntry.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/loader/NeoForgeEntry.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/BiomeManagerUniformMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/BiomeManagerUniformMixin.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/BlockableEventLoopAccessor.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/BlockableEventLoopAccessor.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/BlockShapeCacheMixin.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/mixin/BlockShapeCacheMixin.java) | Implementation or explicit public contract |
@@ -569,6 +572,12 @@ Deferred loader frame.
 | --- | --- |
 | [fabric-1211/build.gradle](../fabric-1211/build.gradle) | Build configuration/tooling |
 | [fabric-1211/README.md](../fabric-1211/README.md) | Documentation |
+| [fabric-1211/src/main/java/dev/worldgennext/neoforge/loader/FabricEntry.java](../fabric-1211/src/main/java/dev/worldgennext/neoforge/loader/FabricEntry.java) | Implementation or explicit public contract |
+| [fabric-1211/src/main/java/dev/worldgennext/neoforge/loader/Loader.java](../fabric-1211/src/main/java/dev/worldgennext/neoforge/loader/Loader.java) | Implementation or explicit public contract |
+| [fabric-1211/src/main/java/dev/worldgennext/neoforge/loader/mixin/StructurePaletteCacheMixin.java](../fabric-1211/src/main/java/dev/worldgennext/neoforge/loader/mixin/StructurePaletteCacheMixin.java) | Implementation or explicit public contract |
+| [fabric-1211/src/main/resources/fabric.mod.json](../fabric-1211/src/main/resources/fabric.mod.json) | Packaged metadata/resource |
+| [fabric-1211/src/main/resources/worldgennext.accesswidener](../fabric-1211/src/main/resources/worldgennext.accesswidener) | Packaged metadata/resource |
+| [fabric-1211/src/main/resources/worldgennext.fabric.mixins.json](../fabric-1211/src/main/resources/worldgennext.fabric.mixins.json) | Packaged metadata/resource |
 
 ## Project tooling, documentation and evidence
 
@@ -597,6 +606,7 @@ Deferred loader frame.
 | [docs/evidence/comparison-c2me.md](../docs/evidence/comparison-c2me.md) | Documentation |
 | [docs/evidence/comparison-distant-horizons.md](../docs/evidence/comparison-distant-horizons.md) | Documentation |
 | [docs/evidence/comparison-voxy.md](../docs/evidence/comparison-voxy.md) | Documentation |
+| [docs/evidence/fabric-port.md](../docs/evidence/fabric-port.md) | Documentation |
 | [docs/evidence/throughput-fused-gpu.md](../docs/evidence/throughput-fused-gpu.md) | Documentation |
 | [docs/evidence/v0.1-cpu-replay.json](../docs/evidence/v0.1-cpu-replay.json) | Tooling, data or provenance |
 | [docs/evidence/v0.1-cpu-tests.json](../docs/evidence/v0.1-cpu-tests.json) | Tooling, data or provenance |
@@ -641,6 +651,7 @@ Deferred loader frame.
 | [docs/v0.2/TESTS.md](../docs/v0.2/TESTS.md) | Documentation |
 | [docs/v0.2/WORK_PACKAGES.json](../docs/v0.2/WORK_PACKAGES.json) | Tooling, data or provenance |
 | [docs/V0.2-PLAN.md](../docs/V0.2-PLAN.md) | Documentation |
+| [gradle/gpu-runtime.gradle](../gradle/gpu-runtime.gradle) | Build configuration/tooling |
 | [gradle/wrapper/gradle-wrapper.jar](../gradle/wrapper/gradle-wrapper.jar) | Tooling, data or provenance |
 | [gradle/wrapper/gradle-wrapper.properties](../gradle/wrapper/gradle-wrapper.properties) | Build configuration/tooling |
 | [gradle.properties](../gradle.properties) | Build configuration/tooling |
@@ -690,6 +701,7 @@ Deferred loader frame.
 | [scripts/run-prototype-cpu-live.ps1](../scripts/run-prototype-cpu-live.ps1) | Tooling, data or provenance |
 | [scripts/summarize-tests.py](../scripts/summarize-tests.py) | Tooling, data or provenance |
 | [scripts/test-installed-commands.sh](../scripts/test-installed-commands.sh) | Tooling, data or provenance |
+| [scripts/test-installed-fabric.sh](../scripts/test-installed-fabric.sh) | Tooling, data or provenance |
 | [scripts/test-installed-mod.ps1](../scripts/test-installed-mod.ps1) | Tooling, data or provenance |
 | [scripts/test-worldgen-mods.py](../scripts/test-worldgen-mods.py) | Tooling, data or provenance |
 | [scripts/tests/FocusedJUnitRunner.java](../scripts/tests/FocusedJUnitRunner.java) | Tooling, data or provenance |

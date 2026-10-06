@@ -34,7 +34,9 @@ if ($ModsDir) {
     Get-ChildItem -LiteralPath (Join-Path $repoRoot $ModsDir) -Filter '*.jar' | Copy-Item -Destination $mods
 }
 
-$gradleArgs = @(':neoforge-1211:runServer', '--no-daemon', '--console=plain',
+# $env:MODULE picks another loader's module (fabric-1211).
+$module = if ($env:MODULE) { $env:MODULE } else { 'neoforge-1211' }
+$gradleArgs = @(":${module}:runServer", '--no-daemon', '--console=plain',
     "-Dworldgennext.candidate.runDir=$runDir",
     "-Dworldgennext.candidate.seed=$Seed",
     "-Dworldgennext.run.maxHeap=$MaxHeap",

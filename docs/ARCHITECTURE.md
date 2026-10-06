@@ -21,7 +21,7 @@ flowchart TD
   frontend --> neo[neoforge-1211]
   cpu --> neo
   engine --> neo
-  frontend --> fabric[fabric-1211 deferred]
+  neo --> fabric[fabric-1211: same source, Fabric loader glue]
 ```
 
 Arrows mean dependency inputs, not claims that a live Minecraft generation pipeline is installed. The semantic subset has no noise stack, aquifers or ore generator yet. The NeoForge entrypoint is diagnostic and leaves generation to the original game.

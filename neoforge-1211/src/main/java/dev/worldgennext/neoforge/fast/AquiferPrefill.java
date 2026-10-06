@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.fast;
 
+import dev.worldgennext.neoforge.loader.Names;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -36,7 +38,7 @@ public final class AquiferPrefill {
 
     private static Field field(String name) {
         try {
-            Field field = Aquifer.NoiseBasedAquifer.class.getDeclaredField(name);
+            Field field = Names.declaredField(Aquifer.NoiseBasedAquifer.class, name);
             field.setAccessible(true);
             return field;
         } catch (ReflectiveOperationException | RuntimeException failure) {

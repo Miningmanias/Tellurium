@@ -17,7 +17,7 @@ cp "$MODS"/*.jar "$run/mods/" 2>/dev/null
 [ -n "${CONFIG:-}" ] && cp "$CONFIG" "$run/config/worldgennext.toml"
 resume=()
 [ -n "${RUN:-}" ] && resume=("-Dworldgennext.prototype.resume=true")
-args=("${resume[@]}" ":neoforge-1211:runServer" "--no-daemon" "--console=plain" "-Dworldgennext.candidate.runDir=$run" "-Dworldgennext.candidate.seed=0"
+args=("${resume[@]}" ":${MODULE:-neoforge-1211}:runServer" "--no-daemon" "--console=plain" "-Dworldgennext.candidate.runDir=$run" "-Dworldgennext.candidate.seed=0"
       "-Dworldgennext.run.maxHeap=16G" "-Dworldgennext.pregen.autostart=$RADIUS" "-Dworldgennext.pregen.stopServerWhenDone=true"
       "-Dworldgennext.statusOnStop=true" "-Dworldgennext.fast.pipelineCacheDir=$root/build/fast-cache")
 [ -n "${NEOFORGE:-}" ] && args+=("-Pworldgennext.neoforge=$NEOFORGE")

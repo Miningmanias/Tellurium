@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.snapshot;
 
+import dev.worldgennext.neoforge.loader.Names;
+
 import dev.worldgennext.semantic.snapshot.BeardifierSnapshot;
 import dev.worldgennext.semantic.snapshot.StructureBlendSnapshot;
 
@@ -94,7 +96,7 @@ public final class StructureBlendReader {
         Object consumer = Proxy.newProxyInstance(
                 consumerType.getClassLoader() == null ? StructureBlendReader.class.getClassLoader() : consumerType.getClassLoader(),
                 new Class<?>[]{consumerType}, (proxy, called, arguments) -> {
-                    if (called.getName().equals("consume") && arguments != null && arguments.length == 3) {
+                    if (Names.isNamed(called, consumerType, "consume") && arguments != null && arguments.length == 3) {
                         samples.add(new StructureBlendSnapshot.HeightSample(
                                 ((Number) arguments[0]).intValue(), ((Number) arguments[1]).intValue(),
                                 ((Number) arguments[2]).doubleValue()));
@@ -115,7 +117,7 @@ public final class StructureBlendReader {
         Object consumer = Proxy.newProxyInstance(
                 consumerType.getClassLoader() == null ? StructureBlendReader.class.getClassLoader() : consumerType.getClassLoader(),
                 new Class<?>[]{consumerType}, (proxy, called, arguments) -> {
-                    if (called.getName().equals("consume") && arguments != null && arguments.length == 4) {
+                    if (Names.isNamed(called, consumerType, "consume") && arguments != null && arguments.length == 4) {
                         samples.add(new StructureBlendSnapshot.DensitySample(
                                 ((Number) arguments[0]).intValue(), ((Number) arguments[1]).intValue(),
                                 ((Number) arguments[2]).intValue(), ((Number) arguments[3]).doubleValue()));
@@ -203,7 +205,7 @@ public final class StructureBlendReader {
         Class<?> type = start;
         while (type != null) {
             for (Method candidate : type.getDeclaredMethods()) {
-                if (candidate.getName().equals(name) && candidate.getParameterCount() == parameterCount) {
+                if (Names.isNamed(candidate, type, name) && candidate.getParameterCount() == parameterCount) {
                     candidate.setAccessible(true);
                     return candidate;
                 }
@@ -217,7 +219,7 @@ public final class StructureBlendReader {
         Class<?> type = target.getClass();
         while (type != null) {
             try {
-                var field = type.getDeclaredField(name);
+                var field = Names.declaredField(type, name);
                 field.setAccessible(true);
                 return field.get(target);
             } catch (NoSuchFieldException ignored) {
@@ -233,7 +235,7 @@ public final class StructureBlendReader {
         Class<?> type = target.getClass();
         while (type != null) {
             try {
-                var field = type.getDeclaredField(name);
+                var field = Names.declaredField(type, name);
                 field.setAccessible(true);
                 return field.get(target);
             } catch (NoSuchFieldException ignored) {

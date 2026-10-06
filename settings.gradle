@@ -1,4 +1,4 @@
-pluginManagement { repositories { gradlePluginPortal(); maven { url = 'https://maven.neoforged.net/releases' } } }
+pluginManagement { repositories { gradlePluginPortal(); maven { url = 'https://maven.neoforged.net/releases' }; maven { url = 'https://maven.fabricmc.net/' } } }
 // Source distributions need these files. Gradle requires default-exclude changes in settings.
 org.apache.tools.ant.DirectoryScanner.removeDefaultExclude('**/.gitignore')
 org.apache.tools.ant.DirectoryScanner.removeDefaultExclude('**/.gitattributes')

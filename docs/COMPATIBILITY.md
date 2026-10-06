@@ -5,6 +5,14 @@ RTX 5070 Ti), each mod at its newest NeoForge 1.21.1 release on Modrinth that
 day, with ScalableLux. Reproduce with `python scripts/test-worldgen-mods.py`
 (it downloads the mods, verifies their hashes and runs each group).
 
+## Loaders
+
+NeoForge 21.1.176+ and Fabric (loader 0.16+, Fabric API) for Minecraft 1.21.1.
+The table below was produced on NeoForge. On Fabric the exactness matrix was
+run with the Fabric builds of Terralith, Tectonic and Lithostitched (15 of 15
+contexts identical) and nothing else from the table was repeated; see
+`docs/evidence/fabric-port.md`.
+
 ## How to read the table
 
 Each group ran on a fresh dev server with `gpu.mode = "check"` and the built-in

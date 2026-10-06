@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.runtime;
 
+import dev.worldgennext.neoforge.loader.Names;
+
 import dev.worldgennext.material.chunk.BlockStateTable;
 import dev.worldgennext.material.chunk.ChunkNoiseResult;
 import dev.worldgennext.semantic.snapshot.BlockStateDescriptor;
@@ -257,7 +259,7 @@ public final class MinecraftChunkApplier {
             Class<?> current = target.getClass();
             while (current != null && field == null) {
                 try {
-                    field = current.getDeclaredField("heightmaps");
+                    field = Names.declaredField(current, "heightmaps");
                 } catch (NoSuchFieldException ignored) {
                     current = current.getSuperclass();
                 }

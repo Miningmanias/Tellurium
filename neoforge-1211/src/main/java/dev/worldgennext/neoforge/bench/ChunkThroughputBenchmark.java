@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.bench;
 
+import dev.worldgennext.neoforge.loader.Names;
+
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkLevel;
 import net.minecraft.server.level.ServerChunkCache;
@@ -253,7 +255,7 @@ public final class ChunkThroughputBenchmark {
         // work, unlike MinecraftServer tasks, which wait for tick boundaries while the server is behind.
         java.util.concurrent.Executor chunkExecutor = server;
         try {
-            java.lang.reflect.Field field = ServerChunkCache.class.getDeclaredField("mainThreadProcessor");
+            java.lang.reflect.Field field = Names.declaredField(ServerChunkCache.class, "mainThreadProcessor");
             field.setAccessible(true);
             chunkExecutor = (java.util.concurrent.Executor) field.get(cache);
         } catch (ReflectiveOperationException | RuntimeException unavailable) {
@@ -347,10 +349,10 @@ public final class ChunkThroughputBenchmark {
     private String holderDiagnostics() {
         try {
             var chunkMap = level.getChunkSource().chunkMap;
-            java.lang.reflect.Field dropField = net.minecraft.server.level.ChunkMap.class.getDeclaredField("toDrop");
+            java.lang.reflect.Field dropField = Names.declaredField(net.minecraft.server.level.ChunkMap.class, "toDrop");
             dropField.setAccessible(true);
             var toDrop = (it.unimi.dsi.fastutil.longs.LongSet) dropField.get(chunkMap);
-            java.lang.reflect.Field updatingField = net.minecraft.server.level.ChunkMap.class.getDeclaredField("updatingChunkMap");
+            java.lang.reflect.Field updatingField = Names.declaredField(net.minecraft.server.level.ChunkMap.class, "updatingChunkMap");
             updatingField.setAccessible(true);
             var updating = (it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap<?>) updatingField.get(chunkMap);
             int referenced = 0;
@@ -365,7 +367,7 @@ public final class ChunkThroughputBenchmark {
                     else unloadedLevels++;
                 }
             }
-            java.lang.reflect.Field ticketsField = net.minecraft.server.level.DistanceManager.class.getDeclaredField("tickets");
+            java.lang.reflect.Field ticketsField = Names.declaredField(net.minecraft.server.level.DistanceManager.class, "tickets");
             ticketsField.setAccessible(true);
             var tickets = (it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap<?>) ticketsField.get(chunkMap.getDistanceManager());
             java.util.Map<String, Integer> byType = new java.util.TreeMap<>();
@@ -386,10 +388,10 @@ public final class ChunkThroughputBenchmark {
         Thread thread = new Thread(() -> {
             java.util.Map<?, ?> pendingWrites = null;
             try {
-                java.lang.reflect.Field workerField = net.minecraft.world.level.chunk.storage.ChunkStorage.class.getDeclaredField("worker");
+                java.lang.reflect.Field workerField = Names.declaredField(net.minecraft.world.level.chunk.storage.ChunkStorage.class, "worker");
                 workerField.setAccessible(true);
                 Object worker = workerField.get(level.getChunkSource().chunkMap);
-                java.lang.reflect.Field pending = worker.getClass().getDeclaredField("pendingWrites");
+                java.lang.reflect.Field pending = Names.declaredField(worker.getClass(), "pendingWrites");
                 pending.setAccessible(true);
                 pendingWrites = (java.util.Map<?, ?>) pending.get(worker);
             } catch (ReflectiveOperationException | RuntimeException unavailable) {
