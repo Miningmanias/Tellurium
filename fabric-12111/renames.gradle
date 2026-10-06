@@ -1,0 +1,13 @@
+// Minecraft names that changed by 1.21.11 without anything else changing, as regular expression -> replacement.
+// Applied by the Fabric and the NeoForge module of this version (see portRenames in gradle/fabric-port.gradle).
+ext.portRenames = [
+    // ResourceLocation became Identifier, and ResourceKey.location() with it.
+    (/\bResourceLocation\b/): 'Identifier',
+    (/\.location\(\)/): '.identifier()',
+    // The same method, where the mod calls it by name.
+    (/invoke\(value\.get\(\), "location"\)/): 'invoke(value.get(), "identifier")',
+    // Util moved.
+    (/\bnet\.minecraft\.Util\b/): 'net.minecraft.util.Util',
+    // ChunkStorage is gone; what the benchmark reads from it (the IO worker) is in its replacement.
+    (/\bchunk\.storage\.ChunkStorage\b/): 'chunk.storage.SimpleRegionStorage',
+]

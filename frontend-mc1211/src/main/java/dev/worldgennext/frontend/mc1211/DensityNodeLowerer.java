@@ -68,6 +68,16 @@ public final class DensityNodeLowerer {
                 if ((kind.equals("half_negative") || kind.equals("quarter_negative") || kind.equals("squeeze")) && source.type() != ValueType.FP32 && source.type() != ValueType.FP64) throw new IllegalArgumentException(kind + " requires floating-point input");
                 yield new ProgramNode.Unary(canonicalUnary(kind), source.type(), source.domain(), children.get(0));
             }
+            case "find_top_surface" -> {
+                // Three nested binary nodes under operation names of their own, which only the fused compiler
+                // reads, and only at the router's preliminary-surface root; everything else refuses them.
+                requireArity(kind, source, 2); requireFloating(source.type(), kind); requireMatchingChildren(source, children, kind);
+                var lowerBound = new ProgramNode.Constant(source.type(), parseValue(source.type(), Integer.toString(Integer.parseInt(source.parameters().get("lowerBound")))), source.domain());
+                var cellHeight = new ProgramNode.Constant(source.type(), parseValue(source.type(), Integer.toString(Integer.parseInt(source.parameters().get("cellHeight")))), source.domain());
+                var step = new ProgramNode.Binary("find_top_surface_step", source.type(), source.domain(), lowerBound, cellHeight);
+                var from = new ProgramNode.Binary("find_top_surface_from", source.type(), source.domain(), children.get(1), step);
+                yield new ProgramNode.Binary("find_top_surface", source.type(), source.domain(), children.get(0), from);
+            }
             case "range" -> {
                 requireArity(kind, source, 3); requireMatchingChildren(source, children.subList(1, 3), kind);
                 if (source.parameters().containsKey("minInclusive") || source.parameters().containsKey("maxExclusive")) {

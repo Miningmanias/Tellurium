@@ -2,6 +2,15 @@
 package dev.worldgennext.neoforge.version;
 
 import it.unimi.dsi.fastutil.longs.LongSet;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.util.BitStorage;
+import net.minecraft.util.SimpleBitStorage;
+import net.minecraft.util.ZeroBitStorage;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.chunk.PalettedContainer;
+import net.minecraft.world.level.levelgen.DensityFunction;
+import net.minecraft.world.level.levelgen.NoiseRouter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -23,6 +32,8 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.storage.SerializableChunkData;
 
 import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -41,6 +52,11 @@ public final class Version {
     /** The rule this Minecraft version uses to mark aquifer blocks for a fluid update. */
     public static dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler.FluidUpdates fluidUpdates() {
         return dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler.FluidUpdates.WHERE_NEIGHBOURS_DIFFER;
+    }
+
+    /** Where this Minecraft version takes a column's preliminary surface from, and its aquifer rule with it. */
+    public static dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler.PreliminarySurface preliminarySurfaceKind() {
+        return dev.worldgennext.compiler.vulkan.fused.FusedNoiseCompiler.PreliminarySurface.DENSITY_SEARCH;
     }
 
     /** The chunk as the game would write it to disk. */
@@ -157,5 +173,48 @@ public final class Version {
     /** Sets a block in a chunk the way world generation does: not as a piston move. */
     public static void setBlock(ChunkAccess chunk, BlockPos position, BlockState state) {
         chunk.setBlockState(position, state, false);
+    }
+
+    /**
+     * The router function the preliminary surface comes from: until 1.21.8 a density, searched from the top
+     * for the first value above 0.390625; since 1.21.9 a function that is the level itself.
+     */
+    public static DensityFunction preliminarySurface(NoiseRouter router) {
+        return router.initialDensityWithoutJaggedness();
+    }
+
+    /** Where a pregeneration without a centre starts. */
+    public static BlockPos spawn(ServerLevel level) {
+        return level.getSharedSpawnPos();
+    }
+
+    /** Operators, the console, and the owner of a singleplayer world (who has no operator level without cheats). */
+    public static boolean mayUseCommands(CommandSourceStack source) {
+        if (source.hasPermission(2)) return true;
+        return source.getEntity() instanceof ServerPlayer player && source.getServer().isSingleplayerOwner(player.getGameProfile());
+    }
+
+    /**
+     * A chunk section's block states from a palette and the indices into it, packed as the game packs them
+     * at the given width (null at width 0: one state).
+     */
+    public static PalettedContainer<BlockState> blockStates(List<BlockState> palette, int requestedBits, int storageBits, long[] packedIndices) {
+        BitStorage storage = storageBits == 0 ? new ZeroBitStorage(4096) : new SimpleBitStorage(storageBits, 4096, packedIndices);
+        return new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY, PalettedContainer.Strategy.SECTION_STATES,
+                PalettedContainer.Strategy.SECTION_STATES.getConfiguration(Block.BLOCK_STATE_REGISTRY, requestedBits), storage, palette);
+    }
+
+    /** A chunk section's block states, all air. */
+    public static PalettedContainer<BlockState> airBlockStates() {
+        return new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES);
+    }
+
+    /** Beardifier's fields with the structure pieces and the jigsaw junctions, and all the fields that are its own. */
+    public static final String BEARD_PIECES = "pieceIterator", BEARD_JUNCTIONS = "junctionIterator";
+    public static final List<String> BEARD_OWN_FIELDS = List.of(BEARD_PIECES, BEARD_JUNCTIONS);
+
+    /** The entries of one of those two fields, from the first. */
+    public static Iterator<?> beardEntries(Object field) {
+        return (Iterator<?>) field;
     }
 }

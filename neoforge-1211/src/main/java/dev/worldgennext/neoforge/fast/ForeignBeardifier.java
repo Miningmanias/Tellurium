@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.fast;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import dev.worldgennext.neoforge.loader.Names;
 
 import net.minecraft.world.level.levelgen.Beardifier;
@@ -47,8 +49,7 @@ final class ForeignBeardifier {
         List<Field> fields = new ArrayList<>();
         for (Field field : Beardifier.class.getDeclaredFields()) {
             if (Modifier.isStatic(field.getModifiers())) continue;
-            if (field.getName().equals(Names.fieldName(Beardifier.class, "pieceIterator"))
-                    || field.getName().equals(Names.fieldName(Beardifier.class, "junctionIterator"))) continue;
+            if (Version.BEARD_OWN_FIELDS.stream().anyMatch(own -> field.getName().equals(Names.fieldName(Beardifier.class, own)))) continue;
             try {
                 field.setAccessible(true);
                 fields.add(field);

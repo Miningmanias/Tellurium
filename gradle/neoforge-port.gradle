@@ -3,6 +3,7 @@
 //   ext.portMinecraft   the Minecraft version
 //   ext.portNeoForge    the NeoForge version to build against
 //   ext.portParents     modules holding that Minecraft version's files, nearest first
+//   ext.portRenames     plain renames in Minecraft, applied to a copy of the shared source (optional)
 // The mod's code is the 1.21.1 source in neoforge-1211.  What a Minecraft version needs differently is the same
 // on every loader and lives in that version's Fabric module (see gradle/fabric-port.gradle): replacing files
 // under src/main/java and src/main/resources, and removed.txt.  The NeoForge module itself holds the loader
@@ -24,14 +25,34 @@ def replacedBefore = { int layer, String directory, String path ->
 // Files of a parent that belong to its own loader.
 def otherLoaders = ['fabric.mod.json']
 
+// Which Java files of the shared source and the parents are left out.
+def leftOut = { element ->
+    if (element.isDirectory()) return false
+    int layer = layerOf(element.file)
+    return (layer < 0 && element.path in removed) || replacedBefore(layer, 'src/main/java', element.path)
+}
+// portRenames: plain renames in Minecraft, applied to a copy of every file that is not this module's own; the
+// copy is what is compiled (see gradle/fabric-port.gradle).
+def renames = project.findProperty('portRenames') ?: [:]
+if (renames) {
+    tasks.register('assemblePortSources', Sync) {
+        from new File(shared, 'src/main/java')
+        layers.drop(1).each { from new File(it, 'src/main/java') }
+        exclude leftOut
+        filteringCharset = 'UTF-8'
+        filter { String line -> renames.inject(line) { text, entry -> text.replaceAll(entry.key, entry.value) } }
+        inputs.property 'renames', renames.toString()
+        into layout.buildDirectory.dir('portSources/java')
+    }
+}
 sourceSets.main {
     java {
-        srcDir new File(shared, 'src/main/java')
-        layers.drop(1).each { srcDir new File(it, 'src/main/java') }
-        exclude { element ->
-            if (element.isDirectory()) return false
-            int layer = layerOf(element.file)
-            return (layer < 0 && element.path in removed) || replacedBefore(layer, 'src/main/java', element.path)
+        if (renames) {
+            srcDir tasks.named('assemblePortSources')
+        } else {
+            srcDir new File(shared, 'src/main/java')
+            layers.drop(1).each { srcDir new File(it, 'src/main/java') }
+            exclude leftOut
         }
     }
     resources {
@@ -57,11 +78,15 @@ neoForge {
         configureEach {
             loadedMods = [mods.worldgennext]
             // As in neoforge-1211: the launch-time LWJGL artifacts for the GPU runtime in development runs.
-            additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl:3.3.3')
-            additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl-vulkan:3.3.3')
-            additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl-shaderc:3.3.3')
-            additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl:3.3.3:natives-windows')
-            additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl-shaderc:3.3.3:natives-windows')
+            // NeoForge for 1.21.11 has no additional runtime classpath any more (portNoAdditionalClasspath);
+            // there the mod's own nested copy of the runtime is what a development run uses, as a released jar does.
+            if (!project.findProperty('portNoAdditionalClasspath')) {
+                additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl:3.3.3')
+                additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl-vulkan:3.3.3')
+                additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl-shaderc:3.3.3')
+                additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl:3.3.3:natives-windows')
+                additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl-shaderc:3.3.3:natives-windows')
+            }
             jvmArgument '-Dorg.lwjgl.system.stackSize=16384'
         }
         server {

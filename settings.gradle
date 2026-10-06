@@ -3,4 +3,4 @@ pluginManagement { repositories { gradlePluginPortal(); maven { url = 'https://m
 org.apache.tools.ant.DirectoryScanner.removeDefaultExclude('**/.gitignore')
 org.apache.tools.ant.DirectoryScanner.removeDefaultExclude('**/.gitattributes')
 rootProject.name = 'worldgennext'
-include 'semantic-core', 'compiler-jvm', 'compiler-vulkan', 'material-codec', 'spatial-data', 'chunk-engine', 'frontend-mc1211', 'runtime-vulkan', 'oracle-and-replay', 'oracle-1211', 'neoforge-1211', 'fabric-1211', 'fabric-1214', 'fabric-1218', 'neoforge-1218'
+include 'semantic-core', 'compiler-jvm', 'compiler-vulkan', 'material-codec', 'spatial-data', 'chunk-engine', 'frontend-mc1211', 'runtime-vulkan', 'oracle-and-replay', 'oracle-1211', 'neoforge-1211', 'fabric-1211', 'fabric-1214', 'fabric-1218', 'neoforge-1218', 'fabric-12111', 'neoforge-12111'

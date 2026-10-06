@@ -36,6 +36,7 @@ public final class NodeCapabilityRegistry {
         register("quarter_negative", true, "captured negative quarter transform");
         register("squeeze", true, "captured clamped squeeze transform");
         register("clamp", true, "ordered numeric clamp");
+        register("find_top_surface", true, "search for the preliminary surface level (Minecraft 1.21.9)");
         register("range", true, "lazy range branch");
         register("interpolate", true, "explicit interpolation");
         register("marker", true, "explicit marker");

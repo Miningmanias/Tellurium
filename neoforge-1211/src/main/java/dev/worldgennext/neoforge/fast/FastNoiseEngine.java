@@ -295,7 +295,7 @@ public final class FastNoiseEngine {
                                                        FastSurfaceCapture.Captured surface) throws Exception {
         return new FusedNoiseCompiler().compile(new FusedNoiseCompiler.Request(snapshot.router().roots(), snapshot.generatorSettings(),
                 snapshot.randomState().aquiferRandom(), snapshot.randomState().oreRandom(), materialPalette, beardKernel(),
-                surface == null ? null : surface.program(), Version.fluidUpdates()));
+                surface == null ? null : surface.program(), Version.fluidUpdates(), Version.preliminarySurfaceKind()));
     }
 
     /** Captures on the calling (server) thread; the returned job compiles and installs off-thread. */
@@ -487,14 +487,14 @@ public final class FastNoiseEngine {
             if (ForeignBeardifier.affects(beardifier)) return false;
             List<int[]> rigid = new ArrayList<>();
             List<int[]> joints = new ArrayList<>();
-            var pieceIterator = (ObjectListIterator<?>) PIECES.get(beardifier);
+            var pieceIterator = Version.beardEntries(PIECES.get(beardifier));
             while (pieceIterator.hasNext()) {
                 var piece = (Beardifier.Rigid) pieceIterator.next();
                 BoundingBox box = piece.box();
                 rigid.add(new int[]{box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ(),
                         piece.terrainAdjustment().ordinal(), piece.groundLevelDelta()});
             }
-            var junctionIterator = (ObjectListIterator<?>) JUNCTIONS.get(beardifier);
+            var junctionIterator = Version.beardEntries(JUNCTIONS.get(beardifier));
             while (junctionIterator.hasNext()) {
                 var junction = (JigsawJunction) junctionIterator.next();
                 joints.add(new int[]{junction.getSourceX(), junction.getSourceGroundY(), junction.getSourceZ()});
@@ -569,8 +569,8 @@ public final class FastNoiseEngine {
         }
     }
 
-    private static final Field PIECES = beardField("pieceIterator");
-    private static final Field JUNCTIONS = beardField("junctionIterator");
+    private static final Field PIECES = beardField(Version.BEARD_PIECES);
+    private static final Field JUNCTIONS = beardField(Version.BEARD_JUNCTIONS);
     private static Field beardField(String name) {
         try {
             Field field = Names.declaredField(Beardifier.class, name);

@@ -192,10 +192,8 @@ public final class FastChunkApplier {
         for (BlockState state : ordered) values.add(state);
         int requested = Mth.ceillog2(distinct);
         int storageBits = requested == 0 ? 0 : requested <= 4 ? 4 : requested;
-        BitStorage storage;
-        if (storageBits == 0) {
-            storage = new ZeroBitStorage(4096);
-        } else {
+        long[] packedIndices = null;
+        if (storageBits != 0) {
             int perLong = 64 / storageBits;
             long[] raw = new long[(4096 + perLong - 1) / perLong];
             int at = 0;
@@ -205,16 +203,12 @@ public final class FastChunkApplier {
                 for (int shift = 0; at < end; at++, shift += storageBits) packed |= (long) indices[at] << shift;
                 raw[word] = packed;
             }
-            storage = new SimpleBitStorage(storageBits, 4096, raw);
+            packedIndices = raw;
         }
-        PalettedContainer<BlockState> states = new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY,
-                PalettedContainer.Strategy.SECTION_STATES,
-                PalettedContainer.Strategy.SECTION_STATES.getConfiguration(Block.BLOCK_STATE_REGISTRY, requested),
-                storage, values);
+        PalettedContainer<BlockState> states = Version.blockStates(values, requested, storageBits, packedIndices);
         // The section constructor recounts all 4096 entries; build it around a one-state container
         // (counted in constant time), then install the real container with the counts taken above.
-        LevelChunkSection section = new LevelChunkSection(new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY,
-                Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES), biomes);
+        LevelChunkSection section = new LevelChunkSection(Version.airBlockStates(), biomes);
         LevelChunkSectionAccessor access = (LevelChunkSectionAccessor) section;
         access.worldgenNext$setStates(states);
         access.worldgenNext$setNonEmptyBlockCount((short) nonEmpty);

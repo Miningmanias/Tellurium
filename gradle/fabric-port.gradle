@@ -2,6 +2,8 @@
 //   ext.portMinecraft   the Minecraft version
 //   ext.portFabricApi   the Fabric API version
 //   ext.portParents     modules of earlier versions whose files this one also uses, nearest first (optional)
+//   ext.portRenames     plain renames in Minecraft, applied to a copy of the shared source (optional; see below)
+//   ext.portFabricModules  the Fabric API modules to compile against instead of all of Fabric API (optional)
 // The mod's code is the 1.21.1 source in the NeoForge module and the Fabric glue in fabric-1211.  A version's
 // module holds only what that version needs differently, and so do its parents:
 //   src/main/java       files that replace the shared file of the same path
@@ -27,21 +29,48 @@ dependencies {
     minecraft "com.mojang:minecraft:${portMinecraft}"
     mappings loom.officialMojangMappings()
     modImplementation 'net.fabricmc:fabric-loader:0.19.5'
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${portFabricApi}"
+    // portFabricModules: only these modules of Fabric API instead of all of it (for a Fabric API release
+    // whose other modules this Loom cannot set up).
+    def fabricModules = project.findProperty('portFabricModules')
+    if (fabricModules) fabricModules.each { modImplementation fabricApi.module(it, portFabricApi) }
+    else modImplementation "net.fabricmc.fabric-api:fabric-api:${portFabricApi}"
     implementation project(':compiler-vulkan')
 }
 
+// Which Java files of the shared source, the Fabric glue and the parents are left out.
+def leftOut = { element ->
+    if (element.isDirectory()) return false
+    int layer = layerOf(element.file)
+    if (layer < 0 && element.file.toPath().startsWith(shared.toPath())
+            && element.path in ['dev/worldgennext/neoforge/loader/Loader.java', 'dev/worldgennext/neoforge/loader/NeoForgeEntry.java']) return true
+    return (layer < 0 && element.path in removed) || replacedBefore(layer, 'src/main/java', element.path)
+}
+// portRenames: Minecraft names that changed without anything else changing (a class renamed or moved, a
+// method renamed), as regular expression -> replacement.  They are applied line by line to a copy of every
+// file that is not this module's own, and the copy is what is compiled; lines keep their numbers.
+def renames = project.findProperty('portRenames') ?: [:]
+def portSources = layout.buildDirectory.dir('portSources/java')
+if (renames) {
+    tasks.register('assemblePortSources', Sync) {
+        from new File(shared, 'src/main/java')
+        from new File(fabricGlue, 'src/main/java')
+        layers.drop(1).each { from new File(it, 'src/main/java') }
+        exclude leftOut
+        filteringCharset = 'UTF-8'
+        filter { String line -> renames.inject(line) { text, entry -> text.replaceAll(entry.key, entry.value) } }
+        inputs.property 'renames', renames.toString()
+        into portSources
+    }
+}
 sourceSets.main {
     java {
-        srcDir new File(shared, 'src/main/java')
-        srcDir new File(fabricGlue, 'src/main/java')
-        layers.drop(1).each { srcDir new File(it, 'src/main/java') }
-        exclude { element ->
-            if (element.isDirectory()) return false
-            int layer = layerOf(element.file)
-            if (layer < 0 && element.file.toPath().startsWith(shared.toPath())
-                    && element.path in ['dev/worldgennext/neoforge/loader/Loader.java', 'dev/worldgennext/neoforge/loader/NeoForgeEntry.java']) return true
-            return (layer < 0 && element.path in removed) || replacedBefore(layer, 'src/main/java', element.path)
+        if (renames) {
+            srcDir tasks.named('assemblePortSources')
+        } else {
+            srcDir new File(shared, 'src/main/java')
+            srcDir new File(fabricGlue, 'src/main/java')
+            layers.drop(1).each { srcDir new File(it, 'src/main/java') }
+            exclude leftOut
         }
     }
     resources {
@@ -105,7 +134,10 @@ apply from: rootProject.file('gradle/gpu-runtime.gradle')
 // literals in the mod's source, and only those, from the mappings this build uses; loader/Loader reads it.
 def nameTableDir = layout.buildDirectory.dir('generated/nameTable')
 tasks.register('generateNameTable') {
-    def sources = fileTree(new File(shared, 'src/main/java')) { include '**/*.java' } + fileTree(new File(fabricGlue, 'src/main/java')) { include '**/*.java' } + layers.collect { fileTree(new File(it, 'src/main/java')) { include '**/*.java' } }.sum()
+    // With renames the copy is read, so that a renamed class is looked up under its new name.
+    def sources = renames ? fileTree(portSources) { include '**/*.java' } + fileTree('src/main/java') { include '**/*.java' }
+            : fileTree(new File(shared, 'src/main/java')) { include '**/*.java' } + fileTree(new File(fabricGlue, 'src/main/java')) { include '**/*.java' } + layers.collect { fileTree(new File(it, 'src/main/java')) { include '**/*.java' } }.sum()
+    if (renames) dependsOn 'assemblePortSources'
     inputs.files(sources)
     outputs.dir(nameTableDir)
     doLast {

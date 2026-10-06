@@ -53,6 +53,11 @@ final class FusedKernels {
 
     /** Aquifer, ore, material and the five kernel entry points; placed after generated functions. */
     static String kernels(int flatCount, int interpCount, int xzCount, FusedNoiseCompiler.FluidUpdates fluidUpdates) {
+        return kernels(flatCount, interpCount, xzCount, fluidUpdates, FusedNoiseCompiler.PreliminarySurface.DENSITY_SEARCH);
+    }
+
+    static String kernels(int flatCount, int interpCount, int xzCount, FusedNoiseCompiler.FluidUpdates fluidUpdates,
+                          FusedNoiseCompiler.PreliminarySurface preliminarySurface) {
         StringBuilder s = new StringBuilder();
         StringBuilder columnStores = new StringBuilder();
         for (int f = 0; f < flatCount; f++) {
@@ -70,6 +75,7 @@ final class FusedKernels {
                     .append("_col(p);").append(System.lineSeparator()).append("            ");
         }
         String body = fluidUpdates == FusedNoiseCompiler.FluidUpdates.WHERE_NEIGHBOURS_DIFFER ? comparingFluidUpdates(KERNEL_BODY) : KERNEL_BODY;
+        if (preliminarySurface == FusedNoiseCompiler.PreliminarySurface.LEVEL_FUNCTION) body = skippingAboveSurface(body);
         s.append(body.replace("COLUMN_STORES", columnStores.toString()).replace("CORNER_STORES", cornerStores.toString())
                 .replace("XZ_STORES", xzStores.toString()));
         return s.toString();
@@ -145,6 +151,40 @@ final class FusedKernels {
         }
 
         // Returns palette index, or -1 for the null (solid) result; writes the schedule flag.
+        """);
+    }
+
+    /**
+     * The kernel text with Minecraft 1.21.9's aquifer shortcut: above a level taken from the highest
+     * preliminary surface over the chunk's aquifer grid, a block is the global fluid and no aquifer is looked
+     * at.  The aquifer kernel works that level out once per chunk and leaves it in a spare int of the chunk's
+     * first aquifer cell.  Put in by rewriting the text, as above and for the same reason.
+     */
+    private static String skippingAboveSurface(String body) {
+        body = swap(body, """
+            aquifer[o + 4] = status.y;
+        }
+        #endif
+        """, """
+            aquifer[o + 4] = status.y;
+            if (r == 0) {
+                // The game's range: x and z from the chunk's first aquifer cell to nine blocks into its last, every fourth block.
+                int highest = -2147483647 - 1;
+                for (int qz = 0; qz <= 10; qz++) {
+                    for (int qx = 0; qx <= 10; qx++) {
+                        highest = max(highest, preliminarySurface(gBaseX - 16 + 4 * qx, gBaseZ - 16 + 4 * qz));
+                    }
+                }
+                aquifer[o + 5] = (jfloorDiv(highest + 8 + 12, 12) + 1) * 12 + 10;
+            }
+        }
+        #endif
+        """);
+        return swap(body, """
+            if (!AQUIFERS) return fluidPalette(statusAt(global, p.y));
+        """, """
+            if (!AQUIFERS) return fluidPalette(statusAt(global, p.y));
+            if (p.y > aquifer[int(gChunk) * (9 * AQ_CELLS_Y) * AQ_STRIDE + 5]) return fluidPalette(statusAt(global, p.y));
         """);
     }
 

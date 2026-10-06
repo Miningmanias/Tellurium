@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.snapshot;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import dev.worldgennext.frontend.mc1211.MinecraftSnapshotLowerer;
 import dev.worldgennext.frontend.mc1211.SourceNodeSnapshot;
 import dev.worldgennext.semantic.identity.DynamicInputIdentity;
@@ -101,7 +103,7 @@ public final class MinecraftSnapshotReader {
         roots.put("erosion", reader.capture(router.erosion()));
         roots.put("depth", reader.capture(router.depth()));
         roots.put("ridges", reader.capture(router.ridges()));
-        roots.put("initialDensityWithoutJaggedness", reader.capture(router.initialDensityWithoutJaggedness()));
+        roots.put("initialDensityWithoutJaggedness", reader.capture(Version.preliminarySurface(router)));
         roots.put("finalDensity", reader.capture(router.finalDensity()));
         roots.put("veinToggle", reader.capture(router.veinToggle()));
         roots.put("veinRidged", reader.capture(router.veinRidged()));

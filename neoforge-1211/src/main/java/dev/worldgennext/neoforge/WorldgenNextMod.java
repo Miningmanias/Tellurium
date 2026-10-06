@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -105,7 +107,7 @@ public final class WorldgenNextMod {
             // -Dworldgennext.pregen.autostartDimension=minecraft:the_nether picks another dimension (centred on 0, 0 there).
             String dimension = System.getProperty("worldgennext.pregen.autostartDimension", "").trim();
             ServerLevel target = server.overworld();
-            BlockPos centre = target.getSharedSpawnPos();
+            BlockPos centre = Version.spawn(target);
             if (!dimension.isEmpty()) {
                 target = server.getLevel(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(dimension)));
                 centre = BlockPos.ZERO;
@@ -208,8 +210,7 @@ public final class WorldgenNextMod {
 
     /** Operators, the console, and the owner of a singleplayer world (who has no operator level without cheats). */
     private static boolean mayUse(CommandSourceStack source) {
-        if (source.hasPermission(2)) return true;
-        return source.getEntity() instanceof ServerPlayer player && source.getServer().isSingleplayerOwner(player.getGameProfile());
+        return Version.mayUseCommands(source);
     }
 
     /** Radius is in chunks; the centre is given in blocks, like every other coordinate a player types. */

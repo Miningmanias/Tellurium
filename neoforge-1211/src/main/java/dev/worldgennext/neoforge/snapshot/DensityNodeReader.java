@@ -174,6 +174,16 @@ public final class DensityNodeReader {
                 captured = node(binary, path, Map.of(),
                         capture(functionValue(function, "argument1"), path + "/left", active, count),
                         capture(functionValue(function, "argument2"), path + "/right", active, count));
+            } else if (kind.equals("Mapped") && enumName(invoke(function, "type")).equals("INVERT")) {
+                // Since 1.21.9: transform(value) = 1.0 / value, the typed division node (as for Tectonic's Invert below).
+                captured = node("divide", path, Map.of(), constant(path + "/one", 1.0),
+                        capture(functionValue(function, "input"), path + "/input", active, count));
+            } else if (kind.equals("FindTopSurface")) {
+                // Since 1.21.9: the search the router's preliminary surface level is made of.
+                captured = node("find_top_surface", path,
+                        mapOf("lowerBound", text(invoke(function, "lowerBound")), "cellHeight", text(invoke(function, "cellHeight"))),
+                        capture(functionValue(function, "density"), path + "/density", active, count),
+                        capture(functionValue(function, "upperBound"), path + "/upperBound", active, count));
             } else if (kind.equals("Mapped")) {
                 String mapped = enumName(invoke(function, "type"));
                 String unary = switch (mapped) {

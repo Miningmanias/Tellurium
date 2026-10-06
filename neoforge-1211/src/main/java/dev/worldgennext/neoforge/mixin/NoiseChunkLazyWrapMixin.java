@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.mixin;
 
+import dev.worldgennext.neoforge.version.Version;
+
 import dev.worldgennext.neoforge.fast.LazyMappedDensity;
 import net.minecraft.world.level.levelgen.DensityFunction;
 import net.minecraft.world.level.levelgen.NoiseChunk;
@@ -48,7 +50,7 @@ public abstract class NoiseChunkLazyWrapMixin {
                 worldgenNext$defer(router.erosion(), visitor),
                 worldgenNext$defer(router.depth(), visitor),
                 worldgenNext$defer(router.ridges(), visitor),
-                worldgenNext$defer(router.initialDensityWithoutJaggedness(), visitor),
+                worldgenNext$defer(Version.preliminarySurface(router), visitor),
                 worldgenNext$defer(router.finalDensity(), visitor),
                 worldgenNext$defer(router.veinToggle(), visitor),
                 worldgenNext$defer(router.veinRidged(), visitor),

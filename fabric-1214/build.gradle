@@ -1,4 +1,4 @@
-plugins { id 'fabric-loom' version '1.11.8' }
+plugins { id 'fabric-loom' version '1.13.6' }
 
 base { archivesName = 'worldgennext-fabric-1.21.4' }
 

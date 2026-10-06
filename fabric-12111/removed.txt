@@ -1,0 +1,7 @@
+# Shared 1.21.1 files with no counterpart on 1.21.11 (paths under dev/worldgennext/neoforge/), besides those
+# fabric-1214 lists.
+#
+# ChunkStorage is gone (ChunkMap extends SimpleRegionStorage).  These two only served the 1.21.1 save and load
+# paths, which fabric-1214 already leaves out.
+mixin/ChunkStorageAsyncMixin.java
+mixin/ChunkStorageInfoAccessor.java

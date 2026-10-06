@@ -64,18 +64,40 @@ public final class FusedNoiseCompiler {
      */
     public enum FluidUpdates { BETWEEN_AQUIFERS, WHERE_NEIGHBOURS_DIFFER }
 
+    /**
+     * Where the preliminary surface of a column comes from.  Until Minecraft 1.21.8 the router has a density
+     * (root "initialDensityWithoutJaggedness") that the game searches from the top of the world for the first
+     * value above 0.390625.  Since 1.21.9 the router has a function that is the level itself, in the same
+     * root here; in the vanilla Overworld it is a "find top surface" search with its own density, upper bound,
+     * lower bound and step.  With it came a shortcut in the aquifer: above a level taken from the highest
+     * preliminary surface around the chunk, a block is the global fluid and no aquifer is looked at.
+     */
+    public enum PreliminarySurface { DENSITY_SEARCH, LEVEL_FUNCTION }
+
+    /** Operation names of the three nested Binary nodes a "find top surface" function is lowered to. */
+    public static final String FIND_TOP_SURFACE = "find_top_surface", FIND_TOP_SURFACE_FROM = "find_top_surface_from",
+            FIND_TOP_SURFACE_STEP = "find_top_surface_step";
+
     public record Request(Map<String, ProgramNode> roots, GeneratorSettingsSnapshot settings,
                           PositionalRandomFactorySnapshot aquiferRandom, PositionalRandomFactorySnapshot oreRandom,
-                          MaterialPalette palette, float[] beardKernel, SurfaceProgram surface, FluidUpdates fluidUpdates) {
+                          MaterialPalette palette, float[] beardKernel, SurfaceProgram surface, FluidUpdates fluidUpdates,
+                          PreliminarySurface preliminarySurface) {
         public Request(Map<String, ProgramNode> roots, GeneratorSettingsSnapshot settings,
                        PositionalRandomFactorySnapshot aquiferRandom, PositionalRandomFactorySnapshot oreRandom,
                        MaterialPalette palette, float[] beardKernel, SurfaceProgram surface) {
             this(roots, settings, aquiferRandom, oreRandom, palette, beardKernel, surface, FluidUpdates.BETWEEN_AQUIFERS);
         }
 
+        public Request(Map<String, ProgramNode> roots, GeneratorSettingsSnapshot settings,
+                       PositionalRandomFactorySnapshot aquiferRandom, PositionalRandomFactorySnapshot oreRandom,
+                       MaterialPalette palette, float[] beardKernel, SurfaceProgram surface, FluidUpdates fluidUpdates) {
+            this(roots, settings, aquiferRandom, oreRandom, palette, beardKernel, surface, fluidUpdates, PreliminarySurface.DENSITY_SEARCH);
+        }
+
         public Request {
             Objects.requireNonNull(roots, "roots");
             Objects.requireNonNull(fluidUpdates, "fluidUpdates");
+            Objects.requireNonNull(preliminarySurface, "preliminarySurface");
             Objects.requireNonNull(settings, "settings");
             Objects.requireNonNull(palette, "palette");
             Objects.requireNonNull(beardKernel, "beardKernel");
@@ -198,7 +220,8 @@ public final class FusedNoiseCompiler {
             emitFunction("root_ridged_value", roots.get("veinRidged"), Mode.VALUE);
             emitFunction("root_gap_value", roots.get("veinGap"), Mode.VALUE);
             emitFunction("root_barrier_value", roots.get("barrierNoise"), Mode.VALUE);
-            emitPrelimScan(roots.get("initialDensityWithoutJaggedness"));
+            if (request.preliminarySurface() == PreliminarySurface.LEVEL_FUNCTION) emitPrelimLevel(roots.get("initialDensityWithoutJaggedness"));
+            else emitPrelimScan(roots.get("initialDensityWithoutJaggedness"));
             emitFunction("root_erosion_point", roots.get("erosion"), Mode.POINT);
             emitFunction("root_depth_point", roots.get("depth"), Mode.POINT);
             emitFunction("root_flood_point", roots.get("fluidLevelFloodedness"), Mode.POINT);
@@ -221,7 +244,7 @@ public final class FusedNoiseCompiler {
             int surfaceHeader = request.surface() == null ? 0 : tables.surface(request.surface());
             String source = header() + FusedNoiseCompiler.library() + "\n" + accessors()
                     + FusedKernels.prelude(geometry, request, beardKernelIndex) + FusedSurfaceKernels.constants(geometry) + functions
-                    + FusedKernels.kernels(flats.size(), interps.size(), xzNodes.size(), request.fluidUpdates()) + FusedSurfaceKernels.BODY;
+                    + FusedKernels.kernels(flats.size(), interps.size(), xzNodes.size(), request.fluidUpdates(), request.preliminarySurface()) + FusedSurfaceKernels.BODY;
             String fingerprint = sha256(source);
             List<ProgramNode> flatChildren = new ArrayList<>();
             for (ProgramNode.Marker flat : flats) flatChildren.add(flat.child());
@@ -447,6 +470,53 @@ public final class FusedNoiseCompiler {
             functions.append("int prelim_scan(int sx, int sz) {\n    ivec3 p = ivec3(sx, 0, sz);\n    {\n");
             emitPrelimVariant(root, Mode.POINT_OUT);
             functions.append("    }\n    return 2147483647;\n}\n#endif\n");
+        }
+
+        /**
+         * The preliminary surface where the router's function is the level itself (see {@link PreliminarySurface}):
+         * the game takes the floor of its value at y 0.  A "find top surface" function at the root is the search
+         * it is in the game, from the upper bound's value at y 0, rounded down to the step, to the lower bound;
+         * anywhere else it is not supported.
+         */
+        private void emitPrelimLevel(ProgramNode root) {
+            if (settings.aquifersEnabled() || request.surface() != null) {
+                requireYIndependentFlats(root, java.util.Collections.newSetFromMap(new IdentityHashMap<>()));
+            }
+            functions.append("#if defined(K_PRELIM)\n");
+            functions.append("int prelim_scan(int sx, int sz) {\n    ivec3 p = ivec3(sx, 0, sz);\n    {\n");
+            Block outer = new Block(null, "        ");
+            Block loop = new Block(outer, "            ");
+            hoistBlock = outer;
+            loopBlock = loop;
+            try {
+                if (root instanceof ProgramNode.Binary search && search.operation().equals(FIND_TOP_SURFACE)) {
+                    if (!(search.right() instanceof ProgramNode.Binary from && from.operation().equals(FIND_TOP_SURFACE_FROM)
+                            && from.right() instanceof ProgramNode.Binary step && step.operation().equals(FIND_TOP_SURFACE_STEP)
+                            && step.left() instanceof ProgramNode.Constant lowerBound && lowerBound.value() instanceof Number lower
+                            && step.right() instanceof ProgramNode.Constant cellHeight && cellHeight.value() instanceof Number cell)
+                            || cell.intValue() <= 0 || cell.doubleValue() != cell.intValue() || lower.doubleValue() != lower.intValue()) {
+                        throw new UnsupportedFusedProgramException("Malformed find-top-surface function");
+                    }
+                    String upper = value(from.left(), outer, Mode.POINT_OUT);
+                    String density = value(search.left(), loop, Mode.POINT_OUT);
+                    functions.append(outer.code);
+                    functions.append("        int top = mfloor(jdiv(").append(upper).append(", ").append(dlit(cell.intValue())).append(")) * ")
+                            .append(cell.intValue()).append(";\n");
+                    functions.append("        if (top <= ").append(lower.intValue()).append(") return ").append(lower.intValue()).append(";\n");
+                    functions.append("        for (int y = top; y >= ").append(lower.intValue()).append("; y -= ").append(cell.intValue())
+                            .append(") {\n            p.y = y;\n").append(loop.code);
+                    functions.append("            if (").append(density).append(" > 0.0lf) return y;\n        }\n");
+                    functions.append("        return ").append(lower.intValue()).append(";\n");
+                } else {
+                    String level = value(root, outer, Mode.POINT_OUT);
+                    functions.append(outer.code);
+                    functions.append("        return mfloor(").append(level).append(");\n");
+                }
+            } finally {
+                hoistBlock = null;
+                loopBlock = null;
+            }
+            functions.append("    }\n}\n#endif\n");
         }
 
         private void requireYIndependentFlats(ProgramNode node, java.util.Set<ProgramNode> seen) {
