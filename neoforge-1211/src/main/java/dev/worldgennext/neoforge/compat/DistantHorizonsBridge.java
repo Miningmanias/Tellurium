@@ -5,6 +5,8 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ChunkLevel;
+import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.TicketType;
@@ -112,6 +114,12 @@ public final class DistantHorizonsBridge {
         ANSWER_NANOS.set(0);
         AHEAD_EXPIRED.set(0);
         DistantHorizonsHandover.SKIPPED.set(0);
+        DistantHorizonsColumns.COLUMNS_CHECKED.set(0);
+        DistantHorizonsColumns.TILES_CHANGED.set(0);
+        DistantHorizonsConverter.TILES_WRITTEN.set(0);
+        DistantHorizonsConverter.TILES_BUILT.set(0);
+        DistantHorizonsColumns.POINTS_CHECKED.set(0);
+        DistantHorizonsColumns.COLUMNS_DIFFERENT.set(0);
         Thread thread = new Thread(() -> watch(server), "worldgennext-dh-bridge");
         thread.setDaemon(true);
         watcher = thread;
@@ -206,6 +214,17 @@ public final class DistantHorizonsBridge {
     private static final class Generator implements InvocationHandler {
         /** Distant Horizons asks for chunk detail in tiles of this many chunks a side; its tiles are aligned to it. */
         private static final int TILE = 4;
+        /**
+         * Hybrid mode, unless distant_horizons.full_chunks is set: chunks for Distant Horizons stop at FEATURES
+         * instead of going on to FULL, and a tile is converted once the chunks around it have reached FEATURES
+         * too.  What is left out is vanilla light, mob spawning and the promotion to a full chunk, none of which
+         * Distant Horizons uses.  The chunk is saved unfinished, as the game saves any partly generated chunk,
+         * and is finished when a player gets there.
+         */
+        private static final boolean LOD_ONLY = HYBRID && !Boolean.getBoolean("worldgennext.dh.fullChunks");
+        private static final ChunkStatus STATUS = LOD_ONLY ? ChunkStatus.FEATURES : ChunkStatus.FULL;
+        /** A region ticket's level is that of a full chunk less its radius; a negative radius gives the level this status needs. */
+        private static final int TICKET_RADIUS = ChunkLevel.byStatus(FullChunkStatus.FULL) - ChunkLevel.byStatus(STATUS);
 
         private final MinecraftServer server;
         private final ServerLevel level;
@@ -226,7 +245,8 @@ public final class DistantHorizonsBridge {
         private int budget = AHEAD_WINDOW;
 
         /** One 4x4-chunk tile: its chunks as the chunk system finishes them. */
-        private record Tile(ChunkPos[] positions, CompletableFuture<ChunkAccess>[] chunks, long requestedNanos) {}
+        private record Tile(ChunkPos[] positions, CompletableFuture<ChunkAccess>[] chunks, ChunkPos[] held,
+                            CompletableFuture<Void> settled, long requestedNanos) {}
 
         Generator(MinecraftServer server, ServerLevel level, Object levelWrapper, DistantHorizonsHandover handover) {
             this.server = server;
@@ -386,7 +406,7 @@ public final class DistantHorizonsBridge {
             long asked = System.nanoTime();
             Tile tile = take(minX, minZ);
             CompletableFuture<Void> done = new CompletableFuture<>();
-            CompletableFuture.allOf(tile.chunks).whenCompleteAsync((nothing, failure) -> {
+            tile.settled.whenCompleteAsync((nothing, failure) -> {
                 REQUESTS_DONE.incrementAndGet();
                 Throwable problem = failure;
                 if (problem == null) {
@@ -444,27 +464,45 @@ public final class DistantHorizonsBridge {
             return tile;
         }
 
-        /** Asks the chunk system for a tile's chunks. */
+        /**
+         * Asks the chunk system for a tile's chunks.  In the unfinished-chunk mode the ring of chunks around the
+         * tile is asked for as well: a chunk's blocks are final only when its eight neighbours have placed their
+         * features too, which a full chunk guarantees and a chunk stopped at FEATURES does not.
+         */
         private Tile start(int minX, int minZ) {
+            ChunkPos corner = new ChunkPos(minX, minZ);
+            int margin = LOD_ONLY ? 1 : 0;
+            int side = TILE + 2 * margin;
             ChunkPos[] positions = new ChunkPos[TILE * TILE];
+            ChunkPos[] held = new ChunkPos[side * side];
             @SuppressWarnings("unchecked")
             CompletableFuture<ChunkAccess>[] chunks = new CompletableFuture[positions.length];
+            CompletableFuture<?>[] all = new CompletableFuture<?>[held.length];
             ServerChunkCache cache = level.getChunkSource();
-            for (int i = 0; i < positions.length; i++) {
-                ChunkPos pos = new ChunkPos(minX + i % TILE, minZ + i / TILE);
-                positions[i] = pos;
+            for (int i = 0; i < held.length; i++) {
+                int dx = i % side - margin, dz = i / side - margin;
+                ChunkPos pos = new ChunkPos(minX + dx, minZ + dz);
+                held[i] = pos;
+                boolean inside = dx >= 0 && dx < TILE && dz >= 0 && dz < TILE;
                 // The chunk's load event comes before Distant Horizons has its data from here, so that is switched off now.
-                if (handover != null) handover.handingOver(pos);
-                server.execute(() -> cache.addRegionTicket(TICKET, pos, 0, pos));
-                chunks[i] = cache.getChunkFuture(pos.x, pos.z, ChunkStatus.FULL, true).thenApply(result -> {
-                    ChunkAccess chunk = result.orElse(null);
-                    if (chunk == null) {
+                // An unfinished chunk has no such event.
+                if (inside && handover != null && !LOD_ONLY) handover.handingOver(pos);
+                // The ticket is this tile's own, so that a neighbouring tile letting go does not release it.
+                server.execute(() -> cache.addRegionTicket(TICKET, pos, TICKET_RADIUS, corner));
+                CompletableFuture<ChunkAccess> chunk = cache.getChunkFuture(pos.x, pos.z, STATUS, true).thenApply(result -> {
+                    ChunkAccess generated = result.orElse(null);
+                    if (generated == null) {
                         throw new IllegalStateException("chunk " + pos + " was not generated: " + result.getError());
                     }
-                    return chunk;
+                    return generated;
                 });
+                all[i] = chunk;
+                if (inside) {
+                    positions[dz * TILE + dx] = pos;
+                    chunks[dz * TILE + dx] = chunk;
+                }
             }
-            return new Tile(positions, chunks, System.nanoTime());
+            return new Tile(positions, chunks, held, CompletableFuture.allOf(all), System.nanoTime());
         }
 
         /** Lets a tile's chunks unload.  A tile that Distant Horizons did not get is treated by it as any other chunk again. */
@@ -474,7 +512,7 @@ public final class DistantHorizonsBridge {
             }
             server.execute(() -> {
                 ServerChunkCache cache = level.getChunkSource();
-                for (ChunkPos pos : tile.positions) cache.removeRegionTicket(TICKET, pos, 0, pos);
+                for (ChunkPos pos : tile.held) cache.removeRegionTicket(TICKET, pos, TICKET_RADIUS, tile.positions[0]);
             });
         }
 
@@ -521,6 +559,12 @@ public final class DistantHorizonsBridge {
                 CHUNKS.get(), AHEAD_USED.get(), AHEAD_EXPIRED.get(), DistantHorizonsHandover.SKIPPED.get() > 0
                         ? String.format(Locale.ROOT, "; its second build of the same chunk skipped for %,d, %,d of those still loaded and unsaved",
                                 DistantHorizonsHandover.SKIPPED.get(), DistantHorizonsHandover.waitingForFirstSave())
-                        : "");
+                        : "")
+                + String.format(Locale.ROOT, "; tiles converted here: %,d by this mod's column writer, %,d by Distant Horizons' builder",
+                        DistantHorizonsConverter.TILES_WRITTEN.get(), DistantHorizonsConverter.TILES_BUILT.get())
+                + (DistantHorizonsColumns.CHECK ? String.format(Locale.ROOT, "; column writer check: %,d columns (%,d data points) compared"
+                        + " with Distant Horizons' builder, %,d differ (%,d tiles changed while being checked and were built again)",
+                        DistantHorizonsColumns.COLUMNS_CHECKED.get(), DistantHorizonsColumns.POINTS_CHECKED.get(),
+                        DistantHorizonsColumns.COLUMNS_DIFFERENT.get(), DistantHorizonsColumns.TILES_CHANGED.get()) : "");
     }
 }

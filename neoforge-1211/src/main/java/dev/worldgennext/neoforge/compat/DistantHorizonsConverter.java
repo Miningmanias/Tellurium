@@ -31,6 +31,8 @@ final class DistantHorizonsConverter {
     private static final Logger LOG = LoggerFactory.getLogger("worldgennext");
 
     private static volatile boolean available;
+    /** Tiles filled by this mod's column writer, and tiles built by Distant Horizons' builder. */
+    static final java.util.concurrent.atomic.AtomicLong TILES_WRITTEN = new java.util.concurrent.atomic.AtomicLong(), TILES_BUILT = new java.util.concurrent.atomic.AtomicLong();
     private static Object factory;
     private static Object lightingEngine;
     private static Method createChunkWrapper;
@@ -40,6 +42,9 @@ final class DistantHorizonsConverter {
     private static Method updateBeaconBeams;
     private static Method createFromChunk;
     private static Method updateFromDataSource;
+    private static Method createEmpty;
+    private static Method encodeSection;
+    private static byte tileDetail;
     private static ExecutorService pool;
 
     private DistantHorizonsConverter() {}
@@ -70,6 +75,10 @@ final class DistantHorizonsConverter {
             updateBeaconBeams = Class.forName(core + "level.IDhLevel").getMethod("updateBeaconBeamsForChunk", chunkWrapper, ArrayList.class);
             createFromChunk = Class.forName(core + "dataObjects.transformers.LodDataBuilder").getMethod("createFromChunk", levelWrapper, chunkWrapper);
             updateFromDataSource = dataSource.getMethod("updateFromDataSource", dataSource);
+            createEmpty = dataSource.getMethod("createEmpty", long.class);
+            Class<?> sectionPos = Class.forName(core + "pos.DhSectionPos");
+            encodeSection = sectionPos.getMethod("encode", byte.class, int.class, int.class);
+            tileDetail = sectionPos.getField("SECTION_BLOCK_DETAIL_LEVEL").getByte(null);
             if (!AutoCloseable.class.isAssignableFrom(dataSource)) throw new IllegalStateException("data sources cannot be closed");
             int threads = Math.max(2, Integer.getInteger("worldgennext.dh.convertThreads", Runtime.getRuntime().availableProcessors() / 2));
             // Distant Horizons tells its own background threads from the game's by this prefix, and warns when its
@@ -83,6 +92,7 @@ final class DistantHorizonsConverter {
                 return thread;
             });
             available = true;
+            DistantHorizonsColumns.prepare(factory);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError missing) {
             LOG.info("This version of Distant Horizons does not have the conversion methods this mod calls ({});"
                     + " it will convert the chunks on its own threads", missing.toString());
@@ -97,6 +107,19 @@ final class DistantHorizonsConverter {
      * Converts the chunks of one tile into the tile's data source, which Distant Horizons supplied.  The steps
      * and their order are those of Distant Horizons' INTERNAL_SERVER generator followed by its own merge.
      */
+    /** Distant Horizons' own builder: one tile-sized data source per chunk, each merged into the tile. */
+    private static void merge(Object levelWrapper, ArrayList<Object> wrappers, Object tileDataSource) throws Exception {
+        for (Object wrapper : wrappers) {
+            Object chunkData = createFromChunk.invoke(null, levelWrapper, wrapper);
+            if (chunkData == null) continue;
+            try {
+                updateFromDataSource.invoke(tileDataSource, chunkData);
+            } finally {
+                ((AutoCloseable) chunkData).close();
+            }
+        }
+    }
+
     static void convert(ServerLevel level, Object dhLevel, Object levelWrapper, ChunkAccess[] chunks, Object tileDataSource) throws Exception {
         try {
             ArrayList<Object> wrappers = new ArrayList<>(chunks.length);
@@ -110,14 +133,42 @@ final class DistantHorizonsConverter {
                 if (!(boolean) isBlockLightCorrect.invoke(wrapper)) bakeBlockLight.invoke(lightingEngine, wrapper, wrappers, maxSkyLight);
                 updateBeaconBeams.invoke(dhLevel, wrapper, wrappers);
             }
-            for (Object wrapper : wrappers) {
-                Object chunkData = createFromChunk.invoke(null, levelWrapper, wrapper);
-                if (chunkData == null) continue;
+            if (DistantHorizonsColumns.usable()) {
                 try {
-                    updateFromDataSource.invoke(tileDataSource, chunkData);
-                } finally {
-                    ((AutoCloseable) chunkData).close();
+                    DistantHorizonsColumns.fill(chunks, wrappers, tileDataSource);
+                    TILES_WRITTEN.incrementAndGet();
+                    if (DistantHorizonsColumns.CHECK) {
+                        int tileX = chunks[0].getPos().x >> 2, tileZ = chunks[0].getPos().z >> 2;
+                        long position = (long) encodeSection.invoke(null, tileDetail, tileX, tileZ);
+                        Object mine = tileDataSource;
+                        for (int attempt = 0; ; attempt++) {
+                            Object reference = createEmpty.invoke(null, position);
+                            try {
+                                merge(levelWrapper, wrappers, reference);
+                                boolean last = attempt == 2;
+                                int different = DistantHorizonsColumns.compare(mine, reference, tileX, tileZ, false);
+                                if (different == 0 || last) {
+                                    DistantHorizonsColumns.compare(mine, reference, tileX, tileZ, true);
+                                    if (attempt > 0 && different == 0) DistantHorizonsColumns.TILES_CHANGED.incrementAndGet();
+                                    break;
+                                }
+                            } finally {
+                                ((AutoCloseable) reference).close();
+                                if (mine != tileDataSource) ((AutoCloseable) mine).close();
+                            }
+                            // The chunks may have changed between the two builds; build both again, back to back.
+                            mine = createEmpty.invoke(null, position);
+                            DistantHorizonsColumns.fill(chunks, wrappers, mine);
+                        }
+                    }
+                } catch (Exception | Error failure) {
+                    throw failure;
+                } catch (Throwable other) {
+                    throw new IllegalStateException(other);
                 }
+            } else {
+                merge(levelWrapper, wrappers, tileDataSource);
+                TILES_BUILT.incrementAndGet();
             }
         } catch (InvocationTargetException thrown) {
             if (thrown.getCause() instanceof Exception cause) throw cause;

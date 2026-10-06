@@ -17,8 +17,12 @@ log and by `/worldgennext status`, and the default is used.
 | `pregen.progress_seconds` | `10` | Seconds between progress messages. |
 | `pregen.tune_chunky` | `true` | If Chunky is installed and `chunky.maxWorkingCount` is not set, set it to `pregen.in_flight` (with the same small-heap reduction). Chunky's own default of 50 limits throughput to about 1,000 chunks/s. |
 | `distant_horizons.generator` | `"hybrid"` | Only if Distant Horizons is installed. `"hybrid"`: Distant Horizons keeps its own generator and plan (rough surface for far terrain first); the chunks it generates to refine that come from the server's chunk system. `"direct"`: all of its distant terrain is built from finished chunks; fastest to full detail, but nothing is shown for an area until its chunks are done. `"off"`: Distant Horizons is left alone. With `hybrid` and `direct` those chunks are real and are saved in the world. Measurements: `docs/evidence/comparison-distant-horizons.md`. |
+| `distant_horizons.full_chunks` | `false` | `hybrid` only. `false`: chunks made for Distant Horizons stop before lighting and are saved unfinished; the game finishes them when a player gets there. `true`: they are generated completely, so the area is fully pregenerated too (about 8% slower in the server test). |
 
-Distant Horizons fine-tuning (system properties only): `worldgennext.dh.readAhead`
+Distant Horizons fine-tuning (system properties only): `worldgennext.dh.columns`
+(default `true`; `false` uses Distant Horizons' own chunk-to-LOD builder instead
+of this mod's column writer), `worldgennext.dh.columnsCheck` (`true` builds every
+tile both ways and compares them; `/worldgennext status` reports the result), `worldgennext.dh.readAhead`
 (chunks started before Distant Horizons asks for them, default one per 4 MB of
 heap up to 4,096, `0` for none), `worldgennext.dh.readAheadReach` (how far from
 a request, in chunks, default 32), `worldgennext.dh.skipSecondBuild` (default

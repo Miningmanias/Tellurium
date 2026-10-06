@@ -29,6 +29,17 @@ rough terrain). Not measured:
 flying, remote players, frame rate, other world generators. The rough surface
 pass is Distant Horizons' own code and was not made faster.
 
+Later the same day: `hybrid` fills tiles with this mod's own column writer
+(`compat/DistantHorizonsColumns.java`; Distant Horizons' builder when a mod
+listens to its chunk-processing event) and, unless
+`distant_horizons.full_chunks` is set, from chunks stopped at FEATURES once
+the ring around the tile has reached FEATURES. `dh pregen`: 2,041-2,119
+chunks/s. With `worldgennext.dh.columnsCheck` the writer matched Distant
+Horizons' builder on every column in the Overworld, Nether, End and an
+already generated world (about 11 million columns); the differences seen
+(4 at the spawn, 706 of 18.9 million in singleplayer) are in ticking chunks.
+Singleplayer is not shown to be faster than before these two changes.
+
 `NoiseBasedChunkGenerator.buildSurface` now does nothing for a chunk whose
 surface the fused kernels already produced, for callers that drive the
 generator themselves (Distant Horizons' own generator does).

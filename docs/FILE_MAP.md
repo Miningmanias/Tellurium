@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **624**, plus this generated index.
+Indexed project files: **625**, plus this generated index.
 
 ## semantic-core
 
@@ -414,6 +414,7 @@ Minecraft snapshot/runtime composition and bootstrap tests.
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/command/WorldgenNextCommands.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/command/WorldgenNextCommands.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/compat/CompatibilityRegistry.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/compat/CompatibilityRegistry.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/compat/DistantHorizonsBridge.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/compat/DistantHorizonsBridge.java) | Implementation or explicit public contract |
+| [neoforge-1211/src/main/java/dev/worldgennext/neoforge/compat/DistantHorizonsColumns.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/compat/DistantHorizonsColumns.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/compat/DistantHorizonsConverter.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/compat/DistantHorizonsConverter.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/compat/DistantHorizonsHandover.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/compat/DistantHorizonsHandover.java) | Implementation or explicit public contract |
 | [neoforge-1211/src/main/java/dev/worldgennext/neoforge/compat/TileRings.java](../neoforge-1211/src/main/java/dev/worldgennext/neoforge/compat/TileRings.java) | Implementation or explicit public contract |

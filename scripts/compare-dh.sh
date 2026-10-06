@@ -11,6 +11,7 @@
 # REPEAT=1 gives the same command a second time afterwards (Distant Horizons skips what it holds complete data
 # for, so a pass that asks for nothing shows the first left nothing out), flushes saves and validates the
 # region files.  PRE=1 runs this mod's own pregenerator over the area first.
+# POST=1 runs it afterwards instead, to finish what the pass left unfinished.  DIM=<dimension id> picks the dimension.
 # This mod's mode is chosen with an extra JVM argument: -Dworldgennext.dh.mode=hybrid|direct|off.
 #
 # Usage: scripts/compare-dh.sh <dh|worldgennext> [chunk radius] [extra JVM arguments]
@@ -20,8 +21,12 @@ config="${1:?configuration}"
 radius="${2:-64}"
 jvm="${3:-}"
 server="${SERVER:-build/installed-server}"
+dimension="${DIM:-minecraft:overworld}"
 neoforge=$(ls "$server/libraries/net/neoforged/neoforge" | head -1)
 stash=build/_to_delete/compare-worlds
+# Every run keeps its world (about 1 GB) under build/_to_delete; a full disk truncates the jars copied below.
+free=$(df -Pk . | awk 'NR==2 {print int($4 / 1048576)}')
+[ "$free" -lt 10 ] && { echo "only $free GB free here; delete build/_to_delete first"; exit 3; }
 mkdir -p "$stash" "$server/mods-stash"
 export PATH="${JDK:-/c/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot}/bin:$PATH"
 
@@ -40,26 +45,36 @@ printf -- '-Xmx16G\n%s\n' "$(echo $jvm | tr ' ' '\n')" > "$server/user_jvm_args.
 
 cd "$server"
 {
-  for _ in $(seq 1 600); do sleep 1; grep -q "Done (" logs/latest.log 2>/dev/null && break; grep -qE "Failed to start the minecraft server" logs/latest.log 2>/dev/null && break; done
+  for _ in $(seq 1 600); do sleep 1; grep -q "Done (" logs/latest.log 2>/dev/null && break; grep -qE "Failed to start the minecraft server" logs/latest.log 2>/dev/null && break; grep -q 'Exception in thread "main"' console.out 2>/dev/null && { echo stop; exit; }; done
   if [ "$config" = worldgennext ]; then
     for _ in $(seq 1 600); do sleep 1; grep -qE "the_end: .*(on the GPU|vanilla code)|GPU terrain generation is unavailable" logs/latest.log && break; done
   fi
   sleep 5
   if [ -n "${PRE:-}" ]; then
     # This mod's pregenerator first; Distant Horizons builds LODs from the chunks as the server handles them.
-    echo "worldgennext pregen start $((radius + 4)) 0 0"
+    echo "execute in $dimension run worldgennext pregen start $((radius + 4)) 0 0"
     for _ in $(seq 1 7200); do sleep 1; grep -q "Pregeneration finished" logs/latest.log && break; done
     sleep "${PRE_SETTLE:-0}"
   fi
-  echo "dh pregen start minecraft:overworld 0 0 $radius"
+  echo "dh pregen start $dimension 0 0 $radius"
   for _ in $(seq 1 7200); do sleep 1; grep -qE "Pregen is complete|Pregen failed|Pregen is cancelled" logs/latest.log && break; done
   sleep 2
   [ "$config" = worldgennext ] && echo "worldgennext status"
   sleep 1
+  if [ -n "${POST:-}" ]; then
+    # Finish the area with this mod's pregenerator afterwards: chunks Distant Horizons' pass left unfinished
+    # are completed the way they would be when a player gets there.
+    echo "execute in $dimension run worldgennext pregen start $((radius - 2)) 0 0"
+    for _ in $(seq 1 7200); do sleep 1; grep -q "Pregeneration finished" logs/latest.log && break; done
+    echo "save-all flush"
+    sleep 15
+    [ "$config" = worldgennext ] && echo "worldgennext status"
+    sleep 1
+  fi
   if [ -n "${REPEAT:-}" ]; then
     # Ask again for the same area: Distant Horizons skips every section it holds complete data for, so a
     # second pass that finishes at once without asking for chunks shows the first one left nothing out.
-    echo "dh pregen start minecraft:overworld 0 0 $radius"
+    echo "dh pregen start $dimension 0 0 $radius"
     for _ in $(seq 1 7200); do sleep 1; [ "$(grep -c "Pregen is complete" logs/latest.log)" -ge 2 ] && break; done
     echo "save-all flush"
     sleep 25
@@ -87,13 +102,13 @@ if not (start and end):
     print(f"{config}: pregen did not complete (errors in log: {errors})")
     sys.exit(1)
 seconds = (end - start).total_seconds()
-if first:
+if first and first < start:
     whole = (end - first).total_seconds()
     print(f"{config} radius={radius}: this mod's pregenerator, then Distant Horizons' pass ({seconds:.1f} s): "
           f"{side * side} chunks of LOD in {whole:.1f} s = {side * side / whole:.0f} chunks/s")
 print(f"{config} radius={radius}: about {side * side} chunks of LOD in {seconds:.1f} s = {side * side / seconds:.0f} chunks/s (error lines {errors})")
 PY
-grep -E "Chunks since start|overworld:|Distant Horizons [(]|Pregeneration finished" "$server/logs/latest.log" | sed -E 's/^\[[^]]*\] \[[^]]*\] \[[^]]*\]: /  /' | tail -6 | cut -c1-260
+grep -E "Chunks since start|overworld:|Distant Horizons [(]|Pregeneration finished|column writer check" "$server/logs/latest.log" | sed -E 's/^\[[^]]*\] \[[^]]*\] \[[^]]*\]: /  /' | tail -6 | cut -c1-260
 if [ -n "${REPEAT:-}" ]; then
   grep -E "Starting pregen|Pregen is complete" "$server/logs/latest.log" | cut -c12-23 | tr '
 ' ' '; echo

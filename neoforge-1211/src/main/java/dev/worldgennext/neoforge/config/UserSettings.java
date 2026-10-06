@@ -97,6 +97,10 @@ public final class UserSettings {
             # "off"    - Distant Horizons is left alone.
             # With "hybrid" and "direct" those chunks are real and are saved in the world.
             generator = "hybrid"
+            # false - ("hybrid" only) chunks made for Distant Horizons stop before lighting and are
+            #         saved unfinished; the game finishes them when a player gets there.  Faster.
+            # true  - they are generated completely, so the area is fully pregenerated as well.
+            full_chunks = false
             """;
 
     private static volatile UserSettings LOADED;
@@ -193,7 +197,7 @@ public final class UserSettings {
     Map<String, String> systemProperties() {
         for (String key : values.keySet()) {
             if (!List.of("enabled", "gpu.mode", "generation.parallel_steps", "saving.async", "saving.compression_level",
-                    "pregen.in_flight", "pregen.progress_seconds", "pregen.tune_chunky", "distant_horizons.generator")
+                    "pregen.in_flight", "pregen.progress_seconds", "pregen.tune_chunky", "distant_horizons.generator", "distant_horizons.full_chunks")
                     .contains(key)) {
                 String text = "unknown option '" + key + "' ignored";
                 if (!problems.contains(text)) problems.add(text);
@@ -220,6 +224,7 @@ public final class UserSettings {
         // Chunky reads this property once, when its generation task class loads.
         if (tuneChunky()) published.put("chunky.maxWorkingCount", Integer.toString(chunkyInFlight(Runtime.getRuntime().maxMemory())));
         published.put("worldgennext.dh.mode", distantHorizonsGenerator());
+        published.put("worldgennext.dh.fullChunks", Boolean.toString(bool("distant_horizons.full_chunks", false)));
         return published;
     }
 

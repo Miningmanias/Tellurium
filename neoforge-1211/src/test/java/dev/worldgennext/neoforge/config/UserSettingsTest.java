@@ -114,6 +114,14 @@ class UserSettingsTest {
             assertEquals(mode, chosen.systemProperties().get("worldgennext.dh.mode"));
         }
 
+        assertEquals("false", UserSettings.read(configDirectory).systemProperties().get("worldgennext.dh.fullChunks"));
+        UserSettings complete = with("""
+                [distant_horizons]
+                full_chunks = true
+                """);
+        assertTrue(complete.problems().isEmpty(), complete.problems().toString());
+        assertEquals("true", complete.systemProperties().get("worldgennext.dh.fullChunks"));
+
         UserSettings wrong = with("""
                 [distant_horizons]
                 generator = "fastest"
