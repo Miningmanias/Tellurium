@@ -193,7 +193,7 @@ evidence](evidence/v0.2-gpu-executor.md).
 
 Device capability flags describe supported floating-point execution modes; they do not prove those modes are enabled in a shader. The current smoke compares raw bits for its finite fixture corpus and records the compiled shader hash. Explicit SPIR-V float-control mode qualification and cross-vendor coverage remain future work. See the [Khronos float-control properties](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceFloatControlsProperties.html).
 
-Game bootstrap is a separate task under neoforge-1211. Use its dedicated run directory. Do not reuse a valuable world for development smoke. A started process is not a passed boot; capture the readiness/diagnostic output and clean shutdown.
+Game bootstrap is a separate task of the neoforge-1211 build (mod/neoforge-diagnostics.gradle). Use its dedicated run directory. Do not reuse a valuable world for development smoke. A started process is not a passed boot; capture the readiness/diagnostic output and clean shutdown.
 
 ## Deferred gates
 

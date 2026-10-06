@@ -1,0 +1,94 @@
+plugins { id 'fabric-loom' version '1.13.6' }
+
+// The Fabric build of the mod for one Minecraft version: the build script of every Fabric target in
+// mod/targets.gradle.  Which sources it is built from is in mod/sources.gradle.
+def target = gradle.ext.modTargets[project.name]
+base { archivesName = "worldgennext-fabric-${target.minecraft}" }
+
+dependencies {
+    minecraft "com.mojang:minecraft:${target.minecraft}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${gradle.ext.fabricLoader}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${target.fabricApi}"
+    implementation project(':compiler-vulkan')
+}
+
+apply from: rootProject.file('mod/sources.gradle')
+
+tasks.named('processResources') {
+    inputs.property 'version', project.version
+    inputs.property 'minecraft', target.minecraft
+    filesMatching('fabric.mod.json') { expand version: project.version, minecraft: target.minecraft }
+}
+
+loom {
+    accessWidenerPath = new File(modSources.glue, 'src/main/resources/worldgennext.accesswidener')
+    runs {
+        configureEach {
+            // Same switches as the NeoForge dev runs: every -Dworldgennext.* given to Gradle reaches the game.
+            System.properties.each { key, value ->
+                if (key.toString().startsWith('worldgennext.') && !(key.toString() in ['worldgennext.candidate.runDir', 'worldgennext.run.maxHeap', 'worldgennext.run.jvmArgs'])) {
+                    // Relative output paths are resolved here: the game's working directory is the run directory.
+                    property key.toString(), key == 'worldgennext.bench.output' && !value.toString().trim().isEmpty() ? project.file(value.toString().trim()).absolutePath : value.toString()
+                }
+            }
+            def maxHeap = System.getProperty('worldgennext.run.maxHeap', '').trim()
+            if (!maxHeap.isEmpty()) vmArg "-Xmx${maxHeap}"
+            vmArg '-Dorg.lwjgl.system.stackSize=16384'
+            def directory = System.getProperty('worldgennext.candidate.runDir', '').trim()
+            if (!directory.isEmpty()) runDir = project.projectDir.toPath().relativize(new File(directory).toPath()).toString().replace(File.separator, '/')
+        }
+        server { programArg 'nogui' }
+        client {
+            // Straight into an existing singleplayer world (a folder under <run directory>/saves).
+            def quickPlay = System.getProperty('worldgennext.client.quickPlay', '').trim()
+            if (!quickPlay.isEmpty()) programArgs '--quickPlaySingleplayer', quickPlay
+        }
+    }
+}
+
+// ---- Names for a released game -----------------------------------------------
+// The mod reads parts of the world generator by reflection, by the names its source uses.  A released Fabric
+// game runs with other ("intermediary") names.  This writes the pairs for the names that occur as string
+// literals in the mod's source, and only those, from the mappings this build uses; loader/Loader reads it.
+def nameTableDir = layout.buildDirectory.dir('generated/nameTable')
+tasks.register('generateNameTable') {
+    // The files as compiled: with renames, a renamed class is looked up under its new name.
+    def sources = modSources.javaFiles()
+    if (modSources.renamed) dependsOn 'renameSources'
+    inputs.files(sources)
+    outputs.dir(nameTableDir)
+    doLast {
+        def tokens = new HashSet<String>()
+        sources.each { source -> (source.getText('UTF-8') =~ /"([A-Za-z_$][A-Za-z0-9_$]*)"/).each { tokens.add(it[1]) } }
+        def mappings = loom.mappingConfiguration.tinyMappings.toFile()
+        def header = mappings.withReader('UTF-8') { it.readLine() }.split('\t')
+        def intermediary = header.findIndexOf { it == 'intermediary' } - 3
+        def named = header.findIndexOf { it == 'named' } - 3
+        if (header[0] != 'tiny' || intermediary < 0 || named < 0) throw new GradleException("Unexpected mappings header in ${mappings}")
+        def table = new StringBuilder()
+        String classRuntime = null
+        boolean minecraft = false
+        mappings.eachLine('UTF-8') { line ->
+            def part = line.split('\t', -1)
+            if (part[0] == 'c') {
+                classRuntime = part[1 + intermediary]
+                def source = part[1 + named]
+                minecraft = source.startsWith('net/minecraft/') || source.startsWith('com/mojang/')
+                def simple = source.substring(Math.max(source.lastIndexOf('/'), source.lastIndexOf('$')) + 1)
+                if (minecraft && tokens.contains(simple)) table << "c\t${classRuntime}\t${source}\n"
+            } else if (minecraft && part.length >= 5 && part[0] == '' && (part[1] == 'f' || part[1] == 'm')) {
+                def runtime = part[3 + intermediary], source = part[3 + named]
+                if (runtime != source && tokens.contains(source)) table << "${part[1]}\t${classRuntime}\t${source}\t${runtime}\n"
+            }
+        }
+        def file = nameTableDir.get().file('worldgennext/fabric-names.tsv').asFile
+        file.parentFile.mkdirs()
+        file.setText(table.toString(), 'UTF-8')
+    }
+}
+sourceSets.main.resources.srcDir(nameTableDir)
+tasks.named('processResources') { dependsOn 'generateNameTable' }
+tasks.matching { it.name == 'sourcesJar' }.configureEach { dependsOn 'generateNameTable'; exclude 'worldgennext/fabric-names.tsv' }
+
+tasks.matching { it.name == 'runServer' || it.name == 'runClient' }.configureEach { dependsOn tasks.named('prepareCandidateRun') }

@@ -1,0 +1,25 @@
+// Every build of the mod: one entry per Minecraft version and loader.  settings.gradle makes a Gradle project
+// of each (":<name>", build output in mod/targets/<name>/build), built by mod/<loader>.gradle.
+//
+// To add a Minecraft version: give it a folder under mod/versions/ if it needs files of its own, list in
+// `versions` which of those folders it uses (nearest first), and add its targets here.  Then run its exactness
+// matrix: a version gets its list of tested generators from its own runs (docs/CONTRACTS.md).
+gradle.ext.modVersions = [
+    // Minecraft version -> the folders under mod/versions/ whose files it uses, nearest first.
+    '1.21.1' : [],
+    '1.21.4' : ['1.21.4'],
+    '1.21.8' : ['1.21.8', '1.21.4'],
+    '1.21.11': ['1.21.11', '1.21.8', '1.21.4'],
+]
+gradle.ext.modTargets = [
+    // diagnostics: the GameTests, the unit tests and the early replay tasks live with this one build.
+    'neoforge-1211' : [loader: 'neoforge', minecraft: '1.21.1',  neoforge: '21.1.176', diagnostics: true],
+    'fabric-1211'   : [loader: 'fabric',   minecraft: '1.21.1',  fabricApi: '0.116.17+1.21.1'],
+    'fabric-1214'   : [loader: 'fabric',   minecraft: '1.21.4',  fabricApi: '0.119.4+1.21.4'],
+    'fabric-1218'   : [loader: 'fabric',   minecraft: '1.21.8',  fabricApi: '0.136.1+1.21.8'],
+    'neoforge-1218' : [loader: 'neoforge', minecraft: '1.21.8',  neoforge: '21.8.54'],
+    'fabric-12111'  : [loader: 'fabric',   minecraft: '1.21.11', fabricApi: '0.141.6+1.21.11'],
+    // NeoForge 21.11 has no additional runtime classpath for development runs.
+    'neoforge-12111': [loader: 'neoforge', minecraft: '1.21.11', neoforge: '21.11.45', additionalClasspath: false],
+]
+gradle.ext.fabricLoader = '0.19.5'

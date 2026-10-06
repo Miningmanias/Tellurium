@@ -1,5 +1,10 @@
 # Minecraft 1.21.11 on Fabric and NeoForge — 2026-10-06
 
+> Layout since the consolidation of 2026-10-06: the sources this document places in `neoforge-1211`,
+> `fabric-1211`, `fabric-1214`, `fabric-1218`, `fabric-12111` and the two port scripts under `gradle/` are now
+> `mod/common`, `mod/loader/<loader>`, `mod/versions/<version>`, `mod/sources.gradle`, `mod/fabric.gradle` and
+> `mod/neoforge.gradle`; the names remain as the Gradle projects of the builds. See `mod/README.md`.
+
 `fabric-12111` builds `worldgennext-fabric-1.21.11-<version>.jar` and
 `neoforge-12111` builds `worldgennext-neoforge-1.21.11-<version>.jar`
 (NeoForge 21.11.45 or later). Both come from the shared 1.21.1 source, the

@@ -193,11 +193,11 @@ function Get-FrozenCompiledInputsSha {
     $lines = [Collections.Generic.List[string]]::new()
     foreach ($module in @('semantic-core','compiler-jvm','compiler-vulkan','material-codec','spatial-data',
             'chunk-engine','frontend-mc1211','runtime-vulkan','neoforge-1211')) {
-        if (-not (Test-Path -LiteralPath (Join-Path $repoRoot "$module/build/classes/java/main") -PathType Container)) {
+        if (-not (Test-Path -LiteralPath (Join-Path $repoRoot "$(if ($module -eq 'neoforge-1211') { 'mod/targets/neoforge-1211' } else { $module })/build/classes/java/main") -PathType Container)) {
             throw "Frozen replay requires existing compiled classes: $module"
         }
         foreach ($kind in @('classes/java/main','resources/main')) {
-            $directory = Join-Path $repoRoot "$module/build/$kind"
+            $directory = Join-Path $repoRoot "$(if ($module -eq 'neoforge-1211') { 'mod/targets/neoforge-1211' } else { $module })/build/$kind"
             if (-not (Test-Path -LiteralPath $directory -PathType Container)) { continue }
             foreach ($file in Get-ChildItem -LiteralPath $directory -File -Recurse) {
                 $relative = [IO.Path]::GetRelativePath($directory,$file.FullName).Replace('\','/')

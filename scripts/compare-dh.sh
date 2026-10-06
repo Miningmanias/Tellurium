@@ -41,7 +41,7 @@ mv "$server"/mods/*.jar "$server/mods-stash/" 2>/dev/null
 cp "$mods"/*.jar "$server/mods/"
 case "$config" in
   dh) ;;
-  worldgennext) cp "$(ls -t "$loader-$(echo "$mc" | tr -d .)"/build/libs/worldgennext-"$loader"-"$mc"-*.jar | grep -v sources | head -1)" "$server/mods/" ;;
+  worldgennext) cp "$(ls -t mod/targets/"$loader-$(echo "$mc" | tr -d .)"/build/libs/worldgennext-"$loader"-"$mc"-*.jar | grep -v sources | head -1)" "$server/mods/" ;;
   *) echo "unknown configuration $config"; exit 2 ;;
 esac
 [ -d "$server/world" ] && mv "$server/world" "$stash/world-$(date +%Y%m%d-%H%M%S)"

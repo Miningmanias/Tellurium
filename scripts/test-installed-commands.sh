@@ -9,7 +9,7 @@ set -u
 cd "$(dirname "$0")/.."
 RADIUS="${1:-100}"
 server=build/installed-server
-jar=$(ls -t neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-*.jar | grep -v sources | head -1)
+jar=$(ls -t mod/targets/neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-*.jar | grep -v sources | head -1)
 [ -f "$jar" ] || { echo "COMMANDS FAIL: no release jar; run gradlew build"; exit 1; }
 rm -f "$server"/mods/worldgennext-neoforge-*.jar
 cp "$jar" "$server/mods/"

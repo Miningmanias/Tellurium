@@ -1,8 +1,0 @@
-plugins { id 'fabric-loom' version '1.13.6' }
-
-base { archivesName = 'worldgennext-fabric-1.21.4' }
-
-// Minecraft 1.21.4 on Fabric: see gradle/fabric-port.gradle for what this module holds.
-ext.portMinecraft = '1.21.4'
-ext.portFabricApi = '0.119.4+1.21.4'
-apply from: rootProject.file('gradle/fabric-port.gradle')

@@ -12,15 +12,10 @@ def moduleDependencies = [
     'chunk-engine':['semantic-core','material-codec','spatial-data'],
     'frontend-mc1211':['semantic-core'],
     'runtime-vulkan':['semantic-core','compiler-vulkan'],
-    'oracle-and-replay':['semantic-core','compiler-jvm','compiler-vulkan','material-codec','spatial-data','chunk-engine','frontend-mc1211','runtime-vulkan'],
-    'neoforge-1211':['semantic-core','compiler-jvm','material-codec','spatial-data','chunk-engine','frontend-mc1211','runtime-vulkan'],
-    'fabric-1211':['semantic-core','compiler-jvm','material-codec','spatial-data','chunk-engine','frontend-mc1211','runtime-vulkan'],
-    'fabric-1214':['semantic-core','compiler-jvm','material-codec','spatial-data','chunk-engine','frontend-mc1211','runtime-vulkan'],
-    'fabric-1218':['semantic-core','compiler-jvm','material-codec','spatial-data','chunk-engine','frontend-mc1211','runtime-vulkan'],
-    'neoforge-1218':['semantic-core','compiler-jvm','material-codec','spatial-data','chunk-engine','frontend-mc1211','runtime-vulkan'],
-    'fabric-12111':['semantic-core','compiler-jvm','material-codec','spatial-data','chunk-engine','frontend-mc1211','runtime-vulkan'],
-    'neoforge-12111':['semantic-core','compiler-jvm','material-codec','spatial-data','chunk-engine','frontend-mc1211','runtime-vulkan']
+    'oracle-and-replay':['semantic-core','compiler-jvm','compiler-vulkan','material-codec','spatial-data','chunk-engine','frontend-mc1211','runtime-vulkan']
 ]
+// The builds of the mod (mod/targets.gradle) all use the same pure modules.
+gradle.ext.modTargets.keySet().each { moduleDependencies[it] = ['semantic-core','compiler-jvm','material-codec','spatial-data','chunk-engine','frontend-mc1211','runtime-vulkan'] }
 subprojects {
     apply plugin: 'java-library'
     group = rootProject.group
@@ -55,6 +50,15 @@ tasks.register('test') { group='verification'; description='All CPU tests; no GP
 tasks.register('testFast') { group='verification'; description='Alias for the deterministic CPU suite.'; dependsOn tasks.named('test') }
 tasks.named('check') { dependsOn tasks.named('test') }
 tasks.named('assemble') { dependsOn finished.collect { it.tasks.named('assemble') } }
+
+// The release jar of every build of the mod, in one place: build/release.
+tasks.register('releaseJars', Sync) {
+    group = 'distribution'
+    description = 'Copy the mod jar of every target in mod/targets.gradle to build/release.'
+    gradle.ext.modTargets.keySet().each { name -> from(project(":$name").tasks.named(project(":$name").tasks.findByName('remapJar') ? 'remapJar' : 'jar')) }
+    into layout.buildDirectory.dir('release')
+}
+tasks.named('assemble') { dependsOn tasks.named('releaseJars') }
 
 tasks.register('testReport', TestReport) {
     group = 'verification'

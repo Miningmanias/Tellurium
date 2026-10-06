@@ -29,12 +29,12 @@ $frozenGradleArgs = @()
 function Get-CompiledInputsManifest {
     $lines = [System.Collections.Generic.List[string]]::new()
     foreach ($module in $frozenModules) {
-        $classes = Join-Path $repoRoot "$module/build/classes/java/main"
+        $classes = Join-Path $repoRoot "$(if ($module -eq 'neoforge-1211') { 'mod/targets/neoforge-1211' } else { $module })/build/classes/java/main"
         if (-not (Test-Path -LiteralPath $classes -PathType Container)) {
             throw "Frozen replay requires existing compiled classes: $classes"
         }
         foreach ($kind in @('classes/java/main', 'resources/main')) {
-            $directory = Join-Path $repoRoot "$module/build/$kind"
+            $directory = Join-Path $repoRoot "$(if ($module -eq 'neoforge-1211') { 'mod/targets/neoforge-1211' } else { $module })/build/$kind"
             if (-not (Test-Path -LiteralPath $directory -PathType Container)) { continue }
             foreach ($file in @(Get-ChildItem -LiteralPath $directory -File -Recurse)) {
                 $relative = [IO.Path]::GetRelativePath($directory, $file.FullName).Replace('\', '/')

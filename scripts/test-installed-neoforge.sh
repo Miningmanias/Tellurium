@@ -27,7 +27,7 @@ free=$(df -Pk . | awk 'NR==2 {print int($4 / 1048576)}')
 stash=build/_to_delete/neoforge-worlds
 mkdir -p "$stash" "$server/mods"
 mv "$server"/mods/*.jar "$stash/" 2>/dev/null
-cp "$(ls -t "$module"/build/libs/worldgennext-neoforge-"$mc"-*.jar | grep -v sources | head -1)" "$server/mods/"
+cp "$(ls -t mod/targets/"$module"/build/libs/worldgennext-neoforge-"$mc"-*.jar | grep -v sources | head -1)" "$server/mods/"
 cp "$lux"/*.jar "$server/mods/"
 [ -d "$server/world" ] && mv "$server/world" "$stash/world-$(date +%Y%m%d-%H%M%S)"
 rm -f "$server/logs/latest.log"

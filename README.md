@@ -292,11 +292,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\capture-original-s
 .\gradlew.bat sourceBundle --no-daemon
 ```
 
-Replay reports are in `oracle-and-replay/build/replay/`. The dedicated game run is under `neoforge-1211/build/run/gametest/`. GPU checks are bounded smoke workloads, not terrain benchmarks. Run them one at a time.
+Replay reports are in `oracle-and-replay/build/replay/`. The dedicated game run is under `mod/targets/neoforge-1211/build/run/gametest/`. GPU checks are bounded smoke workloads, not terrain benchmarks. Run them one at a time.
 
 On the initial RTX5070Ti host, the normal-range diagnostic passed 917 comparisons. The strict GPU check failed its capability gate because the driver does not advertise FP64 subnormal preservation. The two results have different corpus IDs and neither establishes full floating-point or Minecraft qualification. See [validation status](docs/STATUS.md).
 
-The mod jar is `neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-0.2.0.jar`. The staged route's diagnostics are under `/worldgennext dev` (`status`, `status-json`, `write-default-config`, `selftest`); `selftest` compares synthetic CPU expressions and fixture material states and validates no world generation. Fabric packaging is deferred.
+The mod jars of every build are in `build/release/` after `gradlew build` (for NeoForge 1.21.1, `worldgennext-neoforge-1.21.1-0.2.0.jar`). The staged route's diagnostics are under `/worldgennext dev` (`status`, `status-json`, `write-default-config`, `selftest`); `selftest` compares synthetic CPU expressions and fixture material states and validates no world generation. Fabric packaging is deferred.
 
 ## Modules
 
@@ -312,11 +312,7 @@ The mod jar is `neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-0.2.0.jar`
 | runtime-vulkan | Persistent service lifecycle, disjoint leases, visibility, pipeline and quarantine models |
 | oracle-and-replay | Isolated corpus API, field-by-field comparator, failure bundles and endpoint baseline contracts |
 | oracle-1211 | Independent original-only NeoForge/Minecraft capture process; no WorldgenNext candidate dependency |
-| neoforge-1211 | Config/lazy-native/snapshot/commit lifecycle composition and loader bootstrap checks |
-| fabric-1211 | The Fabric build of the same mod: loader glue, one thread-safety mixin, and the name table a released Fabric game needs ([docs/evidence/fabric-port.md](docs/evidence/fabric-port.md)) |
-| fabric-1214, fabric-1218 | The Fabric builds for Minecraft 1.21.4 and 1.21.8: only the files that differ from the shared 1.21.1 source, assembled by `gradle/fabric-port.gradle` ([docs/evidence/minecraft-versions.md](docs/evidence/minecraft-versions.md)) |
-| neoforge-1218 | The NeoForge build for Minecraft 1.21.8: loader metadata only; the version's files come from fabric-1218 and fabric-1214 through `gradle/neoforge-port.gradle` |
-| fabric-12111, neoforge-12111 | The builds for Minecraft 1.21.11: `fabric-12111` holds the version's files and the list of plain renames, `neoforge-12111` the NeoForge metadata ([docs/evidence/minecraft-1.21.11.md](docs/evidence/minecraft-1.21.11.md)) |
+| mod | The mod itself, one source tree for every Minecraft version and loader: `common` (written for 1.21.1), `loader/neoforge` and `loader/fabric`, `versions/<version>` for what later versions need differently, and the table of builds in `targets.gradle`. Each build is a Gradle project named after its loader and version (`neoforge-1211`, `fabric-1211`, `fabric-1214`, `fabric-1218`, `neoforge-1218`, `fabric-12111`, `neoforge-12111`). See [mod/README.md](mod/README.md) |
 
 See the module READMEs for runnable diagnostics and detailed API limits. [docs/CONTRACTS.md](docs/CONTRACTS.md) fixes the shared boundaries for contributors.
 

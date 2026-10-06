@@ -1,5 +1,10 @@
 # Minecraft versions after 1.21.1 — 2026-10-06
 
+> Layout since the consolidation of 2026-10-06: the sources this document places in `neoforge-1211`,
+> `fabric-1211`, `fabric-1214`, `fabric-1218`, `fabric-12111` and the two port scripts under `gradle/` are now
+> `mod/common`, `mod/loader/<loader>`, `mod/versions/<version>`, `mod/sources.gradle`, `mod/fabric.gradle` and
+> `mod/neoforge.gradle`; the names remain as the Gradle projects of the builds. See `mod/README.md`.
+
 ## What exists
 
 | Minecraft | Loader | Module | Jar | State |

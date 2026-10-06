@@ -5,13 +5,13 @@ function Get-WorldgenCompiledInputSnapshot {
     $lines = [System.Collections.Generic.List[string]]::new()
     foreach ($module in @('semantic-core','compiler-jvm','compiler-vulkan','material-codec',
             'spatial-data','chunk-engine','frontend-mc1211','runtime-vulkan','neoforge-1211')) {
-        $classes = Join-Path $root "$module/build/classes/java/main"
+        $classes = Join-Path $root "$(if ($module -eq 'neoforge-1211') { 'mod/targets/neoforge-1211' } else { $module })/build/classes/java/main"
         if (-not (Test-Path -LiteralPath $classes -PathType Container) -or
                 @(Get-ChildItem -LiteralPath $classes -File -Recurse -Filter '*.class').Count -eq 0) {
             throw "Frozen replay requires existing compiled classes: $classes"
         }
         foreach ($kind in @('classes/java/main','resources/main')) {
-            $directory = Join-Path $root "$module/build/$kind"
+            $directory = Join-Path $root "$(if ($module -eq 'neoforge-1211') { 'mod/targets/neoforge-1211' } else { $module })/build/$kind"
             if (-not (Test-Path -LiteralPath $directory -PathType Container)) { continue }
             foreach ($file in @(Get-ChildItem -LiteralPath $directory -File -Recurse)) {
                 if ($file.Attributes -band [IO.FileAttributes]::ReparsePoint) {

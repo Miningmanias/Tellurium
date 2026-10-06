@@ -1,0 +1,109 @@
+// Which source files a target is built from.  Applied by mod/fabric.gradle and mod/neoforge.gradle; sets
+// ext.modSources for them.
+//
+//   mod/common                  the mod, written for Minecraft 1.21.1
+//   mod/loader/<loader>         what differs per loader: Loader, the entry point, the loader's metadata
+//   mod/versions/<version>      what a later Minecraft version needs differently:
+//       src/main/java, src/main/resources   files that replace the file of the same path
+//       removed.txt                         files of mod/common with no counterpart (paths under dev/worldgennext/neoforge/)
+//       renames.gradle                      names Minecraft merely changed (regular expression -> replacement)
+//
+// A target uses the version folders mod/targets.gradle lists for its Minecraft version, nearest first; where
+// several have a file, the nearest wins.  With renames, they are applied line by line to a copy of all of it
+// and the copy is what is compiled; lines keep their numbers.
+def target = gradle.ext.modTargets[project.name]
+def common = rootProject.file('mod/common')
+def glue = rootProject.file("mod/loader/${target.loader}")
+def layers = gradle.ext.modVersions[target.minecraft].collect { rootProject.file("mod/versions/$it") }
+def removed = layers.collectMany { layer ->
+    def list = new File(layer, 'removed.txt')
+    list.isFile() ? list.readLines('UTF-8').collect { it.trim() }.findAll { it && !it.startsWith('#') }.collect { 'dev/worldgennext/neoforge/' + it } : []
+}
+// The index of the version folder a file belongs to, or -1 for mod/common and the loader's folder.
+def layerOf = { File file -> layers.findIndexOf { file.toPath().startsWith(it.toPath()) } }
+// Whether a nearer version folder (any of them for -1) has this path under the given directory.
+def replacedBefore = { int layer, String directory, String path ->
+    (layer < 0 ? layers : layers.take(layer)).any { new File(new File(it, directory), path).isFile() }
+}
+def renames = [:]
+layers.reverse().each { layer ->
+    def file = new File(layer, 'renames.gradle')
+    if (file.isFile()) {
+        apply from: file
+        renames.putAll(project.ext.portRenames)
+    }
+}
+def roots = [common, glue] + layers
+def pureModules = ['semantic-core', 'compiler-jvm', 'compiler-vulkan', 'material-codec', 'spatial-data', 'chunk-engine', 'frontend-mc1211', 'runtime-vulkan']
+def javaLeftOut = { element ->
+    if (element.isDirectory()) return false
+    int layer = layerOf(element.file)
+    return (layer < 0 && element.path in removed) || replacedBefore(layer, 'src/main/java', element.path)
+}
+def resourceLeftOut = { element ->
+    if (element.isDirectory()) return false
+    return replacedBefore(layerOf(element.file), 'src/main/resources', element.path)
+}
+def copied = layout.buildDirectory.dir('renamedSources/java')
+if (renames) {
+    tasks.register('renameSources', Sync) {
+        roots.each { from new File(it, 'src/main/java') }
+        exclude javaLeftOut
+        filteringCharset = 'UTF-8'
+        filter { String line -> renames.inject(line) { text, entry -> text.replaceAll(entry.key, entry.value) } }
+        inputs.property 'renames', renames.toString()
+        into copied
+    }
+}
+sourceSets.main {
+    java {
+        if (renames) {
+            srcDirs = [tasks.named('renameSources')]
+        } else {
+            srcDirs = roots.collect { new File(it, 'src/main/java') }
+            exclude javaLeftOut
+        }
+    }
+    resources {
+        srcDirs = roots.collect { new File(it, 'src/main/resources') }
+        exclude resourceLeftOut
+    }
+}
+ext.modSources = [
+    target: target,
+    glue: glue,
+    // The Java files as compiled (for the Fabric name table).
+    javaFiles: { renames ? fileTree(copied) { include '**/*.java' } : files(roots.collect { root -> fileTree(new File(root, 'src/main/java')) { include '**/*.java'; exclude javaLeftOut } }) },
+    renamed: !renames.isEmpty(),
+    pureModules: pureModules,
+]
+
+// The dev server's run directory (scripts/run-pregen.sh, bench-cps.ps1).
+tasks.register('prepareCandidateRun') {
+    doLast {
+        def directory = project.file(System.getProperty('worldgennext.candidate.runDir', layout.buildDirectory.dir('run/candidate').get().asFile.absolutePath))
+        def seed = System.getProperty('worldgennext.candidate.seed', '0')
+        if (Boolean.parseBoolean(System.getProperty('worldgennext.prototype.resume', 'false'))) {
+            if (!new File(directory, 'server.properties').isFile() || !new File(directory, 'candidate-world/level.dat').isFile()) {
+                throw new GradleException('Prototype resume requires an existing candidate-world and server.properties')
+            }
+            return
+        }
+        directory.mkdirs()
+        new File(directory, 'eula.txt').text = 'eula=true\n'
+        def port = Integer.parseInt(System.getProperty('worldgennext.prototype.port', '25565'))
+        if (port < 1 || port > 65535) throw new GradleException('Prototype port must be between 1 and 65535')
+        new File(directory, 'server.properties').text = "level-seed=${seed}\nlevel-name=candidate-world\nlevel-type=minecraft\\:normal\ngenerate-structures=${System.getProperty('worldgennext.run.generateStructures', 'true')}\nsync-chunk-writes=${System.getProperty('worldgennext.run.syncChunkWrites', 'true')}\nonline-mode=false\nserver-ip=127.0.0.1\nserver-port=${port}\nspawn-protection=0\nmax-tick-time=-1\nenable-command-block=true\n"
+    }
+}
+
+tasks.named('jar', Jar) {
+    pureModules.each { from project(":$it").sourceSets.main.output }
+    duplicatesStrategy = DuplicatesStrategy.FAIL
+}
+tasks.named('sourcesJar', Jar) {
+    pureModules.each { from project(":$it").sourceSets.main.allSource }
+    duplicatesStrategy = DuplicatesStrategy.FAIL
+}
+
+apply from: rootProject.file('mod/gpu-runtime.gradle')

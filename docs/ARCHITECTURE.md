@@ -18,12 +18,11 @@ flowchart TD
   native --> replay
   material --> replay
   engine --> replay
-  frontend --> neo[neoforge-1211]
+  frontend --> neo[mod: common source, built per loader and Minecraft version]
   cpu --> neo
   engine --> neo
-  neo --> fabric[fabric-1211: same source, Fabric loader glue]
-  fabric --> ports[fabric-1214, fabric-1218, fabric-12111: files that differ on later Minecraft versions]
-  ports --> neoports[neoforge-1218, neoforge-12111: NeoForge metadata over the same files]
+  neo --> loaders[mod/loader: NeoForge and Fabric glue]
+  neo --> versions[mod/versions: files that differ on later Minecraft versions]
 ```
 
 Arrows mean dependency inputs, not claims that a live Minecraft generation pipeline is installed. The semantic subset has no noise stack, aquifers or ore generator yet. The NeoForge entrypoint is diagnostic and leaves generation to the original game.

@@ -13,8 +13,7 @@ MODULES = {
         "frontend-mc1211": "Typed captured Minecraft lowering boundary",
         "runtime-vulkan": "Persistent Vulkan lifecycle and opt-in native compute",
         "oracle-and-replay": "Corpus comparator, counted replay and result artifacts",
-        "neoforge-1211": "Minecraft snapshot/runtime composition and bootstrap tests",
-    "fabric-1211": "Deferred loader frame",
+    "mod": "The mod: common source, per-loader and per-Minecraft-version files, and the builds of each",
 }
 EXCLUDED = {".git", ".gradle", "build", "run", "runs", ".idea", "__pycache__", "launch-video", "net"}
 

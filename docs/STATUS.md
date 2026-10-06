@@ -1,5 +1,35 @@
 # WorldgenNext status — 2026-10-03
 
+## 2026-10-06 — One source tree for every build
+
+The seven per-version, per-loader modules are now one tree, `mod/`: `common`
+(the mod, written for 1.21.1), `loader/neoforge` and `loader/fabric`,
+`versions/<version>` for what later Minecraft versions need differently, and
+the table of builds in `targets.gradle`. The builds keep their Gradle project
+names (`neoforge-1211` ... `neoforge-12111`) and their output is under
+`mod/targets/<name>/build`; `gradlew build` also copies every release jar to
+`build/release`. All NeoForge builds now use ModDevGradle 2.0.148. No source
+file changed in the move: each new jar has the same entries as the one built
+before it. See `mod/README.md`.
+
+After the move: NeoForge 1.21.1 release check (build, exactness 3 of 3,
+carvers, save and reopen, console commands pass; kill-recovery, below); Fabric
+1.21.1, Fabric 1.21.11 and NeoForge 1.21.11 jars on real servers generate on
+the GPU with no errors and recognise their tested generators; exactness rows
+identical on Fabric 1.21.1 (1), Fabric 1.21.11 (2, one with Terralith and
+Tectonic) and NeoForge 1.21.11 (1); the 1.21.4 and 1.21.8 jars recognise their
+tested generators; a NeoForge 1.21.1 singleplayer client run. The early
+replay scripts (`scripts/replay-*.ps1`, `capture-*.ps1`) had their paths
+changed and were not run.
+
+Kill-recovery: 3 of 4 runs pass. In the failing run a chunk was left torn in a
+region file by the kill, and the resumed server logged two read errors for it,
+generated the chunk again and finished with a valid world (72,395 chunks, 0
+problems). One of the passing runs also had a torn chunk after the kill that
+the resumed run did not happen to read. So a hard kill can leave a torn chunk,
+which the game then regenerates; the test passed on every earlier run today,
+and whether this is new was not established.
+
 ## 2026-10-06 — Minecraft 1.21.11 (Fabric, NeoForge)
 
 `fabric-12111` and `neoforge-12111`. Minecraft 1.21.9 changed world

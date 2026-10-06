@@ -27,11 +27,11 @@ $manifest = [IO.File]::ReadAllText((Resolve-Path -LiteralPath $FrozenCompiledMan
 function Current-Manifest {
     $lines = [System.Collections.Generic.List[string]]::new()
     foreach ($module in $modules) {
-        if (-not (Test-Path -LiteralPath (Join-Path $repoRoot "$module/build/classes/java/main"))) {
+        if (-not (Test-Path -LiteralPath (Join-Path $repoRoot "$(if ($module -eq 'neoforge-1211') { 'mod/targets/neoforge-1211' } else { $module })/build/classes/java/main"))) {
             throw "Missing frozen classes: $module"
         }
         foreach ($kind in @('classes/java/main', 'resources/main')) {
-            $directory = Join-Path $repoRoot "$module/build/$kind"
+            $directory = Join-Path $repoRoot "$(if ($module -eq 'neoforge-1211') { 'mod/targets/neoforge-1211' } else { $module })/build/$kind"
             if (-not (Test-Path -LiteralPath $directory -PathType Container)) { continue }
             foreach ($file in @(Get-ChildItem -LiteralPath $directory -File -Recurse)) {
                 $relative = [IO.Path]::GetRelativePath($directory, $file.FullName).Replace('\', '/')

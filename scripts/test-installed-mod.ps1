@@ -184,7 +184,7 @@ if (-not (Test-Path -LiteralPath $source -PathType Container)) { throw "ServerDi
 Assert-EmptyWorldTemplate $source
 $serverJarPath = Find-ServerJar $source $ServerJar
 $javaPath = Resolve-Java $JavaHome
-if ([string]::IsNullOrWhiteSpace($ModJar)) { $ModJar = Join-Path $repoRoot 'neoforge-1211\build\libs\worldgennext-neoforge-1.21.1-0.2.0.jar' }
+if ([string]::IsNullOrWhiteSpace($ModJar)) { $ModJar = Join-Path $repoRoot 'mod\targets\neoforge-1211\build\libs\worldgennext-neoforge-1.21.1-0.2.0.jar' }
 $modJarPath = Resolve-FullPath $ModJar 'ModJar'
 if (-not (Test-Path -LiteralPath $modJarPath -PathType Leaf)) { throw "Mod jar was not found: $modJarPath" }
 

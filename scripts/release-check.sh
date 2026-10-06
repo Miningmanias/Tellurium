@@ -59,6 +59,6 @@ if [ -n "${CLIENT:-}" ]; then
 fi
 
 echo
-echo "release check: $([ $failed = 0 ] && echo PASS || echo FAIL)  ($(git rev-parse --short HEAD)$(git status --short -- neoforge-1211 compiler-vulkan runtime-vulkan scripts | grep -q . && echo ', uncommitted changes'))"
+echo "release check: $([ $failed = 0 ] && echo PASS || echo FAIL)  ($(git rev-parse --short HEAD)$(git status --short -- mod compiler-vulkan runtime-vulkan scripts | grep -q . && echo ', uncommitted changes'))"
 printf '  %s\n' "${results[@]}"
 exit $failed

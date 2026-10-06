@@ -28,7 +28,7 @@ mv "$server"/mods/*.jar "$server/mods-stash/" 2>/dev/null
 cp build/test-mods/vanilla/ScalableLux-*.jar build/test-mods/chunky/Chunky-*.jar "$server/mods/"
 case "$config" in
   vanilla) ;;
-  worldgennext) cp "$(ls -t neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-*.jar | grep -v sources | head -1)" "$server/mods/" ;;
+  worldgennext) cp "$(ls -t mod/targets/neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-*.jar | grep -v sources | head -1)" "$server/mods/" ;;
   c2me) cp build/test-mods/c2me/c2me-neoforge-mc*.jar "$server/mods/" ;;
   c2me-ocl) cp build/test-mods/c2me-ocl/c2me-neoforge-*.jar "$server/mods/" ;;
   *) echo "unknown configuration $config"; exit 2 ;;
