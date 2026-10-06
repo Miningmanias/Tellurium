@@ -13,6 +13,12 @@ run with the Fabric builds of Terralith, Tectonic and Lithostitched (15 of 15
 contexts identical) and nothing else from the table was repeated; see
 `docs/evidence/fabric-port.md`.
 
+Minecraft 1.21.11 (Fabric and NeoForge): of the table only Terralith and
+Tectonic were run; both, and the two together, are identical to vanilla there
+and on that version's tested list. Every other world generator mod below
+generates with vanilla code there unless `gpu.mode` is set to `"check"` or
+`"force"`. See `docs/evidence/minecraft-1.21.11.md`.
+
 Fabric for Minecraft 1.21.4 and 1.21.8, NeoForge for 1.21.8: of the table
 only Terralith and Tectonic were run. Terralith is on those versions' tested
 lists; Tectonic's releases for them use a density function the GPU kernels do

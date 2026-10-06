@@ -1,8 +1,8 @@
 # WorldgenNext
 
-Faster chunk generation for Minecraft that produces the same world: NeoForge
-and Fabric on 1.21.1 and 1.21.8, Fabric on 1.21.4. No CUDA: the GPU part runs
-on Vulkan.
+Faster chunk generation for Minecraft that produces the same world, for
+NeoForge and Fabric on Minecraft 1.21.1 and 1.21.11 (builds for 1.21.4 and
+1.21.8 exist as well). No CUDA: the GPU part runs on Vulkan.
 
 - **Terrain and surface on the GPU** for world generators on the tested list:
   vanilla Overworld, Nether and End, Terralith, Tectonic, Terralith with
@@ -23,6 +23,12 @@ on Vulkan.
    the mod logs why and keeps the CPU-side improvements.
 3. Put `worldgennext-neoforge-1.21.1-0.2.0.jar` (NeoForge) or
    `worldgennext-fabric-1.21.1-0.2.0.jar` (Fabric) in `mods/`.
+   For Minecraft 1.21.11 the jars are
+   `worldgennext-neoforge-1.21.11-0.2.0.jar` (NeoForge 21.11.45+) and
+   `worldgennext-fabric-1.21.11-0.2.0.jar`; the tested list there holds the
+   vanilla Overworld, Nether and End, Terralith, Tectonic and the two
+   together, and Distant Horizons and Voxy have not been run on it
+   ([docs/evidence/minecraft-1.21.11.md](docs/evidence/minecraft-1.21.11.md)).
    For Minecraft 1.21.4 or 1.21.8 on Fabric the jar is
    `worldgennext-fabric-1.21.4-0.2.0.jar` or
    `worldgennext-fabric-1.21.8-0.2.0.jar`; for 1.21.8 on NeoForge (21.8.54+)
@@ -310,6 +316,7 @@ The mod jar is `neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-0.2.0.jar`
 | fabric-1211 | The Fabric build of the same mod: loader glue, one thread-safety mixin, and the name table a released Fabric game needs ([docs/evidence/fabric-port.md](docs/evidence/fabric-port.md)) |
 | fabric-1214, fabric-1218 | The Fabric builds for Minecraft 1.21.4 and 1.21.8: only the files that differ from the shared 1.21.1 source, assembled by `gradle/fabric-port.gradle` ([docs/evidence/minecraft-versions.md](docs/evidence/minecraft-versions.md)) |
 | neoforge-1218 | The NeoForge build for Minecraft 1.21.8: loader metadata only; the version's files come from fabric-1218 and fabric-1214 through `gradle/neoforge-port.gradle` |
+| fabric-12111, neoforge-12111 | The builds for Minecraft 1.21.11: `fabric-12111` holds the version's files and the list of plain renames, `neoforge-12111` the NeoForge metadata ([docs/evidence/minecraft-1.21.11.md](docs/evidence/minecraft-1.21.11.md)) |
 
 See the module READMEs for runnable diagnostics and detailed API limits. [docs/CONTRACTS.md](docs/CONTRACTS.md) fixes the shared boundaries for contributors.
 

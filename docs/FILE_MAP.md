@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **670**, plus this generated index.
+Indexed project files: **682**, plus this generated index.
 
 ## semantic-core
 
@@ -609,6 +609,7 @@ Deferred loader frame.
 | [docs/evidence/comparison-distant-horizons.md](../docs/evidence/comparison-distant-horizons.md) | Documentation |
 | [docs/evidence/comparison-voxy.md](../docs/evidence/comparison-voxy.md) | Documentation |
 | [docs/evidence/fabric-port.md](../docs/evidence/fabric-port.md) | Documentation |
+| [docs/evidence/minecraft-1.21.11.md](../docs/evidence/minecraft-1.21.11.md) | Documentation |
 | [docs/evidence/minecraft-versions.md](../docs/evidence/minecraft-versions.md) | Documentation |
 | [docs/evidence/throughput-fused-gpu.md](../docs/evidence/throughput-fused-gpu.md) | Documentation |
 | [docs/evidence/v0.1-cpu-replay.json](../docs/evidence/v0.1-cpu-replay.json) | Tooling, data or provenance |
@@ -654,6 +655,14 @@ Deferred loader frame.
 | [docs/v0.2/TESTS.md](../docs/v0.2/TESTS.md) | Documentation |
 | [docs/v0.2/WORK_PACKAGES.json](../docs/v0.2/WORK_PACKAGES.json) | Tooling, data or provenance |
 | [docs/V0.2-PLAN.md](../docs/V0.2-PLAN.md) | Documentation |
+| [fabric-12111/build.gradle](../fabric-12111/build.gradle) | Build configuration/tooling |
+| [fabric-12111/README.md](../fabric-12111/README.md) | Documentation |
+| [fabric-12111/removed.txt](../fabric-12111/removed.txt) | Tooling, data or provenance |
+| [fabric-12111/renames.gradle](../fabric-12111/renames.gradle) | Build configuration/tooling |
+| [fabric-12111/src/main/java/dev/worldgennext/neoforge/mixin/SerializableChunkDataSurfaceMixin.java](../fabric-12111/src/main/java/dev/worldgennext/neoforge/mixin/SerializableChunkDataSurfaceMixin.java) | Implementation or explicit public contract |
+| [fabric-12111/src/main/java/dev/worldgennext/neoforge/version/Version.java](../fabric-12111/src/main/java/dev/worldgennext/neoforge/version/Version.java) | Implementation or explicit public contract |
+| [fabric-12111/src/main/resources/worldgennext/fused-qualified.properties](../fabric-12111/src/main/resources/worldgennext/fused-qualified.properties) | Packaged metadata/resource |
+| [fabric-12111/src/main/resources/worldgennext.mixins.json](../fabric-12111/src/main/resources/worldgennext.mixins.json) | Packaged metadata/resource |
 | [fabric-1214/build.gradle](../fabric-1214/build.gradle) | Build configuration/tooling |
 | [fabric-1214/README.md](../fabric-1214/README.md) | Documentation |
 | [fabric-1214/removed.txt](../fabric-1214/removed.txt) | Tooling, data or provenance |
@@ -681,6 +690,9 @@ Deferred loader frame.
 | [gradlew](../gradlew) | Build configuration/tooling |
 | [gradlew.bat](../gradlew.bat) | Build configuration/tooling |
 | [LICENSE](../LICENSE) | Tooling, data or provenance |
+| [neoforge-12111/build.gradle](../neoforge-12111/build.gradle) | Build configuration/tooling |
+| [neoforge-12111/README.md](../neoforge-12111/README.md) | Documentation |
+| [neoforge-12111/src/main/resources/META-INF/neoforge.mods.toml](../neoforge-12111/src/main/resources/META-INF/neoforge.mods.toml) | Packaged metadata/resource |
 | [neoforge-1218/build.gradle](../neoforge-1218/build.gradle) | Build configuration/tooling |
 | [neoforge-1218/README.md](../neoforge-1218/README.md) | Documentation |
 | [neoforge-1218/src/main/resources/META-INF/neoforge.mods.toml](../neoforge-1218/src/main/resources/META-INF/neoforge.mods.toml) | Packaged metadata/resource |

@@ -1,5 +1,22 @@
 # WorldgenNext status — 2026-10-03
 
+## 2026-10-06 — Minecraft 1.21.11 (Fabric, NeoForge)
+
+`fabric-12111` and `neoforge-12111`. Minecraft 1.21.9 changed world
+generation: the preliminary surface is a function of its own (a "find top
+surface" search in the vanilla Overworld), and aquifers are skipped above a
+level derived from it. The frontend and the GPU kernels follow, with the
+kernels of earlier versions unchanged. Verified on each loader: SURFACE matrix
+12 of 12 vanilla contexts identical, and Terralith, Tectonic and both together
+identical and on the tested list; the built jar on a real server generates
+160,801 chunks with terrain on the GPU and no errors (2,817 and 2,768
+chunks/s, one run each); check mode 0 differences over 7,200 Overworld, 7,225
+Nether and 7,225 End chunks; save and reopen; a singleplayer world in the
+development client. Not verified there: a released client or play session,
+Distant Horizons, Voxy, kill-recovery, the command walk-through, other world
+generator mods. After the shared changes the NeoForge 1.21.1 release check
+passes. Evidence: `docs/evidence/minecraft-1.21.11.md`.
+
 ## 2026-10-06 — Minecraft 1.21.4 (Fabric) and 1.21.8 (Fabric, NeoForge)
 
 `fabric-1214` and `fabric-1218` build from the shared 1.21.1 source; each

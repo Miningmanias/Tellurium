@@ -9,12 +9,18 @@
 | 1.21.4 | Fabric | `fabric-1214` | `worldgennext-fabric-1.21.4-<version>.jar` | verified as below |
 | 1.21.8 | Fabric | `fabric-1218` | `worldgennext-fabric-1.21.8-<version>.jar` | verified as below |
 | 1.21.8 | NeoForge 21.8.54+ | `neoforge-1218` | `worldgennext-neoforge-1.21.8-<version>.jar` | verified as below |
+| 1.21.11 | Fabric | `fabric-12111` | `worldgennext-fabric-1.21.11-<version>.jar` | `docs/evidence/minecraft-1.21.11.md` |
+| 1.21.11 | NeoForge 21.11.45+ | `neoforge-12111` | `worldgennext-neoforge-1.21.11-<version>.jar` | `docs/evidence/minecraft-1.21.11.md` |
+
+The work is on 1.21.1 and 1.21.11, on both loaders; 1.21.4 and 1.21.8 are as
+this document left them, apart from the regression runs in the 1.21.11
+document.
 
 Not ported: NeoForge for 1.21.4 (the module compiled against NeoForge
 21.4.158 and was set aside unrun: ScalableLux has no NeoForge build for
 1.21.4, and every test run here includes ScalableLux); Minecraft 1.21.5 to
 1.21.7 (not built or run; the 1.21.8 jars declare 1.21.8 only); 1.21.9 and
-later (see the end).
+1.21.10 (not built or run; the 1.21.11 jars declare 1.21.11 only); 26.x.
 
 ## How a version is built
 
@@ -25,7 +31,10 @@ The mod's code is the 1.21.1 source in `neoforge-1211` plus the Fabric glue in
 - `src/main/java`: files that replace the shared file of the same path;
 - `removed.txt`: shared files with no counterpart in that version;
 - `src/main/resources`: its mixin list and its list of tested generators;
-- `portParents`: earlier versions' modules whose files it also uses.
+- `portParents`: earlier versions' modules whose files it also uses;
+- `portRenames` (1.21.11): plain renames in Minecraft, as regular expression
+  and replacement. The build applies them line by line to a copy of every
+  source file that is not the module's own and compiles the copy.
 
 Code that differs between versions but is otherwise shared calls
 `version/Version` (one class per version, same methods). `fabric-1214` holds a
@@ -189,15 +198,9 @@ on that version's tested list (3.0.26) does not use it. Supporting it means
 implementing that function in the frontend and the kernels and running the
 rows again.
 
-## 1.21.9 and later: not ported, and why
+## 1.21.9 and later
 
-A compile against 1.21.10 shows a change in world generation itself, not only
-in names: the noise router no longer has `initialDensityWithoutJaggedness`;
-the preliminary surface level that aquifers use is now a density function of
-its own (`preliminary_surface_level`, built with the new `find_top_surface`).
-The mod computes that level on the GPU from the old search, so this needs a
-new density-function node in the frontend, a new kernel path and its own
-exactness matrix. `PalettedContainer.Strategy`, the spawn position and the
-singleplayer-owner check also changed (small). Minecraft 1.21.11 and 26.x
-additionally need a newer Fabric Loom than Gradle 8.14 can run (Loom 1.11.8 is
-the newest that works here; 1.14 needs Gradle 9.2).
+Ported for 1.21.11 on both loaders after this document was written: see
+`docs/evidence/minecraft-1.21.11.md`. What stood here (world generation
+changed in 1.21.9; a newer Fabric Loom is needed) is described there with what
+was done about it. Fabric Loom 1.13.6 turned out to run on Gradle 8.14.
