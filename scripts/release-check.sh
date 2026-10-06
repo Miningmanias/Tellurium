@@ -38,7 +38,8 @@ check() { # name, pass pattern, command...
 
 check build "BUILD SUCCESSFUL" ./gradlew.bat test build verifyArchitecture --no-daemon --console=plain
 if [ -n "${FULL_MATRIX:-}" ]; then
-  check exactness "MATRIX PASS \(15/15\)" bash scripts/verify-fast-matrix.sh 45
+  # 15 core rows, plus the dimension-pack rows when those packs are present.
+  check exactness "MATRIX PASS \((1[5-9]|[2-9][0-9])/" bash scripts/verify-fast-matrix.sh 45
 else
   check exactness "MATRIX PASS" env ROWS="${ROWS:-vanilla-overworld vanilla-nether combined}" bash scripts/verify-fast-matrix.sh 45
 fi
@@ -50,7 +51,7 @@ if [ -n "${CLIENT:-}" ]; then
   reference=$(ls -t build/bench/mv-vanilla-overworld-surface-*.digest.txt 2>/dev/null | head -1)
   client() {
     DIGEST=build/bench/release-client.json bash scripts/run-client-pregen.sh 45 vanilla
-    python scripts/compare-digests.py "$reference" build/bench/release-client.digest.txt | tr '\n' ' '
+    python scripts/compare-digests.py "$reference" build/bench/release-client.digest.txt | tr -d '\r' | tr '\n' ' '
     echo
   }
   check client "missing=0 extra=0 +PASS" client
