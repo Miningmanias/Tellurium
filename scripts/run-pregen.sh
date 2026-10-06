@@ -20,6 +20,7 @@ resume=()
 args=("${resume[@]}" ":neoforge-1211:runServer" "--no-daemon" "--console=plain" "-Dworldgennext.candidate.runDir=$run" "-Dworldgennext.candidate.seed=0"
       "-Dworldgennext.run.maxHeap=16G" "-Dworldgennext.pregen.autostart=$RADIUS" "-Dworldgennext.pregen.stopServerWhenDone=true"
       "-Dworldgennext.statusOnStop=true" "-Dworldgennext.fast.pipelineCacheDir=$root/build/fast-cache")
+[ -n "${NEOFORGE:-}" ] && args+=("-Pworldgennext.neoforge=$NEOFORGE")
 IFS=';' read -ra extra <<< "$EXTRA"
 for p in "${extra[@]}"; do [ -n "$p" ] && args+=("-D$p"); done
 ./gradlew.bat "${args[@]}" > "$run/gradle.out" 2>&1

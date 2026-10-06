@@ -1,5 +1,21 @@
 # WorldgenNext status — 2026-10-03
 
+## 2026-10-06 — Voxy
+
+`compat/VoxyBridge.java`: when Voxy is in the same game as the server
+(singleplayer, LAN host) the terrain within `voxy.radius` chunks of each
+player is generated tile by tile, nearest first, and each finished chunk is
+passed to Voxy's ingest service; the positions handed over are kept in
+`<world>/worldgennext-voxy/`. Tested with Voxy 0.2.16-beta through Roxy 0.3.3
+on NeoForge 21.1.255 in the dev client: 73,984 chunks in about 40 s (about
+1,950 chunks/s), heap steady, nothing regenerated in a second session, a
+flying player kept a 10.5 ms average tick. Voxy WorldGen 2.4.2 in the same
+setup: 15,167 chunks in the region files after 150 s, 29,588 on this mod's
+chunk generation. Not done: looking at what Voxy draws; dedicated servers
+(no Voxy in the process); unfinished chunks. The dev client can now run on a
+later NeoForge 21.1.x (`-Pworldgennext.neoforge=`). Evidence:
+`docs/evidence/comparison-voxy.md`.
+
 ## 2026-10-05 — Distant Horizons
 
 With Distant Horizons 3.3.3 installed the mod registers a world generator

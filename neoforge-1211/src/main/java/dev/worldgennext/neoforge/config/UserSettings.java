@@ -40,7 +40,7 @@ public final class UserSettings {
             {"worldgennext.fast.regionChunkCache", "false"}, {"worldgennext.regionHeaderBatch", "false"},
             {"worldgennext.fast.freshRegionShortcut", "false"}, {"worldgennext.fast.shapeCache", "false"},
             {"worldgennext.unloadPacing", "false"}, {"worldgennext.promptTaskRelease", "false"},
-            {"worldgennext.dh.mode", "off"}};
+            {"worldgennext.dh.mode", "off"}, {"worldgennext.voxy.generate", "false"}};
 
     private static final String DEFAULT_FILE = """
             # WorldgenNext configuration.  Changes take effect on the next server start.
@@ -86,6 +86,14 @@ public final class UserSettings {
             # in_flight above (reduced on small heaps) instead of its own default of 50, which
             # holds this mod to about 1,000 chunks per second.  false leaves Chunky alone.
             tune_chunky = true
+
+            [voxy]
+            # Only matters if Voxy is installed and this is singleplayer or the host of a LAN world.
+            # Generate the terrain around each player that Voxy shows in the distance, and hand it to
+            # Voxy.  Without this (or the separate Voxy WorldGen mod) Voxy only shows where you have been.
+            generate = true
+            # How far around each player, in chunks (16-1024).  The chunks are real and are saved.
+            radius = 128
 
             [distant_horizons]
             # Only matters if Distant Horizons is installed.
@@ -197,7 +205,8 @@ public final class UserSettings {
     Map<String, String> systemProperties() {
         for (String key : values.keySet()) {
             if (!List.of("enabled", "gpu.mode", "generation.parallel_steps", "saving.async", "saving.compression_level",
-                    "pregen.in_flight", "pregen.progress_seconds", "pregen.tune_chunky", "distant_horizons.generator", "distant_horizons.full_chunks")
+                    "pregen.in_flight", "pregen.progress_seconds", "pregen.tune_chunky", "distant_horizons.generator", "distant_horizons.full_chunks",
+                    "voxy.generate", "voxy.radius")
                     .contains(key)) {
                 String text = "unknown option '" + key + "' ignored";
                 if (!problems.contains(text)) problems.add(text);
@@ -224,6 +233,8 @@ public final class UserSettings {
         // Chunky reads this property once, when its generation task class loads.
         if (tuneChunky()) published.put("chunky.maxWorkingCount", Integer.toString(chunkyInFlight(Runtime.getRuntime().maxMemory())));
         published.put("worldgennext.dh.mode", distantHorizonsGenerator());
+        published.put("worldgennext.voxy.generate", Boolean.toString(bool("voxy.generate", true)));
+        published.put("worldgennext.voxy.radius", Integer.toString(integer("voxy.radius", 128, 16, 1024)));
         published.put("worldgennext.dh.fullChunks", Boolean.toString(bool("distant_horizons.full_chunks", false)));
         return published;
     }

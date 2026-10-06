@@ -14,16 +14,30 @@ EXTRA="${3:-}"
 export JAVA_HOME="${JAVA_HOME:-C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.12.101-hotspot}"
 root="$(pwd -W 2>/dev/null || pwd)"
 
-run=$(bash scripts/run-pregen.sh 1 "$MODS" | grep -m1 '^RUNDIR' | sed 's/^RUNDIR //')
+# CREATE_MODS=<mods subdirectory>: create the world on the dedicated server with those mods instead (client-only
+# mods such as Sodium or Voxy cannot be on it), then put the client's mods in place.
+# REUSE=<run directory of an earlier run>: open that run's world again instead of creating one.
+if [ -n "${REUSE:-}" ]; then
+  run="$REUSE"
+  mv "$run/logs/latest.log" "$run/logs/session-$(date +%H%M%S).log" 2>/dev/null
+else
+run=$(bash scripts/run-pregen.sh 1 "${CREATE_MODS:-$MODS}" | grep -m1 '^RUNDIR' | sed 's/^RUNDIR //')
+if [ -n "${CREATE_MODS:-}" ]; then
+  mkdir -p "$run/mods-create" && mv "$run"/mods/*.jar "$run/mods-create/" && cp "build/test-mods/$MODS"/*.jar "$run/mods/"
+fi
+fi
+if [ -z "${REUSE:-}" ]; then
 [ -d "$run/candidate-world" ] || { echo "CLIENT FAIL: the world was not created"; exit 1; }
 mkdir -p "$run/saves"
 cp -r "$run/candidate-world" "$run/saves/sp-world"
 mv "$run/logs/latest.log" "$run/logs/server-create.log"
+fi
 # A first launch otherwise stops at the accessibility onboarding screen instead of entering the world.
 printf 'onboardAccessibility:false\nskipMultiplayerWarning:true\ntutorialStep:none\npauseOnLostFocus:false\n' > "$run/options.txt"
 
 # CONFIG_TOML=<file>: use that as config/worldgennext.toml in the client (for example one with enabled = false).
 [ -n "${CONFIG_TOML:-}" ] && cp "$CONFIG_TOML" "$run/config/worldgennext.toml"
+# NEOFORGE=<version>: run the client on that NeoForge 21.1.x instead of the one the mod is built against.
 args=(":neoforge-1211:runClient" "--no-daemon" "--console=plain" "-Dworldgennext.candidate.runDir=$run" "-Dworldgennext.prototype.resume=true"
       "-Dworldgennext.client.quickPlay=sp-world" "-Dworldgennext.run.maxHeap=${HEAP:-8G}" "-Dworldgennext.statusOnStop=true"
       "-Dworldgennext.fast.pipelineCacheDir=$root/build/fast-cache")
@@ -43,6 +57,7 @@ elif [ -n "${TOUR:-}" ]; then
 else
   args+=("-Dworldgennext.pregen.autostart=$RADIUS" "-Dworldgennext.pregen.stopServerWhenDone=true")
 fi
+[ -n "${NEOFORGE:-}" ] && args+=("-Pworldgennext.neoforge=$NEOFORGE")
 IFS=';' read -ra extra <<< "$EXTRA"
 for p in "${extra[@]}"; do [ -n "$p" ] && args+=("-D$p"); done
 ./gradlew.bat "${args[@]}" > "$run/gradle-client.out" 2>&1 &

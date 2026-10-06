@@ -58,6 +58,14 @@ unfinished (no lighting yet) and the game completes them when a player gets
 there, `distant_horizons.full_chunks = true` generates them completely. Details:
 [docs/evidence/comparison-distant-horizons.md](docs/evidence/comparison-distant-horizons.md).
 
+Voxy (on NeoForge through the Roxy layer) is fed too: in singleplayer, or on
+the host of a LAN world, this mod generates the terrain within 128 chunks of
+each player and hands it to Voxy, so the distance fills in without exploring.
+On the reference host that was 73,984 chunks in about 40 s, where the Voxy
+WorldGen mod had about 12,000 after 150 s. `voxy.radius` sets the distance,
+`voxy.generate = false` turns it off. Details:
+[docs/evidence/comparison-voxy.md](docs/evidence/comparison-voxy.md).
+
 The pregenerator works in the dimension the command is run in. From the
 console, or for another dimension, use
 `/execute in minecraft:the_nether run worldgennext pregen start 100`.

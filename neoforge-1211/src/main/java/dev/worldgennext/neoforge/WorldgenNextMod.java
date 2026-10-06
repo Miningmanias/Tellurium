@@ -7,6 +7,7 @@ import dev.worldgennext.neoforge.bench.ChunkThroughputBenchmark;
 import dev.worldgennext.neoforge.bench.PlayerTour;
 import dev.worldgennext.neoforge.command.StatusReport;
 import dev.worldgennext.neoforge.compat.DistantHorizonsBridge;
+import dev.worldgennext.neoforge.compat.VoxyBridge;
 import dev.worldgennext.neoforge.config.UserSettings;
 import dev.worldgennext.neoforge.fast.BaseHeightCache;
 import dev.worldgennext.neoforge.fast.CavePlans;
@@ -85,6 +86,7 @@ public final class WorldgenNextMod {
     private static void serverStarted(ServerStartedEvent event) {
         MinecraftServer server = event.getServer();
         StagedRoute.serverStarted(event);
+        VoxyBridge.serverStarted(server);
         // Developer check of what a client does when a world is closed right after opening and another is
         // opened: the engine stops while its kernels are still compiling, then starts again in the same JVM.
         if (Boolean.getBoolean("worldgennext.fast.restartCheck")) {
@@ -151,6 +153,7 @@ public final class WorldgenNextMod {
 
     private static void serverStopping(ServerStoppingEvent event) {
         DistantHorizonsBridge.serverStopping();
+        VoxyBridge.serverStopping(event.getServer());
         Pregenerator.serverStopping();
         FastNoiseEngine.Counters counters = FastNoiseEngine.counters();
         if (counters.gpu() + counters.cpuFallback() > 0) {
@@ -178,6 +181,14 @@ public final class WorldgenNextMod {
                     for (String line : StatusReport.lines(context.getSource().getServer())) say(context, line);
                     return 1;
                 }))
+                .then(Commands.literal("voxy").then(Commands.literal("forget").executes(context -> {
+                    int forgotten = VoxyBridge.forget(levelOf(context.getSource()));
+                    say(context, forgotten < 0
+                            ? "This mod is not generating terrain for Voxy here (Voxy is not in this game, or voxy.generate is off)."
+                            : String.format(java.util.Locale.ROOT, "Forgot %,d chunks handed to Voxy in this dimension;"
+                                    + " they will be handed over again.", forgotten));
+                    return 1;
+                })))
                 .then(Commands.literal("pregen")
                         .then(Commands.literal("start")
                                 .then(Commands.literal("worldborder").executes(WorldgenNextMod::startPregenInsideBorder))

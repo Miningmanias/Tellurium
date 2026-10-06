@@ -131,6 +131,27 @@ class UserSettingsTest {
     }
 
     @Test
+    void voxyGenerationIsOnWithRadius128UnlessSetAndABadRadiusIsReported() throws Exception {
+        UserSettings defaults = UserSettings.read(configDirectory);
+        assertEquals("true", defaults.systemProperties().get("worldgennext.voxy.generate"));
+        assertEquals("128", defaults.systemProperties().get("worldgennext.voxy.radius"));
+        UserSettings chosen = with("""
+                [voxy]
+                generate = false
+                radius = 256
+                """);
+        assertTrue(chosen.problems().isEmpty(), chosen.problems().toString());
+        assertEquals("false", chosen.systemProperties().get("worldgennext.voxy.generate"));
+        assertEquals("256", chosen.systemProperties().get("worldgennext.voxy.radius"));
+        UserSettings wrong = with("""
+                [voxy]
+                radius = 5000
+                """);
+        assertEquals("128", wrong.systemProperties().get("worldgennext.voxy.radius"));
+        assertTrue(String.join("\n", wrong.problems()).contains("voxy.radius"), wrong.problems().toString());
+    }
+
+    @Test
     void invalidValuesFallBackToDefaultsAndAreReported() throws Exception {
         UserSettings settings = with("""
                 [gpu]
