@@ -71,13 +71,37 @@ vanilla Overworld at CARVERS, identical.
 
 Minecraft 1.21.4 and 1.21.8 on Fabric: `docs/evidence/minecraft-versions.md`.
 
+## Distant Horizons on the Fabric server
+
+Distant Horizons 3.3.3 (the same jar serves both loaders), the released Fabric
+jar, Fabric API and ScalableLux on the real Fabric 1.21.1 server; Distant
+Horizons' own `dh pregen start minecraft:overworld 0 0 128` on a fresh world
+(`LOADER=fabric scripts/compare-dh.sh <dh|worldgennext> 128`). One run each;
+the Fabric server's log has whole seconds only, so each time is good to about
+a second.
+
+| Configuration | 66,049 chunks of LOD |
+| --- | --- |
+| Distant Horizons alone | 148 s, 446 chunks/s |
+| with this mod (default: hybrid, own column writer) | 32 s, 2,064 chunks/s |
+| the same with `-Dworldgennext.dh.columnsCheck=true` (every tile is also built by Distant Horizons' builder and compared) | 51 s; 16,777,216 columns compared, 0 differ |
+
+These are close to the NeoForge figures in
+`docs/evidence/comparison-distant-horizons.md` (449 and 2,041 to 2,119). The
+runs with the mod log one error line, vanilla's "Failed to fetch mob spawner
+entity at (1286, -12, -2026)": a Fabric server without this mod logs the same
+line when that area is generated (checked with `/forceload` over chunks 76 to
+85, -131 to -122, seed 0).
+
 ## Not done on Fabric
 
-- Save/reopen, kill-recovery and the console command walk-through were not
-  repeated on Fabric; they exercise shared code that passed on NeoForge.
-- Distant Horizons and Voxy on Fabric: the bridges are loader-neutral
-  reflection and were not run there. On Fabric no "chunk saved" notice exists,
-  so the Distant Horizons hand-over releases a chunk when it unloads.
+- Kill-recovery and the console command walk-through were not repeated on
+  Fabric; they exercise shared code that passed on NeoForge. (Save and reopen
+  was run later and passes: `docs/evidence/minecraft-versions.md`.)
+- Voxy on Fabric was not run. Distant Horizons was run on the server only
+  (next section); in a Fabric client it was not. On Fabric no "chunk saved"
+  notice exists, so the Distant Horizons hand-over releases a chunk when it
+  unloads.
 - Other mods' compatibility on Fabric beyond Terralith, Tectonic and
   Lithostitched; in particular no Fabric mod that itself adds a field to
   `StructureTemplate.Palette`.

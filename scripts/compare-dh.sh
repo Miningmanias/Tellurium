@@ -20,9 +20,13 @@ cd "$(dirname "$0")/.."
 config="${1:?configuration}"
 radius="${2:-64}"
 jvm="${3:-}"
-server="${SERVER:-build/installed-server}"
+# LOADER=fabric runs on the Fabric server (build/installed-fabric, mods from build/test-mods/dh-fabric) with the
+# Fabric jar instead.
+loader="${LOADER:-neoforge}"
+if [ "$loader" = fabric ]; then server="${SERVER:-build/installed-fabric}"; mods=build/test-mods/dh-fabric
+else server="${SERVER:-build/installed-server}"; mods=build/test-mods/dh; fi
 dimension="${DIM:-minecraft:overworld}"
-neoforge=$(ls "$server/libraries/net/neoforged/neoforge" | head -1)
+[ "$loader" = fabric ] || neoforge=$(ls "$server/libraries/net/neoforged/neoforge" | head -1)
 stash=build/_to_delete/compare-worlds
 # Every run keeps its world (about 1 GB) under build/_to_delete; a full disk truncates the jars copied below.
 free=$(df -Pk . | awk 'NR==2 {print int($4 / 1048576)}')
@@ -31,10 +35,10 @@ mkdir -p "$stash" "$server/mods-stash"
 export PATH="${JDK:-/c/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot}/bin:$PATH"
 
 mv "$server"/mods/*.jar "$server/mods-stash/" 2>/dev/null
-cp build/test-mods/dh/*.jar "$server/mods/"
+cp "$mods"/*.jar "$server/mods/"
 case "$config" in
   dh) ;;
-  worldgennext) cp "$(ls -t neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-*.jar | grep -v sources | head -1)" "$server/mods/" ;;
+  worldgennext) cp "$(ls -t "$loader"-1211/build/libs/worldgennext-"$loader"-1.21.1-*.jar | grep -v sources | head -1)" "$server/mods/" ;;
   *) echo "unknown configuration $config"; exit 2 ;;
 esac
 [ -d "$server/world" ] && mv "$server/world" "$stash/world-$(date +%Y%m%d-%H%M%S)"
@@ -82,7 +86,8 @@ cd "$server"
     sleep 1
   fi
   echo "stop"
-} | java @user_jvm_args.txt "@libraries/net/neoforged/neoforge/$neoforge/win_args.txt" nogui > console.out 2>&1
+} | if [ "$loader" = fabric ]; then java @user_jvm_args.txt -jar fabric-server-launch.jar nogui > console.out 2>&1
+  else java @user_jvm_args.txt "@libraries/net/neoforged/neoforge/$neoforge/win_args.txt" nogui > console.out 2>&1; fi
 cd - >/dev/null
 printf -- '-Xmx16G\n' > "$server/user_jvm_args.txt"
 
@@ -92,8 +97,9 @@ from datetime import datetime
 log, config, radius = sys.argv[1:4]
 text = open(log, errors="replace").read()
 def stamp(pattern):
-    m = re.search(r"^\[(?:\d+\w+\d+ )?(\d\d:\d\d:\d\d\.\d+)\].*" + pattern, text, re.M)
-    return datetime.strptime(m.group(1), "%H:%M:%S.%f") if m else None
+    m = re.search(r"^\[(?:\d+\w+\d+ )?(\d\d:\d\d:\d\d(?:\.\d+)?)\].*" + pattern, text, re.M)
+    # A Fabric server's log has whole seconds only.
+    return datetime.strptime(m.group(1), "%H:%M:%S.%f" if "." in m.group(1) else "%H:%M:%S") if m else None
 start, end = stamp(r"Starting pregen"), stamp(r"Pregen is complete")
 first = stamp(r"Pregenerating ")
 errors = sum(1 for line in text.splitlines() if "/ERROR]" in line or "/FATAL]" in line)
