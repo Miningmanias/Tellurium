@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.mixin;
 
+import dev.worldgennext.neoforge.loader.Loader;
+
 import dev.worldgennext.neoforge.config.UserSettings;
-import net.neoforged.fml.loading.FMLPaths;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -20,7 +21,7 @@ public final class WorldgenNextMixinPlugin implements IMixinConfigPlugin {
     public void onLoad(String mixinPackage) {
         Path configDirectory;
         try {
-            configDirectory = FMLPaths.CONFIGDIR.get();
+            configDirectory = Loader.configDirectory();
         } catch (Throwable notInitialised) {
             configDirectory = Path.of("config");
         }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.compat;
 
+import dev.worldgennext.neoforge.loader.Loader;
+
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerChunkCache;
@@ -12,8 +14,6 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.storage.LevelResource;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,7 +116,7 @@ public final class VoxyBridge {
 
     public static void serverStarted(MinecraftServer server) {
         if (!ENABLED || !available()) return;
-        if (net.neoforged.fml.ModList.get().isLoaded("voxyworldgenv2")) {
+        if (Loader.isModLoaded("voxyworldgenv2")) {
             otherGenerator = true;
             LOG.info("Voxy WorldGen is installed and generates terrain for Voxy; this mod leaves that to it. Remove it to use this mod's"
                     + " generation for Voxy instead (about 2,000 chunks/s on the reference machine).");
@@ -127,7 +127,7 @@ public final class VoxyBridge {
         REFUSED.set(0);
         startedNanos = System.nanoTime();
         if (!listening) {
-            NeoForge.EVENT_BUS.addListener(VoxyBridge::serverTicked);
+            Loader.onServerTickEnd(VoxyBridge::serverTicked);
             listening = true;
         }
         LOG.info("Voxy: terrain within {} chunks of each player is generated and handed to it (voxy.generate = false turns this off)", RADIUS);
@@ -170,8 +170,7 @@ public final class VoxyBridge {
         }
     }
 
-    private static void serverTicked(ServerTickEvent.Post event) {
-        MinecraftServer server = event.getServer();
+    private static void serverTicked(MinecraftServer server) {
         int waiting = queueLength();
         if (waiting < 0) {
             if (PERIODIC_LOG && server.getTickCount() % 200 == 0) LOG.info("Voxy has no world open yet");

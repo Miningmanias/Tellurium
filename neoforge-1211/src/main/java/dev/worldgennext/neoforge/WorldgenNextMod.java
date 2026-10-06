@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge;
 
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import dev.worldgennext.neoforge.bench.ChunkThroughputBenchmark;
@@ -15,6 +16,7 @@ import dev.worldgennext.neoforge.fast.ClimateColumnCache;
 import dev.worldgennext.neoforge.fast.FastNoiseEngine;
 import dev.worldgennext.neoforge.fast.GraphDump;
 import dev.worldgennext.neoforge.legacy.StagedRoute;
+import dev.worldgennext.neoforge.loader.Loader;
 import dev.worldgennext.neoforge.pregen.Pregenerator;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -28,44 +30,33 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.border.WorldBorder;
-import net.neoforged.fml.ModList;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.loading.FMLPaths;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
-import net.neoforged.neoforge.event.server.ServerStartedEvent;
-import net.neoforged.neoforge.event.server.ServerStoppedEvent;
-import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
 
 /**
- * Mod entry point: settings, server lifecycle and commands.
+ * The mod itself: settings, server lifecycle and commands.  The mod loader's entry point (in {@code loader})
+ * calls these methods; nothing here depends on which loader that is.
  *
  * <p>Chunk generation itself is changed by the mixins, which call into
  * {@code fast} (GPU terrain and the exact CPU-side shortcuts) and
  * {@code threading} (parallel steps, background saving).  The older
  * evidence-gated route lives in {@link StagedRoute} and is developer tooling.</p>
  */
-@Mod(WorldgenNextMod.MOD_ID)
 public final class WorldgenNextMod {
     public static final String MOD_ID = "worldgennext";
     public static final String VERSION = "0.2.0";
     private static final Logger LOG = LoggerFactory.getLogger(MOD_ID);
 
-    public WorldgenNextMod() {
+    private WorldgenNextMod() {}
+
+    /** Called once when the mod is constructed. */
+    public static void initialise() {
         // Normally already loaded by the mixin plugin; this covers a launcher that skipped it.
-        UserSettings settings = UserSettings.loadAndApply(FMLPaths.CONFIGDIR.get());
+        UserSettings settings = UserSettings.loadAndApply(Loader.configDirectory());
         StagedRoute.init();
-        NeoForge.EVENT_BUS.addListener(WorldgenNextMod::registerCommands);
-        NeoForge.EVENT_BUS.addListener(WorldgenNextMod::serverAboutToStart);
-        NeoForge.EVENT_BUS.addListener(WorldgenNextMod::serverStarted);
-        NeoForge.EVENT_BUS.addListener(WorldgenNextMod::serverStopping);
-        NeoForge.EVENT_BUS.addListener(WorldgenNextMod::serverStopped);
-        if (settings.enabled() && settings.tuneChunky() && ModList.get().isLoaded("chunky")) {
+        if (settings.enabled() && settings.tuneChunky() && Loader.isModLoaded("chunky")) {
             LOG.info("Chunky will work on {} chunks at once instead of its default 50 (pregen.tune_chunky in {} turns this off)",
                     System.getProperty("chunky.maxWorkingCount"), settings.file());
         }
@@ -78,14 +69,14 @@ public final class WorldgenNextMod {
         }
     }
 
-    private static void serverAboutToStart(ServerAboutToStartEvent event) {
-        DistantHorizonsBridge.serverStarting(event.getServer());
-        StagedRoute.serverAboutToStart(event);
+    public static void serverAboutToStart(MinecraftServer server) {
+        DistantHorizonsBridge.serverStarting(server);
+        StagedRoute.serverAboutToStart(server);
     }
 
-    private static void serverStarted(ServerStartedEvent event) {
-        MinecraftServer server = event.getServer();
-        StagedRoute.serverStarted(event);
+    public static void serverStarted(MinecraftServer server) {
+        StagedRoute.candidateCapture(server);
+        StagedRoute.serverStarted(server);
         VoxyBridge.serverStarted(server);
         // Developer check of what a client does when a world is closed right after opening and another is
         // opened: the engine stops while its kernels are still compiling, then starts again in the same JVM.
@@ -151,9 +142,9 @@ public final class WorldgenNextMod {
         waiter.start();
     }
 
-    private static void serverStopping(ServerStoppingEvent event) {
+    public static void serverStopping(MinecraftServer server) {
         DistantHorizonsBridge.serverStopping();
-        VoxyBridge.serverStopping(event.getServer());
+        VoxyBridge.serverStopping(server);
         Pregenerator.serverStopping();
         FastNoiseEngine.Counters counters = FastNoiseEngine.counters();
         if (counters.gpu() + counters.cpuFallback() > 0) {
@@ -163,20 +154,20 @@ public final class WorldgenNextMod {
         LOG.debug("Terrain-height cache: {} hits, {} misses", BaseHeightCache.HITS.sum(), BaseHeightCache.MISSES.sum());
         // Unattended runs: -Dworldgennext.statusOnStop=true writes the status report to the log.
         if (Boolean.getBoolean("worldgennext.statusOnStop")) {
-            for (String line : StatusReport.lines(event.getServer())) LOG.info(line);
+            for (String line : StatusReport.lines(server)) LOG.info(line);
         }
         FastNoiseEngine.stop();
         ClimateColumnCache.stop();
         CavePlans.clear();
-        StagedRoute.serverStopping(event);
+        StagedRoute.serverStopping(server);
     }
 
-    private static void serverStopped(ServerStoppedEvent event) {
-        StagedRoute.serverStopped(event);
+    public static void serverStopped(MinecraftServer server) {
+        StagedRoute.serverStopped(server);
     }
 
-    private static void registerCommands(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal(MOD_ID).requires(WorldgenNextMod::mayUse)
+    public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher) {
+        dispatcher.register(Commands.literal(MOD_ID).requires(WorldgenNextMod::mayUse)
                 .then(Commands.literal("status").executes(context -> {
                     for (String line : StatusReport.lines(context.getSource().getServer())) say(context, line);
                     return 1;

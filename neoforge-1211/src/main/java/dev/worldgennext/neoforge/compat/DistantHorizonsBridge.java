@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.compat;
 
+import dev.worldgennext.neoforge.loader.Loader;
+
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -13,7 +15,6 @@ import net.minecraft.server.level.TicketType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
-import net.neoforged.fml.ModList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,7 +93,7 @@ public final class DistantHorizonsBridge {
     }
 
     public static boolean installed() {
-        return ModList.get().isLoaded("distanthorizons");
+        return Loader.isModLoaded("distanthorizons");
     }
 
     /** Chunks handed to Distant Horizons since the server started. */

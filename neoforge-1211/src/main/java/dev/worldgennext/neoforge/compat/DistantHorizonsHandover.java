@@ -1,19 +1,15 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.compat;
 
+import dev.worldgennext.neoforge.loader.Loader;
+
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.chunk.ImposterProtoChunk;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LightChunk;
-import net.neoforged.bus.api.EventPriority;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.level.ChunkDataEvent;
-import net.neoforged.neoforge.event.level.ChunkEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,9 +102,12 @@ final class DistantHorizonsHandover {
         if (!listening) {
             synchronized (DistantHorizonsHandover.class) {
                 if (!listening) {
-                    NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, DistantHorizonsHandover::chunkSaved);
-                    NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, DistantHorizonsHandover::chunkUnloaded);
-                    NeoForge.EVENT_BUS.addListener(DistantHorizonsHandover::serverTicked);
+                    // Unfinished chunks are saved too, but that is not the save Distant Horizons would have acted
+                    // on; the loader reports full chunks only.  Where it reports no saves at all, a chunk that
+                    // came from disk unchanged is let go when it unloads, like one that was saved.
+                    Loader.onFullChunkSaved(DistantHorizonsHandover::letGoSoon);
+                    Loader.onChunkUnloaded(DistantHorizonsHandover::letGoSoon);
+                    Loader.onServerTickEnd(DistantHorizonsHandover::serverTicked);
                     listening = true;
                 }
             }
@@ -169,26 +168,15 @@ final class DistantHorizonsHandover {
         }
     }
 
-    /** Server thread, after Distant Horizons' own handling of the save. */
-    private static void chunkSaved(ChunkDataEvent.Save event) {
-        // Unfinished chunks are saved too; that is not the save Distant Horizons would have acted on.
-        if (event.getChunk() instanceof LevelChunk) letGoSoon(event.getLevel(), event.getChunk().getPos());
-    }
-
-    /** Server thread.  A chunk that came from disk unchanged is never saved; once unloaded it cannot change either. */
-    private static void chunkUnloaded(ChunkEvent.Unload event) {
-        letGoSoon(event.getLevel(), event.getChunk().getPos());
-    }
-
-    private static void letGoSoon(LevelAccessor level, ChunkPos chunk) {
-        DistantHorizonsHandover handover = level instanceof ServerLevel ? BY_LEVEL.get(level) : null;
+    /** Server thread.  Once saved or unloaded the chunk cannot change unnoticed any more. */
+    private static void letGoSoon(ServerLevel level, ChunkPos chunk) {
+        DistantHorizonsHandover handover = BY_LEVEL.get(level);
         if (handover == null) return;
         long soon = System.nanoTime() + AFTER_SAVE_NANOS;
         handover.ignored.computeIfPresent(chunk.toLong(), (pos, until) -> Math.min(until, soon));
     }
 
-    private static void serverTicked(ServerTickEvent.Post event) {
-        MinecraftServer server = event.getServer();
+    private static void serverTicked(MinecraftServer server) {
         if (server.getTickCount() % 20 != 0) return;
         for (DistantHorizonsHandover handover : BY_LEVEL.values()) handover.sweep(server);
     }

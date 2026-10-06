@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.snapshot;
 
+import dev.worldgennext.neoforge.loader.Loader;
+
 import dev.worldgennext.semantic.identity.DynamicInputIdentity;
 import dev.worldgennext.semantic.snapshot.StructureBlendSnapshot;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.neoforged.fml.ModList;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -86,8 +87,7 @@ public final class MinecraftDynamicInputReader {
             MessageDigest digest = sha256();
             text(digest, "loaded-mod-files");
             try {
-                ModList.get().applyForEachModFileAlphabetical(file -> file.getFilePath()).toList()
-                        .forEach(path -> hashPath(digest, path));
+                Loader.modFiles().forEach(path -> hashPath(digest, path));
             } catch (RuntimeException failure) {
                 throw new IllegalStateException("Cannot hash loaded mod files", failure);
             }

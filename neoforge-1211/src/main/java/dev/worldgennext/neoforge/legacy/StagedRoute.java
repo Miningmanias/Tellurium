@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.legacy;
 
+import dev.worldgennext.neoforge.loader.Loader;
+
 import dev.worldgennext.frontend.mc1211.Minecraft1211Frontend;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import dev.worldgennext.material.chunk.ChunkResultCodec;
@@ -35,12 +37,6 @@ import net.minecraft.world.level.chunk.status.ChunkStep;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.status.WorldGenContext;
 import net.minecraft.util.StaticCache2D;
-import net.neoforged.fml.loading.FMLPaths;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
-import net.neoforged.neoforge.event.server.ServerStartedEvent;
-import net.neoforged.neoforge.event.server.ServerStoppedEvent;
-import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Files;
@@ -148,9 +144,8 @@ public final class StagedRoute {
     public static void init() {
         clearQualifiedNoiseProvider(null);
         QUALIFIED_EVIDENCE_STATUS = "NOT_CONFIGURED";
-        var loadedConfig = WorldgenNextConfigLoader.load(FMLPaths.CONFIGDIR.get());
+        var loadedConfig = WorldgenNextConfigLoader.load(Loader.configDirectory());
         RUNTIME = new RuntimeComposition(loadedConfig.config(), new CompatibilityRegistry());
-        NeoForge.EVENT_BUS.addListener(StagedRoute::candidateCapture);
         LoggerFactory.getLogger(MOD_ID).debug(
                 "Staged route: mode={}, configFile={}, configPresent={}, native={}; the GPU_IEEE_BITS hook stays disabled until its oracle qualification",
                 RUNTIME.config().mode(), loadedConfig.file(), loadedConfig.filePresent(), RUNTIME.nativeBootstrap().state());
@@ -509,10 +504,10 @@ public final class StagedRoute {
     /** True once a server has stopped and closed {@link #RUNTIME}. */
     private static volatile boolean RUNTIME_CLOSED;
 
-    public static void serverAboutToStart(ServerAboutToStartEvent event) {
+    public static void serverAboutToStart(MinecraftServer server) {
         // Singleplayer opens several worlds in one JVM: each gets a runtime of its own.
         if (RUNTIME_CLOSED) {
-            RUNTIME = new RuntimeComposition(WorldgenNextConfigLoader.load(FMLPaths.CONFIGDIR.get()).config(), new CompatibilityRegistry());
+            RUNTIME = new RuntimeComposition(WorldgenNextConfigLoader.load(Loader.configDirectory()).config(), new CompatibilityRegistry());
             QUALIFIED_EVIDENCE_STATUS = "NOT_CONFIGURED";
             RUNTIME_CLOSED = false;
         }
@@ -523,22 +518,22 @@ public final class StagedRoute {
         // draft's startup commit callback local until the ready transition;
         // qualified production work retains the normal server mailbox.
         if (draftCpuLiveMode()) RUNTIME.bindAuthoritativeExecutor(Runnable::run);
-        else RUNTIME.bindAuthoritativeExecutor(event.getServer()::execute);
+        else RUNTIME.bindAuthoritativeExecutor(server::execute);
         RUNTIME.serverStarting();
         installConfiguredQualifiedProvider();
         installDraftCpuLiveProviderIfRequested();
     }
 
-    public static void serverStarted(ServerStartedEvent event) {
-        if (draftCpuLiveMode()) RUNTIME.bindAuthoritativeExecutor(event.getServer()::execute);
+    public static void serverStarted(MinecraftServer server) {
+        if (draftCpuLiveMode()) RUNTIME.bindAuthoritativeExecutor(server::execute);
         RUNTIME.serverReady();
     }
 
-    public static void serverStopping(ServerStoppingEvent event) {
+    public static void serverStopping(MinecraftServer server) {
         RUNTIME.serverStopping();
     }
 
-    public static void serverStopped(ServerStoppedEvent event) {
+    public static void serverStopped(MinecraftServer server) {
         try {
             RUNTIME.serverStopped();
         } finally {
@@ -574,7 +569,7 @@ public final class StagedRoute {
         }
 
         Path file = Path.of(configured);
-        if (!file.isAbsolute()) file = FMLPaths.CONFIGDIR.get().resolve(file);
+        if (!file.isAbsolute()) file = Loader.configDirectory().resolve(file);
         file = file.toAbsolutePath().normalize();
         QUALIFIED_EVIDENCE_FILE = file;
         QualifiedHookEvidenceBundle evidence;
@@ -667,7 +662,7 @@ public final class StagedRoute {
                 }))
                 .then(Commands.literal("write-default-config").executes(context -> {
                     try {
-                        Path file = WorldgenNextConfigLoader.writeDefaults(FMLPaths.CONFIGDIR.get());
+                        Path file = WorldgenNextConfigLoader.writeDefaults(Loader.configDirectory());
                         context.getSource().sendSuccess(() -> Component.literal(
                                 "Wrote default configuration to " + file + "; restart the server to apply it"), false);
                         return 1;
@@ -689,17 +684,17 @@ public final class StagedRoute {
     }
 
     /** Opt-in artifact producer; logical endpoints use the explicitly selected isolated backend. */
-    private static void candidateCapture(ServerStartedEvent event) {
+    public static void candidateCapture(MinecraftServer server) {
         boolean gpu = Boolean.parseBoolean(System.getProperty("worldgennext.gpuCandidate.capture", "false"));
         if (!Boolean.parseBoolean(System.getProperty("worldgennext.candidate.capture", "false")) && !gpu) return;
         String endpoint = System.getProperty("worldgennext.candidate.endpoint", "NOISE")
                 .trim().toUpperCase(java.util.Locale.ROOT);
-        event.getServer().execute(() -> {
+        server.execute(() -> {
             boolean live = candidateLiveMode();
             if (endpoint.equals("SAVED") || (live && isCandidateLogicalEndpoint(endpoint))) {
-                captureCandidateLogicalEndpoint(event.getServer(), endpoint);
-            } else if (gpu) captureGpuCandidate(event.getServer());
-            else captureCandidate(event.getServer());
+                captureCandidateLogicalEndpoint(server, endpoint);
+            } else if (gpu) captureGpuCandidate(server);
+            else captureCandidate(server);
         });
     }
 

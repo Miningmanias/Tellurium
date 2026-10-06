@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package dev.worldgennext.neoforge.command;
 
+import dev.worldgennext.neoforge.loader.Loader;
+
 import dev.worldgennext.neoforge.WorldgenNextMod;
 import dev.worldgennext.neoforge.compat.DistantHorizonsBridge;
 import dev.worldgennext.neoforge.compat.VoxyBridge;
@@ -10,7 +12,6 @@ import dev.worldgennext.neoforge.pregen.Pregenerator;
 import dev.worldgennext.neoforge.threading.GroupCommit;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.dedicated.DedicatedServer;
-import net.neoforged.fml.ModList;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,7 +78,7 @@ public final class StatusReport {
         String pregen = Pregenerator.status(server);
         if (pregen != null) lines.add("Pregeneration: " + pregen);
 
-        if (!ModList.get().isLoaded("scalablelux")) {
+        if (!Loader.isModLoaded("scalablelux")) {
             lines.add("Tip: ScalableLux is not installed. Lighting then runs on vanilla's single light thread; the published"
                     + " throughput figures were measured with ScalableLux.");
         }
