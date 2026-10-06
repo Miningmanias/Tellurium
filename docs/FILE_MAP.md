@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **666**, plus this generated index.
+Indexed project files: **667**, plus this generated index.
 
 ## semantic-core
 
@@ -706,6 +706,7 @@ Deferred loader frame.
 | [scripts/CompiledReplayInputs.ps1](../scripts/CompiledReplayInputs.ps1) | Tooling, data or provenance |
 | [scripts/dh-database-steps.py](../scripts/dh-database-steps.py) | Tooling, data or provenance |
 | [scripts/fetch-fabric-test-files.py](../scripts/fetch-fabric-test-files.py) | Tooling, data or provenance |
+| [scripts/fetch-terrain-test-mods.py](../scripts/fetch-terrain-test-mods.py) | Tooling, data or provenance |
 | [scripts/Invoke-ReplayProcess.ps1](../scripts/Invoke-ReplayProcess.ps1) | Tooling, data or provenance |
 | [scripts/jfr-stage-profile.py](../scripts/jfr-stage-profile.py) | Tooling, data or provenance |
 | [scripts/LogicalEndpointMatrix.ps1](../scripts/LogicalEndpointMatrix.ps1) | Tooling, data or provenance |

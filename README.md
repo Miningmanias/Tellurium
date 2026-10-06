@@ -26,8 +26,9 @@ on Vulkan.
    For Minecraft 1.21.4 or 1.21.8 on Fabric the jar is
    `worldgennext-fabric-1.21.4-0.2.0.jar` or
    `worldgennext-fabric-1.21.8-0.2.0.jar`; for 1.21.8 on NeoForge (21.8.54+)
-   it is `worldgennext-neoforge-1.21.8-0.2.0.jar`. On those two versions only the
-   vanilla Overworld, Nether and End are on the tested list so far, and
+   it is `worldgennext-neoforge-1.21.8-0.2.0.jar`. On those two versions the
+   tested list holds the vanilla Overworld, Nether and End and Terralith
+   (Tectonic generates with vanilla code there), and
    everything below about other mods, Distant Horizons, Voxy and singleplayer
    was measured on 1.21.1
    ([docs/evidence/minecraft-versions.md](docs/evidence/minecraft-versions.md)).

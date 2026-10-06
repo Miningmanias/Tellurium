@@ -18,6 +18,8 @@ mc="${FABRIC_MC:-1.21.1}"
 module="fabric-$(echo "$mc" | tr -d .)"
 if [ "$mc" = 1.21.1 ]; then server=build/installed-fabric; api=build/test-mods/fabric-api; lux=build/test-mods/fabric-vanilla
 else server="build/installed-fabric-$mc"; api="build/test-mods/fabric-api-$mc"; lux="build/test-mods/$module/vanilla"; fi
+# MODS=<directory> installs that directory's jars instead of ScalableLux alone (it should contain ScalableLux).
+lux="${MODS:-$lux}"
 export PATH="${JDK:-/c/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot}/bin:$PATH"
 [ -f "$server/fabric-server-launch.jar" ] || { echo "no Fabric server launcher in $server"; exit 2; }
 free=$(df -Pk . | awk 'NR==2 {print int($4 / 1048576)}')

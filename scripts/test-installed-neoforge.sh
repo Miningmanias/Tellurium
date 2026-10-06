@@ -15,7 +15,8 @@ radius="${1:-60}"
 mc="${NEOFORGE_MC:-1.21.8}"
 module="neoforge-$(echo "$mc" | tr -d .)"
 server="build/installed-neoforge-$mc"
-lux="build/test-mods/$module/vanilla"
+# MODS=<directory> installs that directory's jars instead of ScalableLux alone (it should contain ScalableLux).
+lux="${MODS:-build/test-mods/$module/vanilla}"
 export PATH="${JDK:-/c/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot}/bin:$PATH"
 args=$(ls "$server"/libraries/net/neoforged/neoforge/*/win_args.txt 2>/dev/null | head -1)
 [ -n "$args" ] || { echo "no NeoForge server installed in $server"; exit 2; }

@@ -12,8 +12,11 @@ Minecraft version and is ignored on any other. Verified on each of the three
 builds: SURFACE matrix 12 of 12 vanilla contexts identical; the built jar on
 a real server with terrain on the GPU and no errors (40,401 chunks at 3,096,
 2,620 and 1,953 chunks/s, one run each); check mode 0 differences over 7,104
-Overworld, 7,225 Nether and 7,225 End chunks; save and reopen. Not verified
-there: any datapack or mod generator, a released client or play session,
+Overworld, 7,225 Nether and 7,225 End chunks; save and reopen; Terralith
+identical to serial vanilla and on the tested lists (Tectonic's releases for
+these versions are refused by the frontend and generate with vanilla code).
+Not verified there: any other datapack or mod generator, a released client or
+play session,
 Distant Horizons, Voxy, kill-recovery, the command walk-through. Not ported:
 NeoForge 1.21.4, Minecraft 1.21.5 to 1.21.7, and 1.21.9 or later, whose world
 generator computes the aquifers' surface level differently. Evidence: `docs/evidence/minecraft-versions.md`.
