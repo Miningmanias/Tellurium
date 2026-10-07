@@ -82,6 +82,11 @@ public final class PlayerTour {
                     Version.teleport(traveller, level, x, height, z, yaw, pitch);
                 }, server).join();
                 Thread.sleep(pause);
+                // -Dworldgennext.bench.tourHolders=true: every 300 steps, why the loaded chunks are loaded.
+                if (step % 300 == 0 && Boolean.getBoolean("worldgennext.bench.tourHolders")) {
+                    LOG.info("WorldgenNext player tour holders: {}", CompletableFuture.supplyAsync(
+                            () -> ChunkThroughputBenchmark.holderDiagnostics(Version.level(traveller)), server).join());
+                }
                 worstTickNanos = Math.max(worstTickNanos, max(server.getTickTimesNanos()));
             }
             LOG.info("WorldgenNext player tour smoothness: {}", stutter.finish());

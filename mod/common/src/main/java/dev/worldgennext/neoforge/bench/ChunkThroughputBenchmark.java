@@ -347,6 +347,11 @@ public final class ChunkThroughputBenchmark {
 
     /** Server thread only: why loaded chunks are still loaded (tickets by type, drop queue, generation references). */
     private String holderDiagnostics() {
+        return holderDiagnostics(level);
+    }
+
+    /** Server thread only: the same for any level. */
+    static String holderDiagnostics(net.minecraft.server.level.ServerLevel level) {
         try {
             var chunkMap = level.getChunkSource().chunkMap;
             java.lang.reflect.Field dropField = Names.declaredField(net.minecraft.server.level.ChunkMap.class, "toDrop");
@@ -402,7 +407,7 @@ public final class ChunkThroughputBenchmark {
                 Runtime rt = Runtime.getRuntime();
                 String holders;
                 try {
-                    holders = server.submit(this::holderDiagnostics).get(5, TimeUnit.SECONDS);
+                    holders = server.submit(() -> holderDiagnostics(level)).get(5, TimeUnit.SECONDS);
                 } catch (Exception failure) {
                     holders = failure.toString();
                 }

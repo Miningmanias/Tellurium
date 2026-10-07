@@ -27,12 +27,16 @@ import net.minecraft.server.level.ServerLevel;
 public final class LodPace {
     /** A tick is due every 50 ms; later than this after the one before, it was held up. */
     private static final long LATE_NANOS = 75_000_000L;
-    private static final double FLOOR = 0.125, CUT = 0.7, GAIN = 0.01;
+    private static final double FLOOR = 0.125, CUT = 0.7, GAIN = 0.004;
+    /** A collector pause from this length on takes part of the allowance away too. */
+    private static final long LONG_PAUSE_MILLIS = 25;
+    private static final double PAUSE_CUT = 0.85;
 
     /** Blocks a second: below the first a player is walking or sprinting, from the second on the allowance is at its travelling part. */
     private static final double SLOW = 10.0, FAST = 30.0, TRAVELLING = 0.375;
 
     private static volatile double share = 1.0;
+    private static volatile boolean anyone;
     private static volatile double travelling = 1.0;
     private static double speed;
     private static final java.util.Map<java.util.UUID, double[]> POSITIONS = new java.util.HashMap<>();
@@ -46,6 +50,22 @@ public final class LodPace {
         if (listening) return;
         listening = true;
         Loader.onServerTickEnd(LodPace::tickEnded);
+        // A long pause of the collector stops the client's frames as well as the server's ticks (in singleplayer
+        // they share the process), and how long a pause is follows how much is under way.
+        for (var bean : java.lang.management.ManagementFactory.getGarbageCollectorMXBeans()) {
+            if (!(bean instanceof javax.management.NotificationEmitter emitter)) continue;
+            try {
+                emitter.addNotificationListener((notification, handback) -> {
+                    if (!notification.getType().equals("com.sun.management.gc.notification")) return;
+                    var info = com.sun.management.GarbageCollectionNotificationInfo.from((javax.management.openmbean.CompositeData) notification.getUserData());
+                    if (anyone && !info.getGcName().contains("Concurrent") && info.getGcInfo().getDuration() >= LONG_PAUSE_MILLIS) {
+                        share = Math.max(FLOOR, share * PAUSE_CUT);
+                    }
+                }, null, null);
+            } catch (RuntimeException | LinkageError unavailable) {
+                // no collector notifications on this runtime: the ticks alone set the pace
+            }
+        }
     }
 
     private static void tickEnded(MinecraftServer server) {
@@ -53,6 +73,13 @@ public final class LodPace {
         long last = lastTickEnd;
         lastTickEnd = now;
         if (last == 0) return;
+        // With nobody online there is no game to keep smooth: a pregeneration from the console runs flat out.
+        anyone = server.getPlayerCount() > 0;
+        if (!anyone) {
+            share = 1.0;
+            travelling = 1.0;
+            return;
+        }
         share = now - last > LATE_NANOS ? Math.max(FLOOR, share * CUT) : Math.min(1.0, share + GAIN);
         // The fastest player's horizontal speed, smoothed over about a second.
         double fastest = 0;
@@ -63,6 +90,15 @@ public final class LodPace {
             POSITIONS.put(player.getUUID(), new double[]{player.getX(), player.getZ()});
         }
         if (POSITIONS.size() > players.size()) POSITIONS.keySet().removeIf(id -> server.getPlayerList().getPlayer(id) == null);
+        java.util.Map<ServerLevel, long[]> where = new java.util.IdentityHashMap<>();
+        for (ServerLevel level : server.getAllLevels()) {
+            var here = level.players();
+            if (here.isEmpty()) continue;
+            long[] chunks = new long[here.size()];
+            for (int i = 0; i < chunks.length; i++) chunks[i] = here.get(i).chunkPosition().toLong();
+            where.put(level, chunks);
+        }
+        playerChunks = where;
         // A teleport is one very fast tick; the smoothing and the cap keep it from counting as travel for long.
         speed += (Math.min(fastest, 4 * FAST) - speed) * 0.1;
         travelling = speed <= SLOW ? 1.0 : speed >= FAST ? TRAVELLING : 1.0 - (1.0 - TRAVELLING) * (speed - SLOW) / (FAST - SLOW);
@@ -76,6 +112,14 @@ public final class LodPace {
     /** An allowance scaled by {@link #share}, never below a floor that keeps the bridge moving. */
     public static int allowance(int full, int floor) {
         return Math.max(Math.min(floor, full), (int) (full * share()));
+    }
+
+    private static volatile java.util.Map<ServerLevel, long[]> playerChunks = java.util.Map.of();
+
+    /** The chunk positions of the players in this level as of the last tick (packed); safe to read from any thread. */
+    public static long[] playerChunks(ServerLevel level) {
+        long[] chunks = playerChunks.get(level);
+        return chunks == null ? new long[0] : chunks;
     }
 
     /** True while the GPU kernels of this level are still being built: far terrain can wait for them. */

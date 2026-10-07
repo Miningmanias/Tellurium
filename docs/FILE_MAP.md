@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **670**, plus this generated index.
+Indexed project files: **674**, plus this generated index.
 
 ## semantic-core
 
@@ -409,6 +409,7 @@ The mod: common source, per-loader and per-Minecraft-version files, and the buil
 | [mod/common/src/main/java/dev/worldgennext/neoforge/bench/ChunkDigest.java](../mod/common/src/main/java/dev/worldgennext/neoforge/bench/ChunkDigest.java) | Implementation or explicit public contract |
 | [mod/common/src/main/java/dev/worldgennext/neoforge/bench/ChunkThroughputBenchmark.java](../mod/common/src/main/java/dev/worldgennext/neoforge/bench/ChunkThroughputBenchmark.java) | Implementation or explicit public contract |
 | [mod/common/src/main/java/dev/worldgennext/neoforge/bench/PlayerTour.java](../mod/common/src/main/java/dev/worldgennext/neoforge/bench/PlayerTour.java) | Implementation or explicit public contract |
+| [mod/common/src/main/java/dev/worldgennext/neoforge/bench/StutterProbe.java](../mod/common/src/main/java/dev/worldgennext/neoforge/bench/StutterProbe.java) | Implementation or explicit public contract |
 | [mod/common/src/main/java/dev/worldgennext/neoforge/command/StatusReport.java](../mod/common/src/main/java/dev/worldgennext/neoforge/command/StatusReport.java) | Implementation or explicit public contract |
 | [mod/common/src/main/java/dev/worldgennext/neoforge/command/WorldgenNextCommands.java](../mod/common/src/main/java/dev/worldgennext/neoforge/command/WorldgenNextCommands.java) | Implementation or explicit public contract |
 | [mod/common/src/main/java/dev/worldgennext/neoforge/compat/ChunkSetFile.java](../mod/common/src/main/java/dev/worldgennext/neoforge/compat/ChunkSetFile.java) | Implementation or explicit public contract |
@@ -417,6 +418,8 @@ The mod: common source, per-loader and per-Minecraft-version files, and the buil
 | [mod/common/src/main/java/dev/worldgennext/neoforge/compat/DistantHorizonsColumns.java](../mod/common/src/main/java/dev/worldgennext/neoforge/compat/DistantHorizonsColumns.java) | Implementation or explicit public contract |
 | [mod/common/src/main/java/dev/worldgennext/neoforge/compat/DistantHorizonsConverter.java](../mod/common/src/main/java/dev/worldgennext/neoforge/compat/DistantHorizonsConverter.java) | Implementation or explicit public contract |
 | [mod/common/src/main/java/dev/worldgennext/neoforge/compat/DistantHorizonsHandover.java](../mod/common/src/main/java/dev/worldgennext/neoforge/compat/DistantHorizonsHandover.java) | Implementation or explicit public contract |
+| [mod/common/src/main/java/dev/worldgennext/neoforge/compat/DistantHorizonsRoughSpeedup.java](../mod/common/src/main/java/dev/worldgennext/neoforge/compat/DistantHorizonsRoughSpeedup.java) | Implementation or explicit public contract |
+| [mod/common/src/main/java/dev/worldgennext/neoforge/compat/LodPace.java](../mod/common/src/main/java/dev/worldgennext/neoforge/compat/LodPace.java) | Implementation or explicit public contract |
 | [mod/common/src/main/java/dev/worldgennext/neoforge/compat/TileRings.java](../mod/common/src/main/java/dev/worldgennext/neoforge/compat/TileRings.java) | Implementation or explicit public contract |
 | [mod/common/src/main/java/dev/worldgennext/neoforge/compat/VoxyBridge.java](../mod/common/src/main/java/dev/worldgennext/neoforge/compat/VoxyBridge.java) | Implementation or explicit public contract |
 | [mod/common/src/main/java/dev/worldgennext/neoforge/config/UserSettings.java](../mod/common/src/main/java/dev/worldgennext/neoforge/config/UserSettings.java) | Implementation or explicit public contract |
@@ -627,6 +630,7 @@ The mod: common source, per-loader and per-Minecraft-version files, and the buil
 | [docs/evidence/fabric-port.md](../docs/evidence/fabric-port.md) | Documentation |
 | [docs/evidence/minecraft-1.21.11.md](../docs/evidence/minecraft-1.21.11.md) | Documentation |
 | [docs/evidence/minecraft-versions.md](../docs/evidence/minecraft-versions.md) | Documentation |
+| [docs/evidence/smoothness.md](../docs/evidence/smoothness.md) | Documentation |
 | [docs/evidence/throughput-fused-gpu.md](../docs/evidence/throughput-fused-gpu.md) | Documentation |
 | [docs/evidence/v0.1-cpu-replay.json](../docs/evidence/v0.1-cpu-replay.json) | Tooling, data or provenance |
 | [docs/evidence/v0.1-cpu-tests.json](../docs/evidence/v0.1-cpu-tests.json) | Tooling, data or provenance |

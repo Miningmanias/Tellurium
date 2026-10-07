@@ -244,6 +244,12 @@ public final class DistantHorizonsBridge {
          * and shrinks when tiles were started for nothing (it already had them, or went elsewhere).  Guarded by this.
          */
         private int budget = AHEAD_WINDOW;
+        private static final int LOADED_LIMIT = Integer.getInteger("worldgennext.dh.loadedLimit", 1 << 30);
+        private static final boolean TRACE = Boolean.getBoolean("worldgennext.dh.traceRequests");
+        private int traced;
+        /** How far around a player, in tiles, tiles are started ahead; and the first ring not yet had in full, for the player's tile it was counted from. */
+        private static final int PLAYER_RINGS = Math.max(0, Integer.getInteger("worldgennext.dh.readAheadPlayerRings", 96));
+        private int aheadRing = 1, aheadCentreX = Integer.MIN_VALUE, aheadCentreZ = Integer.MIN_VALUE;
 
         /** One 4x4-chunk tile: its chunks as the chunk system finishes them. */
         private record Tile(ChunkPos[] positions, CompletableFuture<ChunkAccess>[] chunks, ChunkPos[] held,
@@ -251,6 +257,7 @@ public final class DistantHorizonsBridge {
 
         Generator(MinecraftServer server, ServerLevel level, Object levelWrapper, DistantHorizonsHandover handover) {
             LodPace.listen();
+            this.maxActive = Math.max(1, Integer.getInteger("worldgennext.dh.activeTiles", server.isDedicatedServer() ? 64 : 8));
             this.server = server;
             this.level = level;
             this.levelWrapper = levelWrapper;
@@ -263,6 +270,7 @@ public final class DistantHorizonsBridge {
                 if (dhLevel == null) throw new IllegalStateException("Distant Horizons has no level for " + level.dimension().location() + " yet");
                 Class<?> levelType = Class.forName("com.seibel.distanthorizons.core.level.IDhServerLevel");
                 inner = Class.forName("com.seibel.distanthorizons.core.generation.DhWorldGenerator").getConstructor(levelType).newInstance(dhLevel);
+                DistantHorizonsRoughSpeedup.apply(inner, level.dimension().location().toString());
             }
             return inner;
         }
@@ -326,6 +334,31 @@ public final class DistantHorizonsBridge {
                         release(tile, false);
                     };
                 }
+            }
+            // The rough surface requests take their turn like the tiles above: Distant Horizons' own work on
+            // what comes back (lighting, storing, building what is drawn) weighs on the game as much as chunks do.
+            if (after == null && method.getName().equals("generateLod") && PACE_ROUGH) {
+                CompletableFuture<Void> done = new CompletableFuture<>();
+                Runnable forward = () -> {
+                    try {
+                        ((CompletableFuture<?>) method.invoke(inner, arguments)).whenComplete((nothing, failure) -> {
+                            complete(done, failure);
+                            turnOver();
+                        });
+                    } catch (Throwable thrown) {
+                        complete(done, thrown instanceof java.lang.reflect.InvocationTargetException wrapped ? wrapped.getCause() : thrown);
+                        turnOver();
+                    }
+                };
+                synchronized (waiting) {
+                    if (active >= LodPace.allowance(maxActive, 3)) {
+                        waiting.add(forward);
+                        return done;
+                    }
+                    active++;
+                }
+                forward.run();
+                return done;
             }
             Object result;
             try {
@@ -404,10 +437,44 @@ public final class DistantHorizonsBridge {
          * threads, into the data source it supplied.
          */
         private CompletableFuture<Void> convertTile(int minX, int minZ, Object tileDataSource, Consumer<Object> consumer) {
+            CompletableFuture<Void> done = new CompletableFuture<>();
+            // How many tiles are worked on at once follows the pace the game can take (LodPace); the rest wait
+            // their turn, which holds Distant Horizons' own threads back with them.
+            synchronized (waiting) {
+                if (active >= LodPace.allowance(maxActive, 3)) {
+                    waiting.add(() -> convertTile(minX, minZ, tileDataSource, consumer, done));
+                    return done;
+                }
+                active++;
+            }
+            convertTile(minX, minZ, tileDataSource, consumer, done);
+            return done;
+        }
+
+        /** Tiles being generated or converted for Distant Horizons' requests, and the requests waiting for a turn. */
+        /**
+         * In a client the game shares the process and the processor with all of this, and 8 at once was where
+         * most of the stutter went for about 70% of the speed (docs/evidence/smoothness.md); a dedicated server
+         * has no frames to protect.
+         */
+        private final int maxActive;
+        private static final boolean PACE_ROUGH = Boolean.parseBoolean(System.getProperty("worldgennext.dh.paceRough", "true"));
+        private int active;
+        private final java.util.ArrayDeque<Runnable> waiting = new java.util.ArrayDeque<>();
+
+        private void turnOver() {
+            Runnable next;
+            synchronized (waiting) {
+                next = active <= LodPace.allowance(maxActive, 3) ? waiting.poll() : null;
+                if (next == null) active--;
+            }
+            if (next != null) next.run();
+        }
+
+        private void convertTile(int minX, int minZ, Object tileDataSource, Consumer<Object> consumer, CompletableFuture<Void> done) {
             REQUESTS.incrementAndGet();
             long asked = System.nanoTime();
             Tile tile = take(minX, minZ);
-            CompletableFuture<Void> done = new CompletableFuture<>();
             tile.settled.whenCompleteAsync((nothing, failure) -> {
                 REQUESTS_DONE.incrementAndGet();
                 Throwable problem = failure;
@@ -425,8 +492,8 @@ public final class DistantHorizonsBridge {
                 release(tile, problem != null);
                 ANSWER_NANOS.addAndGet(System.nanoTime() - asked);
                 complete(done, problem);
+                turnOver();
             }, DistantHorizonsConverter.pool());
-            return done;
         }
 
         /**
@@ -441,6 +508,11 @@ public final class DistantHorizonsBridge {
                 if (served.size() > 500_000) served.clear();
                 long key = ChunkPos.asLong(minX, minZ);
                 tile = ahead.remove(key);
+                if (TRACE && traced++ < 4000) {
+                    long[] players = LodPace.playerChunks(level);
+                    int px = players.length == 0 ? 0 : ChunkPos.getX(players[0]), pz = players.length == 0 ? 0 : ChunkPos.getZ(players[0]);
+                    LOG.info("DHREQ {} {} {} {}", (minX - px) / TILE, (minZ - pz) / TILE, tile != null ? "hit" : "miss", served.contains(key) ? "again" : "new");
+                }
                 served.add(key);
                 if (tile != null) {
                     AHEAD_USED.addAndGet(tile.positions.length);
@@ -450,6 +522,38 @@ public final class DistantHorizonsBridge {
                 }
                 // Nothing ahead while the GPU kernels are being built, and less while the server's ticks come late.
                 int limit = LodPace.hold(level) ? 0 : LodPace.allowance(budget, 4 * TILE * TILE) / (TILE * TILE);
+                // Chunks leave memory only after they are saved and unloaded, which generation can outrun; the
+                // more of them stay loaded, the longer every pause of the collector.
+                int loaded = level.getChunkSource().getLoadedChunksCount();
+                if (loaded > LOADED_LIMIT) limit = Math.min(limit, 4);
+                if (TRACE && traced % 200 == 0) LOG.info("DHSTATE loaded={} ahead={} limit={} budget={} share={}", loaded, ahead.size(), limit, budget, LodPace.share());
+                // Around a player Distant Horizons works outwards from the player, not from the tile it asked for
+                // last: the nearest tiles it has not had yet are the ones it asks for next.
+                for (long player : LodPace.playerChunks(level)) {
+                    int centreX = Math.floorDiv(ChunkPos.getX(player), TILE) * TILE, centreZ = Math.floorDiv(ChunkPos.getZ(player), TILE) * TILE;
+                    int checked = 0;
+                    nearest:
+                    for (int ring = aheadRing; ring <= PLAYER_RINGS; ring++) {
+                        boolean complete = true;
+                        for (int[] offset : TileRings.offsets(ring)) {
+                            int x = centreX + offset[0] * TILE, z = centreZ + offset[1] * TILE;
+                            long candidate = ChunkPos.asLong(x, z);
+                            if (served.contains(candidate)) continue;
+                            complete = false;
+                            if (ahead.containsKey(candidate)) continue;
+                            if (ahead.size() >= limit || ++checked > 256) break nearest;
+                            ahead.put(candidate, start(x, z));
+                        }
+                        // Rings Distant Horizons has had in full are not looked at again while the player stays.
+                        if (complete && ring == aheadRing && centreX == aheadCentreX && centreZ == aheadCentreZ) aheadRing++;
+                    }
+                    if (centreX != aheadCentreX || centreZ != aheadCentreZ) {
+                        aheadCentreX = centreX;
+                        aheadCentreZ = centreZ;
+                        aheadRing = 1;
+                    }
+                    break; // one player's surroundings per request; with several, the rings below still follow the requests
+                }
                 int rings = AHEAD_REACH / TILE;
                 ahead:
                 for (int ring = 1; ring <= rings; ring++) {
