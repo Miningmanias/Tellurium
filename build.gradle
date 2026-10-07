@@ -1,6 +1,6 @@
 plugins { id 'base' }
 group = 'dev.tellurium'
-version = '0.2.0'
+version = '0.2.0-alpha.1'
 if (JavaVersion.current() != JavaVersion.VERSION_21) {
     throw new GradleException('Tellurium builds require JDK 21. Set JAVA_HOME to a JDK 21 installation.')
 }

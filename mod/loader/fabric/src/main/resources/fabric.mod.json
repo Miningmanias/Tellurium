@@ -4,6 +4,13 @@
   "version": "${version}",
   "name": "Tellurium",
   "description": "Faster chunk generation that produces the same world. Terrain and surface for tested world generators (vanilla, Terralith, Tectonic) are computed on the GPU through Vulkan; structure, carver and feature steps run in parallel; chunks are saved in the background. Includes a pregenerator: /tellurium pregen start <radius>. Works on dedicated servers and in singleplayer; settings in config/tellurium.toml; /tellurium status shows what is active.",
+  "authors": ["Miningmanias"],
+  "contact": {
+    "homepage": "https://github.com/Miningmanias/Tellurium",
+    "sources": "https://github.com/Miningmanias/Tellurium",
+    "issues": "https://github.com/Miningmanias/Tellurium/issues"
+  },
+  "icon": "tellurium.png",
   "license": "MIT",
   "environment": "*",
   "entrypoints": {

@@ -1,5 +1,20 @@
 # Releasing
 
+## A release of the mod
+
+1. Set the version in `build.gradle` and `TelluriumMod.VERSION`, and add the release to `CHANGELOG.md`.
+2. `gradlew test build verifyArchitecture`: the jar of every build lands in `build/release/`.
+3. `bash scripts/release-check.sh` (NeoForge 1.21.1), then each released jar on a real server:
+   `bash scripts/test-installed-commands.sh`, `bash scripts/test-installed-fabric.sh 100`, and the same two
+   scripts with `FABRIC_MC=1.21.11` / `NEOFORGE_MC=1.21.11`. They run in the default mode, which is what
+   shows that the tested-generator lists still match the kernels.
+4. Copy the jars to be published, their checksums and the notes for the listing into one folder.
+   For `0.2.0-alpha.1` that was the 1.21.1 and 1.21.11 jars of both loaders.
+
+The rest of this page is about the earlier, stricter qualification route.
+
+## The v0.2 qualification route
+
 Release `0.2.0` requires all G0–G12 gates from [V0.2-PLAN.md](V0.2-PLAN.md) with raw manifests on one frozen source/jar/dependency snapshot. `qualifyV02` deliberately fails while `test-manifest/v0.2-acceptance.json` is `NOT_RUN`.
 
 The installed-jar smoke is run explicitly with `testInstalledMod` and a fresh

@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **682**, plus this generated index.
+Indexed project files: **686**, plus this generated index.
 
 ## semantic-core
 
@@ -545,6 +545,7 @@ The mod: common source, per-loader and per-Minecraft-version files, and the buil
 | [mod/common/src/main/java/dev/tellurium/neoforge/version/Version.java](../mod/common/src/main/java/dev/tellurium/neoforge/version/Version.java) | Implementation or explicit public contract |
 | [mod/common/src/main/resources/tellurium/fused-qualified.properties](../mod/common/src/main/resources/tellurium/fused-qualified.properties) | Packaged metadata/resource |
 | [mod/common/src/main/resources/tellurium.mixins.json](../mod/common/src/main/resources/tellurium.mixins.json) | Packaged metadata/resource |
+| [mod/common/src/main/resources/tellurium.png](../mod/common/src/main/resources/tellurium.png) | Packaged metadata/resource |
 | [mod/common/src/test/java/dev/tellurium/neoforge/command/TelluriumCommandsTest.java](../mod/common/src/test/java/dev/tellurium/neoforge/command/TelluriumCommandsTest.java) | Executable CPU test |
 | [mod/common/src/test/java/dev/tellurium/neoforge/compat/ChunkSetFileTest.java](../mod/common/src/test/java/dev/tellurium/neoforge/compat/ChunkSetFileTest.java) | Executable CPU test |
 | [mod/common/src/test/java/dev/tellurium/neoforge/compat/TileRingsTest.java](../mod/common/src/test/java/dev/tellurium/neoforge/compat/TileRingsTest.java) | Executable CPU test |
@@ -610,6 +611,7 @@ The mod: common source, per-loader and per-Minecraft-version files, and the buil
 | [.gitignore](../.gitignore) | Tooling, data or provenance |
 | [AGENTS.md](../AGENTS.md) | Documentation |
 | [build.gradle](../build.gradle) | Build configuration/tooling |
+| [CHANGELOG.md](../CHANGELOG.md) | Documentation |
 | [CODE_REVIEW.md](../CODE_REVIEW.md) | Documentation |
 | [CODE_REVIEW_2026-10-07.md](../CODE_REVIEW_2026-10-07.md) | Documentation |
 | [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) | Documentation |
@@ -628,6 +630,7 @@ The mod: common source, per-loader and per-Minecraft-version files, and the buil
 | [docs/design/EVIDENCE.md](../docs/design/EVIDENCE.md) | Documentation |
 | [docs/design/performance-model.json](../docs/design/performance-model.json) | Tooling, data or provenance |
 | [docs/design/PROPOSAL.md](../docs/design/PROPOSAL.md) | Documentation |
+| [docs/DEVELOPMENT.md](../docs/DEVELOPMENT.md) | Documentation |
 | [docs/evidence/code-review-20261006.md](../docs/evidence/code-review-20261006.md) | Documentation |
 | [docs/evidence/code-review-20261007.md](../docs/evidence/code-review-20261007.md) | Documentation |
 | [docs/evidence/comparison-c2me.md](../docs/evidence/comparison-c2me.md) | Documentation |
@@ -670,6 +673,7 @@ The mod: common source, per-loader and per-Minecraft-version files, and the buil
 | [docs/evidence/v0.2-shared-fp64-divider.md](../docs/evidence/v0.2-shared-fp64-divider.md) | Documentation |
 | [docs/evidence/v0.2-terrain-mods.md](../docs/evidence/v0.2-terrain-mods.md) | Documentation |
 | [docs/IMPLEMENTATION_MAP.md](../docs/IMPLEMENTATION_MAP.md) | Documentation |
+| [docs/README.md](../docs/README.md) | Documentation |
 | [docs/RELEASING.md](../docs/RELEASING.md) | Documentation |
 | [docs/ROADMAP.md](../docs/ROADMAP.md) | Documentation |
 | [docs/STATUS.md](../docs/STATUS.md) | Documentation |

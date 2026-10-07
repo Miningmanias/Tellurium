@@ -32,6 +32,7 @@ public final class FusedNoiseDevice implements dev.tellurium.compiler.vulkan.fus
     /** Diagnostic: keep intermediate buffers host-visible so they can be compared with a CPU reference. */
     public static final boolean DEBUG_BUFFERS = Boolean.getBoolean("tellurium.fast.debugBuffers");
     public static final boolean PROFILE = Boolean.getBoolean("tellurium.fast.profile");
+    private static final boolean LOG_KERNELS = Boolean.getBoolean("tellurium.fast.logKernels");
     private static final java.util.concurrent.atomic.AtomicLong[] PROFILE_NANOS = new java.util.concurrent.atomic.AtomicLong[KERNELS.length];
     private static final java.util.concurrent.atomic.AtomicLong PROFILE_CHUNKS = new java.util.concurrent.atomic.AtomicLong();
     static { for (int i = 0; i < KERNELS.length; i++) PROFILE_NANOS[i] = new java.util.concurrent.atomic.AtomicLong(); }
@@ -345,7 +346,8 @@ public final class FusedNoiseDevice implements dev.tellurium.compiler.vulkan.fus
                     info.get(0).sType$Default().stage(stage).layout(pipelineLayout);
                     check(vkCreateComputePipelines(device, pipelineCache, info, null, handle), "vkCreateComputePipelines(" + KERNELS[k] + ")");
                     pipelines[k] = handle.get(0);
-                    System.out.println("[tellurium-fast] kernel " + KERNELS[k] + ": spirv " + spirv.length + " bytes, shaderc "
+                    // Build times per kernel, for whoever is working on them (-Dtellurium.fast.logKernels=true).
+                    if (LOG_KERNELS) System.out.println("[tellurium-fast] kernel " + KERNELS[k] + ": spirv " + spirv.length + " bytes, shaderc "
                             + shadercNanos / 1_000_000 + " ms, pipeline " + (System.nanoTime() - kernelStart - shadercNanos) / 1_000_000 + " ms");
                 }
                 savePipelineCache(pipelineCache, compiled.fingerprint());

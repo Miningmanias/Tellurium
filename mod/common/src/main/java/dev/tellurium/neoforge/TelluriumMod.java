@@ -48,7 +48,7 @@ import java.util.function.Consumer;
  */
 public final class TelluriumMod {
     public static final String MOD_ID = "tellurium";
-    public static final String VERSION = "0.2.0";
+    public static final String VERSION = "0.2.0-alpha.1";
     private static final Logger LOG = LoggerFactory.getLogger(MOD_ID);
 
     private TelluriumMod() {}
