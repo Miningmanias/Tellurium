@@ -115,17 +115,17 @@ Biomes We've Gone and William Wythers' Overhauled Overworld each logged one
 NeoForge message about entities without spawn-placement registration; Regions
 Unexplored logged one about a client-only class on a dedicated server; the
 structure packs logged advancement-loading errors for recipes they reference.
-These runs were not repeated without WorldgenNext, so that they are unrelated
+These runs were not repeated without Tellurium, so that they are unrelated
 is my reading of the messages, not a measured comparison.
 
 ## If your mod is not listed
 
-Set `gpu.mode = "check"` in `config/worldgennext.toml`, generate a few thousand
-chunks, and read `/worldgennext status`. See the README.
+Set `gpu.mode = "check"` in `config/tellurium.toml`, generate a few thousand
+chunks, and read `/tellurium status`. See the README.
 
 ## Compatibility policy (staged route)
 
 
-WorldgenNext keeps Minecraft's holder/ticket/status machinery authoritative. It owns only captured-input preparation, admitted CPU/GPU work, validation and the loader-injected commit callback.
+Tellurium keeps Minecraft's holder/ticket/status machinery authoritative. It owns only captured-input preparation, admitted CPU/GPU work, validation and the loader-injected commit callback.
 
 Unknown density nodes, unsupported generators, populated targets and conflicting hooks fail closed with an explicit route/reason. Required matrix contexts cannot be relabeled CPU-only to satisfy the GPU gate.

@@ -55,7 +55,7 @@ foreach ($root in $sources) {
     foreach ($receiptPath in @(Get-ChildItem -LiteralPath $root -Filter '*.chunk.gpu-receipt.json' -File -Recurse)) {
         $receipt = Get-Content -LiteralPath $receiptPath.FullName -Raw | ConvertFrom-Json
         if ($receipt.status -ne 'PASS' -or $receipt.route -ne 'GPU_IEEE_BITS' -or
-                $receipt.resultAbi -ne 'chunk-result-v4' -or $receipt.compilerVersion -ne 'worldgennext-gpu-live-v0.2' -or
+                $receipt.resultAbi -ne 'chunk-result-v4' -or $receipt.compilerVersion -ne 'tellurium-gpu-live-v0.2' -or
                 $receipt.comparedBlocks -le 0 -or $receipt.mismatches -ne 0 -or
                 [string]::IsNullOrWhiteSpace($receipt.shaderHash) -or [string]::IsNullOrWhiteSpace($receipt.spirvHash) -or
                 $null -eq $receipt.device) { throw "Rejected GPU receipt: $($receiptPath.FullName)" }
@@ -96,7 +96,7 @@ try { $compiledHash = [Convert]::ToHexString($sha.ComputeHash([Text.Encoding]::U
 finally { $sha.Dispose() }
 $blockCount = 0L
 foreach ($row in $rows) { $blockCount += [long]$row['comparedBlocks'] }
-$report = [ordered]@{schemaVersion=1; kind='worldgennext_frozen_gpu_subset_merge'; status='PASS';
+$report = [ordered]@{schemaVersion=1; kind='tellurium_frozen_gpu_subset_merge'; status='PASS';
     route='GPU_IEEE_BITS'; independentOracle=$true; expectedDirectory=$expected; candidateDirectory=$output;
     sourceDirectories=$sources; compiledInputsSha256=$compiledHash;
     compiledInputsScope='recovery_and_comparator_inputs'; sourceGenerationFingerprintsComplete=$false;

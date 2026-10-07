@@ -22,7 +22,7 @@ Task names are an implementation specification. The P01 original-only command-li
 
 The executed P01 slice is reproducible with two clean runs of `scripts/capture-original-corpus.ps1` followed by `:oracle-and-replay:run --args='compare-corpus ...'`. The initial preflight covers 10 vanilla Overworld NOISE cases (five signed seeds at two centers), compares 100 fields, and passed original-vs-original determinism. An expanded repeat control covers 750 vanilla cases across Overworld, Nether and End in 5×5 squares and compares 7,500 fields with zero differences. The generated-capture hashes and limitations are recorded in [v0.2-original-oracle.md](../evidence/v0.2-original-oracle.md). Neither control counts the 1,500-case six-context corpus or candidate parity.
 
-The opt-in `scripts/replay-minecraft-noise-cpu.ps1` replay paired the 750 independent vanilla cases with WorldgenNext CPU candidate artifacts. It compared 7,500 fields and 57,344,000 block states with zero mismatches. The Terralith, Tectonic and combined pinned terrain-mod replays add 750 cases, 7,500 fields and 73,728,000 block states with zero mismatches. The candidate CPU corpus therefore now covers all 1,500 required six-context NOISE cases; the remaining GPU, live, FULL and SAVED/reopened requirements are documented in [v0.2-cpu-candidate.md](../evidence/v0.2-cpu-candidate.md) and [v0.2-terrain-mods.md](../evidence/v0.2-terrain-mods.md).
+The opt-in `scripts/replay-minecraft-noise-cpu.ps1` replay paired the 750 independent vanilla cases with Tellurium CPU candidate artifacts. It compared 7,500 fields and 57,344,000 block states with zero mismatches. The Terralith, Tectonic and combined pinned terrain-mod replays add 750 cases, 7,500 fields and 73,728,000 block states with zero mismatches. The candidate CPU corpus therefore now covers all 1,500 required six-context NOISE cases; the remaining GPU, live, FULL and SAVED/reopened requirements are documented in [v0.2-cpu-candidate.md](../evidence/v0.2-cpu-candidate.md) and [v0.2-terrain-mods.md](../evidence/v0.2-terrain-mods.md).
 
 A separate pinned Terralith 2.6.2 + Lithostitched 1.8.0+beta6 Overworld run
 captured and paired 250 `NOISE` cases (5×5 at both required centers across
@@ -51,7 +51,7 @@ fixture and is not silently downloaded or created by the ordinary build:
 
 ```powershell
 .\gradlew.bat `
-  -Dworldgennext.terrainModDirectory=build/terrain-mods/combined-terralith-tectonic-lithostitched-20260913 `
+  -Dtellurium.terrainModDirectory=build/terrain-mods/combined-terralith-tectonic-lithostitched-20260913 `
   verifyTerrainModLock --no-daemon
 ```
 
@@ -60,10 +60,10 @@ logical SAVED boundary with two clean `oracle-1211` processes. The first
 process reaches FULL, completes the explicit save barrier and captures the
 post-barrier state; the second reopens the same world and is compared across
 all ten fields. This proves only the original serializer/reopen harness. It
-does not qualify a WorldgenNext candidate, live commit, or saved-world parity.
+does not qualify a Tellurium candidate, live commit, or saved-world parity.
 
 The opt-in `scripts/capture-candidate-saved.ps1` witness then runs the same
-logical endpoint through two clean WorldgenNext candidate processes. The
+logical endpoint through two clean Tellurium candidate processes. The
 first run requires real candidate NOISE work and saves the FULL result; the
 second reopens that candidate world with no new-NOISE requirement. Candidate
 expected, candidate reopened and the independent original expected snapshots

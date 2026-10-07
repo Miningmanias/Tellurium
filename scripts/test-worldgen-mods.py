@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compatibility trial of other world-generation mods with WorldgenNext.
+"""Compatibility trial of other world-generation mods with Tellurium.
 
 For each group below: download the newest NeoForge 1.21.1 release of every mod in it (and its required
 dependencies) from Modrinth into build/test-mods/compat/<group>/, then start a fresh dev server with
@@ -22,7 +22,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-AGENT = "WorldgenNext-dev/0.2 (local compatibility test)"
+AGENT = "Tellurium-dev/0.2 (local compatibility test)"
 LOADER, GAME = "neoforge", "1.21.1"
 # On Windows a bare "bash" started from Python can be WSL's, which cannot run gradlew.bat; prefer Git Bash.
 GIT_BASH = Path("C:/Program Files/Git/bin/bash.exe")
@@ -108,7 +108,7 @@ def run(group, slugs, dimension, radius, results):
     names = ", ".join(sorted(name for name, _ in files))
     if missing:
         names += " (no NeoForge 1.21.1 release: " + ", ".join(missing) + ")"
-    extra = "worldgennext.pregen.autostartDimension=" + dimension if dimension else ""
+    extra = "tellurium.pregen.autostartDimension=" + dimension if dimension else ""
     environment = dict(os.environ, CONFIG="build/check.toml")
     (ROOT / "build" / "check.toml").write_text('[gpu]\nmode = "check"\n')
     try:

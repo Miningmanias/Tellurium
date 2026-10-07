@@ -7,7 +7,7 @@
 
 ## What it is
 
-`fabric-1211` builds `worldgennext-fabric-1.21.1-<version>.jar` from the same
+`fabric-1211` builds `tellurium-fabric-1.21.1-<version>.jar` from the same
 source as the NeoForge mod. The mod's code lives in `neoforge-1211`; two
 classes per loader differ (`loader/Loader`, which answers what the mod needs
 from the loader, and the entry point), plus the loader's metadata. Fabric
@@ -31,7 +31,7 @@ Three things on Fabric are not as on NeoForge, and each has its own handling:
   by reflection, by the names its source uses. Those are the names at run
   time on NeoForge and in any development environment, but a released Fabric
   game runs with "intermediary" names (`class_6916`, `field_1099`). The build
-  writes `worldgennext/fabric-names.tsv` into the Fabric jar: the pairs for the
+  writes `tellurium/fabric-names.tsv` into the Fabric jar: the pairs for the
   names that occur as string literals in the mod's source, and no others
   (4,099 lines, 49 classes), taken from the mappings the build uses.
   `loader/Names` translates through it; on NeoForge and in development it does
@@ -81,7 +81,7 @@ Minecraft 1.21.4 and 1.21.8 on Fabric: `docs/evidence/minecraft-versions.md`.
 Distant Horizons 3.3.3 (the same jar serves both loaders), the released Fabric
 jar, Fabric API and ScalableLux on the real Fabric 1.21.1 server; Distant
 Horizons' own `dh pregen start minecraft:overworld 0 0 128` on a fresh world
-(`LOADER=fabric scripts/compare-dh.sh <dh|worldgennext> 128`). One run each;
+(`LOADER=fabric scripts/compare-dh.sh <dh|tellurium> 128`). One run each;
 the Fabric server's log has whole seconds only, so each time is good to about
 a second.
 
@@ -89,7 +89,7 @@ a second.
 | --- | --- |
 | Distant Horizons alone | 148 s, 446 chunks/s |
 | with this mod (default: hybrid, own column writer) | 32 s, 2,064 chunks/s |
-| the same with `-Dworldgennext.dh.columnsCheck=true` (every tile is also built by Distant Horizons' builder and compared) | 51 s; 16,777,216 columns compared, 0 differ |
+| the same with `-Dtellurium.dh.columnsCheck=true` (every tile is also built by Distant Horizons' builder and compared) | 51 s; 16,777,216 columns compared, 0 differ |
 
 These are close to the NeoForge figures in
 `docs/evidence/comparison-distant-horizons.md` (449 and 2,041 to 2,119). The

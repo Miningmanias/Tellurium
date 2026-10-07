@@ -82,7 +82,7 @@ if (-not $IndependentOracle) {
 }
 if ([string]::IsNullOrWhiteSpace($ResultAbi)) { throw 'ResultAbi must be non-blank' }
 if ([string]::IsNullOrWhiteSpace($CompilerVersion)) {
-    $CompilerVersion = if ($Route -eq 'CPU_OWNED') { 'worldgennext-cpu-live-v0.2' } else { 'worldgennext-gpu-live-v0.2' }
+    $CompilerVersion = if ($Route -eq 'CPU_OWNED') { 'tellurium-cpu-live-v0.2' } else { 'tellurium-gpu-live-v0.2' }
 }
 
 $relativeSource = [IO.Path]::GetRelativePath($outputParent, $sourcePath).Replace('\', '/')

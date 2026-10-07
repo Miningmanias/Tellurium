@@ -40,7 +40,7 @@ function Gradle-Path([string]$path) {
 function Assert-FullCapture([string]$path) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Full oracle capture did not produce $path" }
     $text = Get-Content -LiteralPath $path -Raw
-    if ($text -notmatch '(?m)^WORLDGENNEXT-SNAPSHOT-1\r?\n') {
+    if ($text -notmatch '(?m)^TELLURIUM-SNAPSHOT-1\r?\n') {
         throw "Full oracle capture has an invalid header: $path"
     }
     if ($text -notmatch '(?m)^identity=[^\r\n]*/FULL/[^\r\n]*$') {
@@ -50,14 +50,14 @@ function Assert-FullCapture([string]$path) {
 
 function Invoke-FullOracle([string]$output) {
     & (Join-Path $repoRoot 'gradlew.bat') ':oracle-1211:oracleSmoke' '--no-daemon' `
-        "-Dworldgennext.oracle.capture=true" `
-        "-Dworldgennext.oracle.output=$(Gradle-Path $output)" `
-        "-Dworldgennext.oracle.runDir=$(Gradle-Path $runDir)" `
-        "-Dworldgennext.oracle.seed=$Seed" `
-        "-Dworldgennext.oracle.chunkX=$ChunkX" `
-        "-Dworldgennext.oracle.chunkZ=$ChunkZ" `
-        "-Dworldgennext.oracle.dimension=$Dimension" `
-        "-Dworldgennext.oracle.endpoint=FULL"
+        "-Dtellurium.oracle.capture=true" `
+        "-Dtellurium.oracle.output=$(Gradle-Path $output)" `
+        "-Dtellurium.oracle.runDir=$(Gradle-Path $runDir)" `
+        "-Dtellurium.oracle.seed=$Seed" `
+        "-Dtellurium.oracle.chunkX=$ChunkX" `
+        "-Dtellurium.oracle.chunkZ=$ChunkZ" `
+        "-Dtellurium.oracle.dimension=$Dimension" `
+        "-Dtellurium.oracle.endpoint=FULL"
     if ($LASTEXITCODE -ne 0) { throw "Full oracle capture failed for $output with exit code $LASTEXITCODE" }
     Assert-FullCapture $output
 }
@@ -76,7 +76,7 @@ $expectedHash = (Get-FileHash -LiteralPath $expected -Algorithm SHA256).Hash
 $repeatHash = (Get-FileHash -LiteralPath $repeat -Algorithm SHA256).Hash
 $result = [ordered]@{
     schemaVersion = 1
-    kind = 'worldgennext_original_full_repeat'
+    kind = 'tellurium_original_full_repeat'
     status = 'PASS_REFERENCE_ONLY'
     endpoint = 'FULL'
     seed = $Seed
@@ -89,7 +89,7 @@ $result = [ordered]@{
     expectedSha256 = $expectedHash
     repeatSha256 = $repeatHash
     byteIdentical = $expectedHash -eq $repeatHash
-    note = 'Original-vs-original fresh-process FULL stability smoke; it does not qualify a WorldgenNext candidate or live hook.'
+    note = 'Original-vs-original fresh-process FULL stability smoke; it does not qualify a Tellurium candidate or live hook.'
 }
 $result | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $outputRootAbsolute 'full-repeat-report.json') -Encoding UTF8
 Write-Host "PASS original FULL repeat smoke expected=$expected repeat=$repeat"

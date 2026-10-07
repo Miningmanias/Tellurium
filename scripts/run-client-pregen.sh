@@ -37,31 +37,31 @@ printf 'onboardAccessibility:false\nskipMultiplayerWarning:true\ntutorialStep:no
 # OPTIONS=<file>: lines appended to the client's options.txt (a window size, a render distance).
 [ -n "${OPTIONS:-}" ] && cat "$OPTIONS" >> "$run/options.txt"
 
-# CONFIG_TOML=<file>: use that as config/worldgennext.toml in the client (for example one with enabled = false).
-[ -n "${CONFIG_TOML:-}" ] && cp "$CONFIG_TOML" "$run/config/worldgennext.toml"
+# CONFIG_TOML=<file>: use that as config/tellurium.toml in the client (for example one with enabled = false).
+[ -n "${CONFIG_TOML:-}" ] && cp "$CONFIG_TOML" "$run/config/tellurium.toml"
 # NEOFORGE=<version>: run the client on that NeoForge 21.1.x instead of the one the mod is built against.
-args=(${WINDOW:+"-Dworldgennext.client.window=$WINDOW"} ":${MODULE:-neoforge-1211}:runClient" "--no-daemon" "--console=plain" "-Dworldgennext.candidate.runDir=$run" "-Dworldgennext.prototype.resume=true"
-      "-Dworldgennext.client.quickPlay=sp-world" "-Dworldgennext.run.maxHeap=${HEAP:-8G}" "-Dworldgennext.statusOnStop=true"
-      "-Dworldgennext.fast.pipelineCacheDir=$root/build/fast-cache")
+args=(${WINDOW:+"-Dtellurium.client.window=$WINDOW"} ":${MODULE:-neoforge-1211}:runClient" "--no-daemon" "--console=plain" "-Dtellurium.candidate.runDir=$run" "-Dtellurium.prototype.resume=true"
+      "-Dtellurium.client.quickPlay=sp-world" "-Dtellurium.run.maxHeap=${HEAP:-8G}" "-Dtellurium.statusOnStop=true"
+      "-Dtellurium.fast.pipelineCacheDir=$root/build/fast-cache")
 # DIGEST=<file.json>: instead of pregenerating, run the benchmark driver at SURFACE status over the matrix's
 # square and write per-chunk digests next to that file, for comparison with a dedicated-server reference.
 if [ -n "${DIGEST:-}" ]; then
-  args+=("-Dworldgennext.bench.autorun=true" "-Dworldgennext.bench.status=SURFACE" "-Dworldgennext.bench.radiusChunks=$RADIUS"
-         "-Dworldgennext.bench.release=end" "-Dworldgennext.bench.digest=true" "-Dworldgennext.bench.output=$root/$DIGEST"
-         "-Dworldgennext.fast.gpu=force")
+  args+=("-Dtellurium.bench.autorun=true" "-Dtellurium.bench.status=SURFACE" "-Dtellurium.bench.radiusChunks=$RADIUS"
+         "-Dtellurium.bench.release=end" "-Dtellurium.bench.digest=true" "-Dtellurium.bench.output=$root/$DIGEST"
+         "-Dtellurium.fast.gpu=force")
 elif [ -n "${IDLE:-}" ]; then
   # IDLE=<seconds>: just stand in the world for that long (for mods that work around the player, such as
   # Distant Horizons), then report.
   [ -f "$run/config/DistantHorizons.toml" ] && sed -i 's/enableAutoUpdater = true/enableAutoUpdater = false/' "$run/config/DistantHorizons.toml"
 elif [ -n "${TOUR:-}" ]; then
   # TOUR=<steps>: instead of pregenerating, fly the player across fresh terrain (ordinary play path).
-  args+=("-Dworldgennext.bench.tour=$TOUR")
+  args+=("-Dtellurium.bench.tour=$TOUR")
 else
-  args+=("-Dworldgennext.pregen.autostart=$RADIUS" "-Dworldgennext.pregen.stopServerWhenDone=true")
+  args+=("-Dtellurium.pregen.autostart=$RADIUS" "-Dtellurium.pregen.stopServerWhenDone=true")
 fi
-[ -n "${NEOFORGE:-}" ] && args+=("-Pworldgennext.neoforge=$NEOFORGE")
+[ -n "${NEOFORGE:-}" ] && args+=("-Ptellurium.neoforge=$NEOFORGE")
 # RUN_JAVA=<version>: run the client on that Java (for a comparison with a mod that needs a newer one).
-[ -n "${RUN_JAVA:-}" ] && args+=("-Dworldgennext.run.java=$RUN_JAVA")
+[ -n "${RUN_JAVA:-}" ] && args+=("-Dtellurium.run.java=$RUN_JAVA")
 IFS=';' read -ra extra <<< "$EXTRA"
 for p in "${extra[@]}"; do [ -n "$p" ] && args+=("-D$p"); done
 ./gradlew.bat "${args[@]}" > "$run/gradle-client.out" 2>&1 &
@@ -83,7 +83,7 @@ powershell.exe -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name
 wait 2>/dev/null
 
 echo "RUNDIR $run"
-grep -E "\[worldgennext(-fast|-bench)?/\]" "$run/logs/latest.log" | sed -E 's/^\[[^]]*\] \[[^]]*\] \[[^]]*\]: //' | cut -c1-260
+grep -E "\[tellurium(-fast|-bench)?/\]" "$run/logs/latest.log" | sed -E 's/^\[[^]]*\] \[[^]]*\] \[[^]]*\]: //' | cut -c1-260
 [ -n "${IDLE:-}" ] && grep -E "DH is |Distant Horizons will|joined the game" "$run/logs/latest.log" | sed -E 's/^\[[^ ]* ([^]]*)\] \[[^]]*\] \[[^]]*\]: /\1 /' | cut -c1-200 | tail -40
 echo "errors: $(grep -cE "/ERROR\]|/FATAL\]" "$run/logs/latest.log")"
 grep -E "/ERROR\]|/FATAL\]|Mixin apply failed|UnsatisfiedLinkError" "$run/logs/latest.log" | grep -v "MonsterRoomFeature" | head -8 | cut -c1-260

@@ -41,14 +41,14 @@ function Gradle-Path([string]$path) {
 
 function Invoke-SavedOracle([string]$output) {
     & (Join-Path $repoRoot 'gradlew.bat') ':oracle-1211:oracleSmoke' '--no-daemon' `
-        "-Dworldgennext.oracle.capture=true" `
-        "-Dworldgennext.oracle.output=$(Gradle-Path $output)" `
-        "-Dworldgennext.oracle.runDir=$(Gradle-Path $runDir)" `
-        "-Dworldgennext.oracle.seed=$Seed" `
-        "-Dworldgennext.oracle.chunkX=$ChunkX" `
-        "-Dworldgennext.oracle.chunkZ=$ChunkZ" `
-        "-Dworldgennext.oracle.dimension=$Dimension" `
-        "-Dworldgennext.oracle.endpoint=SAVED"
+        "-Dtellurium.oracle.capture=true" `
+        "-Dtellurium.oracle.output=$(Gradle-Path $output)" `
+        "-Dtellurium.oracle.runDir=$(Gradle-Path $runDir)" `
+        "-Dtellurium.oracle.seed=$Seed" `
+        "-Dtellurium.oracle.chunkX=$ChunkX" `
+        "-Dtellurium.oracle.chunkZ=$ChunkZ" `
+        "-Dtellurium.oracle.dimension=$Dimension" `
+        "-Dtellurium.oracle.endpoint=SAVED"
     if ($LASTEXITCODE -ne 0) { throw "Saved oracle capture failed for $output with exit code $LASTEXITCODE" }
     if (-not (Test-Path -LiteralPath $output)) { throw "Saved oracle capture did not produce $output" }
 }
@@ -67,7 +67,7 @@ $reopenedHash = (Get-FileHash -LiteralPath $reopened -Algorithm SHA256).Hash
 
 $result = [ordered]@{
     schemaVersion = 1
-    kind = 'worldgennext_original_saved_reopen'
+    kind = 'tellurium_original_saved_reopen'
     status = 'PASS_REFERENCE_ONLY'
     seed = $Seed
     dimension = $Dimension
@@ -79,7 +79,7 @@ $result = [ordered]@{
     expectedSha256 = $expectedHash
     reopenedSha256 = $reopenedHash
     byteIdentical = $expectedHash -eq $reopenedHash
-    note = 'Original-vs-original fresh-process SAVED smoke; it does not qualify a WorldgenNext candidate or live hook.'
+    note = 'Original-vs-original fresh-process SAVED smoke; it does not qualify a Tellurium candidate or live hook.'
 }
 $result | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $outputRootAbsolute 'saved-reopen-report.json') -Encoding UTF8
 Write-Host "PASS original SAVED/reopened smoke expected=$expected reopened=$reopened"

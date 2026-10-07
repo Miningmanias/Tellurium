@@ -2,7 +2,7 @@
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot '../LogicalEndpointMatrix.ps1')
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
-$root=Join-Path ([IO.Path]::GetTempPath()) ('worldgennext-logical-matrix-test-'+[guid]::NewGuid())
+$root=Join-Path ([IO.Path]::GetTempPath()) ('tellurium-logical-matrix-test-'+[guid]::NewGuid())
 $checks=0
 function Check([bool]$condition,[string]$message) {
     if (-not $condition) { throw $message }; $script:checks++
@@ -15,7 +15,7 @@ function Json([string]$path,$object) {
     [IO.File]::WriteAllText($path,($object|ConvertTo-Json -Depth 9),[Text.UTF8Encoding]::new($false))
 }
 function Snapshot([string]$path,[string]$source,[string]$seed,[string]$dimension,[int]$x,[int]$z,[string]$endpoint) {
-    $lines=@('WORLDGENNEXT-SNAPSHOT-1',"identity=$source/minecraft-1.21.1-neoforge-21.1.176/$seed/$dimension/$x/$z/$endpoint/$('a'*64)")
+    $lines=@('TELLURIUM-SNAPSHOT-1',"identity=$source/minecraft-1.21.1-neoforge-21.1.176/$seed/$dimension/$x/$z/$endpoint/$('a'*64)")
     foreach($f in @('BLOCK_STATES','BIOMES','HEIGHTMAPS','POSTPROCESSING','LIGHT','TICKS','BLOCK_ENTITIES','STRUCTURES','ENTITIES','LIFECYCLE')) {$lines+="field=$f={}"}
     $lines+=@("value=seed=$seed","value=dimension=$dimension","value=endpoint=$endpoint")
     New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force|Out-Null
@@ -60,7 +60,7 @@ try {
                 $rows+=@{file=$file;seed=$seed;chunkX=$x;chunkZ=$z;sha256=(Hash $path)}
             }}}
         }
-        Json (Join-Path $expected 'capture-inventory.json') @{schemaVersion=1;kind='worldgennext_original_capture_inventory';status='CAPTURED_REFERENCE_ONLY';
+        Json (Join-Path $expected 'capture-inventory.json') @{schemaVersion=1;kind='tellurium_original_capture_inventory';status='CAPTURED_REFERENCE_ONLY';
             context=$id;dimension=$dim;endpoint='FULL';phase='INITIAL';stack='minecraft-1.21.1-neoforge-21.1.176';caseCount=36;cases=$rows;modHashes=$mods;processes=$procs}
         $entries+=@{id=$id;independentExpectedRoot=$expected;modDirectory=$modDir}
     }
@@ -102,11 +102,11 @@ try {
         [IO.File]::WriteAllText((Join-Path $batch 'server.properties'),"level-seed=$($c.seed)`n")
         $stem=Join-Path $evidence "chunk-$($c.chunkX)-$($c.chunkZ)";Noise ($stem+'.chunk') $c.chunkX $c.chunkZ
         [IO.File]::WriteAllText(($stem+'.candidate-status'),"PASS`nCOMMITTED`n")
-        $r=@{kind='worldgennext_gpu_live_receipt';status='BACKEND_VALIDATED';route='GPU_IEEE_BITS';resultAbi='chunk-result-v4';compilerVersion='worldgennext-gpu-live-v0.2';
+        $r=@{kind='tellurium_gpu_live_receipt';status='BACKEND_VALIDATED';route='GPU_IEEE_BITS';resultAbi='chunk-result-v4';compilerVersion='tellurium-gpu-live-v0.2';
             shaderHash=('d'*64);spirvHash=('e'*64);device=@{name='MODEL_ONLY'};executionId=$c.key;contextKey=('b'*64);snapshotHash=('f'*64);programHash=('a'*64);
             chunkX=$c.chunkX;chunkZ=$c.chunkZ;worldEpoch=0;deviceGeneration=0;submitted=98304;completed=98304;validated=98304;committed=0;logicalGpuElements=98304;storageBlocks=98304}
         Json ($stem+'.gpu-receipt.json') $r
-        $commit=@{kind='worldgennext_gpu_live_commit';status='COMMITTED';route='GPU_IEEE_BITS';committed=98304}
+        $commit=@{kind='tellurium_gpu_live_commit';status='COMMITTED';route='GPU_IEEE_BITS';committed=98304}
         foreach($k in @('executionId','contextKey','snapshotHash','programHash','chunkX','chunkZ','worldEpoch','deviceGeneration')){$commit[$k]=$r[$k]}
         Json ($stem+'.gpu-commit.json') $commit
         $reportRows+=@{case=$c.relativeCase;seed=$c.seed;chunkX=$c.chunkX;chunkZ=$c.chunkZ;dimension=$ctx.dimension;
@@ -116,7 +116,7 @@ try {
             backendReceipt=($stem+'.gpu-receipt.json');backendReceiptSha256=(Hash ($stem+'.gpu-receipt.json'));
             publicationReceipt=($stem+'.gpu-commit.json');publicationReceiptSha256=(Hash ($stem+'.gpu-commit.json'))}
     }
-    $report=@{kind='worldgennext_candidate_logical_endpoint_replay';status='PASS_CANDIDATE_ENDPOINT_ONLY';endpoint='FULL';route='GPU_IEEE_BITS';
+    $report=@{kind='tellurium_candidate_logical_endpoint_replay';status='PASS_CANDIDATE_ENDPOINT_ONLY';endpoint='FULL';route='GPU_IEEE_BITS';
         coordinatorDispatch='INLINE_REFERENCE';frozenCompiledInputs=$true;compiledInputsSha256=$frozenHash;releaseQualification=$false;productionHookEnabled=$false;
         independentComparison='PASS';caseCount=36;comparedCases=36;comparedFields=360;cases=$reportRows;reopenVerified=$false;reopenedComparedCases=0;reopenedComparedFields=0;
         initialExpectedRoot=$ctx.expectedRoot;runRoot=$ctx.runRoot;initialCandidateRoot=(Join-Path $ctx.outputRoot 'initial')}
@@ -154,6 +154,6 @@ try {
     Write-Host "PASS logical matrix MODEL_TOOLING assertions=$checks (no generation/native/comparator execution)"
 } finally {
     $absolute=[IO.Path]::GetFullPath($root);$temporary=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\','/')+[IO.Path]::DirectorySeparatorChar
-    if (-not $absolute.StartsWith($temporary,[StringComparison]::OrdinalIgnoreCase) -or [IO.Path]::GetFileName($absolute) -notlike 'worldgennext-logical-matrix-test-*') {throw 'Unsafe fixture cleanup path'}
+    if (-not $absolute.StartsWith($temporary,[StringComparison]::OrdinalIgnoreCase) -or [IO.Path]::GetFileName($absolute) -notlike 'tellurium-logical-matrix-test-*') {throw 'Unsafe fixture cleanup path'}
     if(Test-Path -LiteralPath $absolute){Remove-Item -LiteralPath $absolute -Recurse -Force}
 }

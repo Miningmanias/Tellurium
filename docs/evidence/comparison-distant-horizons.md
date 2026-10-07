@@ -1,4 +1,4 @@
-# Distant Horizons LOD generation with and without WorldgenNext — 2026-10-05
+# Distant Horizons LOD generation with and without Tellurium — 2026-10-05
 
 ## How Distant Horizons generates, and what was changed
 
@@ -51,7 +51,7 @@ If the generator class is missing the mod logs it and registers nothing; if
 the conversion methods are missing it falls back as described. The ignore set
 is not part of the API either; if it is missing the mod logs it and DH does
 the extra work. Nothing in DH is changed or patched. The conversion threads
-are named with DH's thread prefix (`DH-WorldgenNext Convert Thread`), because
+are named with DH's thread prefix (`DH-Tellurium Convert Thread`), because
 DH warns when its conversion runs on a thread without it.
 
 ## Later the same day: own column writer and unfinished chunks
@@ -69,7 +69,7 @@ figures with the changes are in this section.
   is still DH's own baked light, and its data-point encoding and id mapping
   are called. DH's builder fires an event per data point that lets other mods
   replace blocks or biomes; the writer does not, so while any mod listens to
-  that event DH's builder is used instead. `-Dworldgennext.dh.columns=false`
+  that event DH's builder is used instead. `-Dtellurium.dh.columns=false`
   turns the writer off.
 - **Unfinished chunks** (`distant_horizons.full_chunks = false`, the default).
   Chunks made for DH stop at the FEATURES step: no vanilla lighting, mob
@@ -107,7 +107,7 @@ before.
 
 ### Check against DH's builder
 
-`-Dworldgennext.dh.columnsCheck=true` builds every tile with DH's builder as
+`-Dtellurium.dh.columnsCheck=true` builds every tile with DH's builder as
 well and compares the two column by column through DH's public getter:
 heights, block, biome, block light and sky light of every data point, after
 hidden points are removed. A tile that differs is built both ways again, up
@@ -148,7 +148,7 @@ by mistake, when DH's "nothing bound" answer was misread).
   `build/installed-server`, Java 21, 16 GB heap, 24 logical cores, RTX 5070 Ti,
   default `server.properties` except seed 0. Vanilla world generation.
 - Distant Horizons 3.3.3 and ScalableLux 0.3.0-alpha.0.8 in every
-  configuration; "with WorldgenNext" adds this mod's jar, default settings
+  configuration; "with Tellurium" adds this mod's jar, default settings
   except the mode shown.
 - Driver: DH's command `dh pregen start minecraft:overworld 0 0 128` on a
   fresh world from a cold start. Time is from the command to DH's "Pregen is
@@ -156,12 +156,12 @@ by mistake, when DH's "nothing bound" answer was misread).
   every rate below); DH asked for 65,536. This command asks for every tile at
   full detail, so the rough generator plays no part unless the plan is
   `SURFACE_ONLY`.
-- `scripts/compare-dh.sh <dh|worldgennext> 128`, `DH_CONFIG=<file>` for DH's
+- `scripts/compare-dh.sh <dh|tellurium> 128`, `DH_CONFIG=<file>` for DH's
   plan and thread count (its default here is 12).
 
 Chunks of LOD per second:
 
-| DH settings | DH alone | WorldgenNext `hybrid` | WorldgenNext `direct` |
+| DH settings | DH alone | Tellurium `hybrid` | Tellurium `direct` |
 | --- | --- | --- | --- |
 | `SURFACE_THEN_CHUNKS` (DH's default), 12 threads | 449 | 1,652, 1,667, 1,705 | 1,598–1,686 (eight runs) |
 | `CHUNKS_ONLY`, 12 threads | 441 | not run | 1,644 |
@@ -231,7 +231,7 @@ processors with the chunk generation and conversion. `direct` refined about
 - **What DH stored.** After the `hybrid` run all 4,097 full-detail tiles in
   DH's database were marked as built from lit chunks.
 - **No chunk left marked.** After `save-all flush` the count of chunks still
-  in DH's ignore set was 0 (`/worldgennext status` reports it). Chunks that
+  in DH's ignore set was 0 (`/tellurium status` reports it). Chunks that
   are already loaded, near a player or force-loaded are never marked.
 - **Saved world.** 82,980 (`hybrid`) and 83,116 (`direct`) chunks in 100
   region files read back with no problems (`scripts/check-region-files.py`).

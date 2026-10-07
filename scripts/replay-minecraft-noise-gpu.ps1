@@ -189,7 +189,7 @@ function Invoke-GpuGroup([string[]]$arguments, [string]$directory) {
     }
     $status = [ordered]@{
         schemaVersion = 1
-        kind = 'worldgennext_gpu_group_process'
+        kind = 'tellurium_gpu_group_process'
         status = if ($timedOut) { 'TIMEOUT' } elseif ($exited -and $exitCode -eq 0 -and -not $launchError) { 'PROCESS_COMPLETED' } else { 'PROCESS_FAILED' }
         note = 'Process completion is not artifact, oracle or qualification success.'
         ownedWorkerPid = $processId
@@ -316,44 +316,44 @@ foreach ($group in @($caseSpecs | Group-Object groupKey)) {
     Write-Host "GPU candidate batch context=$($first.context) seed=$($first.seed) dimension=$($first.dimension) cases=$($group.Count)"
     $gradleArgs = @(
         ':neoforge-1211:gpuCandidateSmoke', '--no-daemon',
-        '-Dworldgennext.candidate.capture=true',
-        '-Dworldgennext.gpuCandidate.capture=true',
-        "-Dworldgennext.gpuCandidate.batchElements=$BatchElements",
-        "-Dworldgennext.gpuCandidate.maxShaderSourceChars=$MaxShaderSourceChars",
-        "-Dworldgennext.gpuCandidate.enablePipelineOptimization=$($EnablePipelineOptimization.IsPresent.ToString().ToLowerInvariant())",
-        '-Dworldgennext.candidate.output=',
-        "-Dworldgennext.candidate.caseFile=$(Gradle-ArgsPath $manifest)",
-        "-Dworldgennext.candidate.runDir=$(Gradle-ArgsPath $runDir)",
-        "-Dworldgennext.candidate.seed=$($first.seed)",
-        "-Dworldgennext.candidate.timeoutMillis=$([long]$TimeoutMinutesPerGroup * 60 * 1000)",
-        "-Dworldgennext.candidate.dimension=$($first.dimension)"
+        '-Dtellurium.candidate.capture=true',
+        '-Dtellurium.gpuCandidate.capture=true',
+        "-Dtellurium.gpuCandidate.batchElements=$BatchElements",
+        "-Dtellurium.gpuCandidate.maxShaderSourceChars=$MaxShaderSourceChars",
+        "-Dtellurium.gpuCandidate.enablePipelineOptimization=$($EnablePipelineOptimization.IsPresent.ToString().ToLowerInvariant())",
+        '-Dtellurium.candidate.output=',
+        "-Dtellurium.candidate.caseFile=$(Gradle-ArgsPath $manifest)",
+        "-Dtellurium.candidate.runDir=$(Gradle-ArgsPath $runDir)",
+        "-Dtellurium.candidate.seed=$($first.seed)",
+        "-Dtellurium.candidate.timeoutMillis=$([long]$TimeoutMinutesPerGroup * 60 * 1000)",
+        "-Dtellurium.candidate.dimension=$($first.dimension)"
     )
     $gradleArgs += $frozenGradleArgs
     Assert-FrozenCompiledInputs
     if ($SharedStages) {
         $gradleArgs += @(
-            '-Dworldgennext.gpuCandidate.nativeDraft=false',
-            '-Dworldgennext.gpuCandidate.sharedSplineShader=true',
-            '-Dworldgennext.gpuCandidate.normalNoiseSharedShader=true',
-            '-Dworldgennext.gpuCandidate.normalNoiseSharedGenericShader=true',
-            '-Dworldgennext.gpuCandidate.blendedNoiseSharedShader=true',
-            '-Dworldgennext.gpuCandidate.densityDontInlinePrefix=wg_node_,wg_spline_',
-            '-Dworldgennext.gpuCandidate.exactAquiferStage=true',
-            '-Dworldgennext.gpuCandidate.exactAquiferBarrierInput=true'
+            '-Dtellurium.gpuCandidate.nativeDraft=false',
+            '-Dtellurium.gpuCandidate.sharedSplineShader=true',
+            '-Dtellurium.gpuCandidate.normalNoiseSharedShader=true',
+            '-Dtellurium.gpuCandidate.normalNoiseSharedGenericShader=true',
+            '-Dtellurium.gpuCandidate.blendedNoiseSharedShader=true',
+            '-Dtellurium.gpuCandidate.densityDontInlinePrefix=wg_node_,wg_spline_',
+            '-Dtellurium.gpuCandidate.exactAquiferStage=true',
+            '-Dtellurium.gpuCandidate.exactAquiferBarrierInput=true'
         )
     }
     if ($TraceStages) {
         $gradleArgs += @(
-            '-Dworldgennext.gpuCandidate.debugStages=true',
-            "-Dworldgennext.gpuCandidate.debugStagesFile=$(Gradle-ArgsPath (Join-Path $runDir 'stages.log'))",
-            "-Dworldgennext.gpuCandidate.stagedShaderDir=$(Gradle-ArgsPath (Join-Path $runDir 'shaders'))"
+            '-Dtellurium.gpuCandidate.debugStages=true',
+            "-Dtellurium.gpuCandidate.debugStagesFile=$(Gradle-ArgsPath (Join-Path $runDir 'stages.log'))",
+            "-Dtellurium.gpuCandidate.stagedShaderDir=$(Gradle-ArgsPath (Join-Path $runDir 'shaders'))"
         )
     }
     if ($ResidentNormalNoise) {
-        $gradleArgs += '-Dworldgennext.gpuCandidate.sharedNormalNoiseResidentChain=true'
+        $gradleArgs += '-Dtellurium.gpuCandidate.sharedNormalNoiseResidentChain=true'
     }
     if ($SharedEndIsland) {
-        $gradleArgs += '-Dworldgennext.gpuCandidate.endIslandSharedShader=true'
+        $gradleArgs += '-Dtellurium.gpuCandidate.endIslandSharedShader=true'
     }
     Invoke-GpuGroup $gradleArgs $runDir
     foreach ($case in $group.Group) {
@@ -363,7 +363,7 @@ foreach ($group in @($caseSpecs | Group-Object groupKey)) {
         $receiptObject = Get-Content -LiteralPath $receipt -Raw | ConvertFrom-Json
         if ($receiptObject.status -ne 'PASS' -or $receiptObject.route -ne 'GPU_IEEE_BITS' -or
             $receiptObject.resultAbi -ne 'chunk-result-v4' -or
-            $receiptObject.compilerVersion -ne 'worldgennext-gpu-live-v0.2' -or
+            $receiptObject.compilerVersion -ne 'tellurium-gpu-live-v0.2' -or
             $receiptObject.comparedBlocks -le 0 -or $receiptObject.mismatches -ne 0 -or
             [string]::IsNullOrWhiteSpace($receiptObject.shaderHash) -or
             [string]::IsNullOrWhiteSpace($receiptObject.spirvHash) -or
@@ -404,7 +404,7 @@ foreach ($result in $results) { $result.comparisonExitCode = $compareExit }
 
 $report = [ordered]@{
     schemaVersion = 1
-    kind = 'worldgennext_gpu_noise_replay'
+    kind = 'tellurium_gpu_noise_replay'
     status = 'PASS'
     route = 'GPU_IEEE_BITS'
     sharedStagesRequested = $SharedStages.IsPresent

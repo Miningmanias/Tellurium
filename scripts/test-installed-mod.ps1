@@ -48,9 +48,9 @@ function Assert-EmptyWorldTemplate([string]$Path) {
     }
     $mods = Join-Path $Path 'mods'
     if (Test-Path -LiteralPath $mods) {
-        $existing = @(Get-ChildItem -LiteralPath $mods -Filter 'worldgennext*.jar' -File)
+        $existing = @(Get-ChildItem -LiteralPath $mods -Filter 'tellurium*.jar' -File)
         if ($existing.Count -gt 0) {
-            throw "Server template already contains a WorldgenNext jar: $($existing[0].FullName). Remove it from the template rather than overwriting it."
+            throw "Server template already contains a Tellurium jar: $($existing[0].FullName). Remove it from the template rather than overwriting it."
         }
     }
 }
@@ -76,7 +76,7 @@ function New-Config([string]$Directory, [string]$Mode) {
         'queueCapacity=64'
         'requestTimeoutMillis=30000'
         'enableQualifiedHook=false'
-    ) | Set-Content -LiteralPath (Join-Path $config 'worldgennext.properties') -Encoding ASCII
+    ) | Set-Content -LiteralPath (Join-Path $config 'tellurium.properties') -Encoding ASCII
 }
 
 function Stop-InstalledServer([Diagnostics.Process]$Process) {
@@ -96,7 +96,7 @@ function Stop-InstalledServer([Diagnostics.Process]$Process) {
 
 function Start-InstalledServer([string]$Java, [string]$Directory, [string]$Jar, [string]$Mode,
                                [int]$StartupTimeout, [int]$ShutdownTimeout) {
-    $logs = Join-Path $Directory 'worldgennext-installed-test'
+    $logs = Join-Path $Directory 'tellurium-installed-test'
     New-Item -ItemType Directory -Force -Path $logs | Out-Null
     $stdoutPath = Join-Path $logs 'stdout.log'
     $stderrPath = Join-Path $logs 'stderr.log'
@@ -136,7 +136,7 @@ function Start-InstalledServer([string]$Java, [string]$Directory, [string]$Jar, 
             $latest = Join-Path $Directory 'logs\latest.log'
             if (Test-Path -LiteralPath $latest) {
                 $text = Get-Content -LiteralPath $latest -Raw -ErrorAction SilentlyContinue
-                if ($text -match 'WorldgenNext 0\.2\.0 loaded: mode=' -and $text -match 'Done \(') {
+                if ($text -match 'Tellurium 0\.2\.0 loaded: mode=' -and $text -match 'Done \(') {
                     $ready = $true
                     break
                 }
@@ -149,7 +149,7 @@ function Start-InstalledServer([string]$Java, [string]$Directory, [string]$Jar, 
         }
 
         $latestLog = Get-Content -LiteralPath (Join-Path $Directory 'logs\latest.log') -Raw
-        if ($latestLog -notmatch ("WorldgenNext 0\.2\.0 loaded: mode=" + [regex]::Escape($Mode))) {
+        if ($latestLog -notmatch ("Tellurium 0\.2\.0 loaded: mode=" + [regex]::Escape($Mode))) {
             throw "Installed server log did not report requested mode $Mode"
         }
         if ($Mode -eq 'CPU_ONLY' -and $latestLog -notmatch 'native=DISABLED') {
@@ -184,7 +184,7 @@ if (-not (Test-Path -LiteralPath $source -PathType Container)) { throw "ServerDi
 Assert-EmptyWorldTemplate $source
 $serverJarPath = Find-ServerJar $source $ServerJar
 $javaPath = Resolve-Java $JavaHome
-if ([string]::IsNullOrWhiteSpace($ModJar)) { $ModJar = Join-Path $repoRoot 'mod\targets\neoforge-1211\build\libs\worldgennext-neoforge-1.21.1-0.2.0.jar' }
+if ([string]::IsNullOrWhiteSpace($ModJar)) { $ModJar = Join-Path $repoRoot 'mod\targets\neoforge-1211\build\libs\tellurium-neoforge-1.21.1-0.2.0.jar' }
 $modJarPath = Resolve-FullPath $ModJar 'ModJar'
 if (-not (Test-Path -LiteralPath $modJarPath -PathType Leaf)) { throw "Mod jar was not found: $modJarPath" }
 
@@ -217,14 +217,14 @@ foreach ($mode in $Modes) {
     if (Test-Path -LiteralPath $stagedMod) { throw "Refusing to overwrite staged mod: $stagedMod" }
     Copy-Item -LiteralPath $modJarPath -Destination $stagedMod
     New-Config $modeDirectory $mode
-    Write-Host "Installed WorldgenNext smoke mode=$mode run=$modeDirectory"
+    Write-Host "Installed Tellurium smoke mode=$mode run=$modeDirectory"
     $results.Add((Start-InstalledServer $javaPath $modeDirectory $modeJar $mode $StartupTimeoutSeconds $ShutdownTimeoutSeconds))
 }
 
 $reportPath = Join-Path $runRootPath 'installed-mod-report.json'
 [ordered]@{
     schemaVersion = 1
-    kind = 'worldgennext_installed_mod_smoke'
+    kind = 'tellurium_installed_mod_smoke'
     status = 'PASS'
     java = $javaPath
     serverDirectory = $source
@@ -232,4 +232,4 @@ $reportPath = Join-Path $runRootPath 'installed-mod-report.json'
     modJar = $modJarPath
     modes = $results
 } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $reportPath -Encoding UTF8
-Write-Host "PASS installed WorldgenNext smoke modes=$($results.Count) report=$reportPath"
+Write-Host "PASS installed Tellurium smoke modes=$($results.Count) report=$reportPath"

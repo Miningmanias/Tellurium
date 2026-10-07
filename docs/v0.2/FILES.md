@@ -2,7 +2,7 @@
 
 This inventory is the v0.2 target. The 2026-09-12 checkpoint implements the shared semantic/snapshot/execution contracts, typed frontend capture representation, a live bound 1.21.1 15-root/direct-density preflight across vanilla Overworld/Nether/End, CPU primitives, registry-aware result ABI, spatial/coordinator/runtime models, oracle comparator, configuration seams and the disabled-by-default live NOISE bridge contract. Entries still absent are deliberate open work; they must not be represented by empty classes or skipped-test claims. The current inventory is [FILE_MAP.md](../FILE_MAP.md). Scope, ownership and numerical decisions come from [V0.2-PLAN.md](../V0.2-PLAN.md).
 
-Unless a different source root is shown, Java paths are relative to `<module>/src/main/java/dev/worldgennext/`. Test names refer to the matching package under `src/test/java`. `Keep` means preserve the v0.1 implementation and regression contract; `Change` means an intentional implementation-time migration; other entries are new.
+Unless a different source root is shown, Java paths are relative to `<module>/src/main/java/dev/tellurium/`. Test names refer to the matching package under `src/test/java`. `Keep` means preserve the v0.1 implementation and regression contract; `Change` means an intentional implementation-time migration; other entries are new.
 
 ## Dependency and build boundaries
 
@@ -17,7 +17,7 @@ Unless a different source root is shown, Java paths are relative to `<module>/sr
 | chunk-engine | semantic-core, material-codec, spatial-data; coordinator and injected execution/application interfaces |
 | runtime-vulkan | semantic-core, compiler-vulkan, LWJGL; native execution and raw result leases; no Minecraft types |
 | oracle-and-replay | Separate pure `corpusApi` source set/artifact, replay application composing the candidate modules, field comparator and failure artifacts |
-| oracle-1211 | Standalone original-only NeoForge/Minecraft capture process; no WorldgenNext candidate dependency; generated snapshot output is compared through `oracle-and-replay` |
+| oracle-1211 | Standalone original-only NeoForge/Minecraft capture process; no Tellurium candidate dependency; generated snapshot output is compared through `oracle-and-replay` |
 | neoforge-1211 | Composition root for game adapters and product runtime; a separate test-only original-capture artifact has a restricted dependency graph |
 | fabric-1211 | Existing deferred frame; no v0.2 loader implementation or release artifact |
 
@@ -115,7 +115,7 @@ Actual CPU/GPU producer execution is composed by the engine/loader. A sample cac
 | `engine/worldgen/WorldEpoch.java`, `DrainController.java`, `WorkCounters.java`, `EndpointCompletion.java` | Reload/unload/drain transitions and distinct NOISE/FULL/SAVED outcomes; `ReloadDrainTest`, `CounterConservationTest` |
 | `src/test/resources/lifecycle-traces/` | Reproducible randomized traces and minimized deadlock/stale-commit failures |
 
-Do not introduce `ChunkDependencyGraph` as a replacement for Minecraft holders. The coordinator consumes dependency/ownership tokens supplied by Minecraft and controls only WorldgenNext work.
+Do not introduce `ChunkDependencyGraph` as a replacement for Minecraft holders. The coordinator consumes dependency/ownership tokens supplied by Minecraft and controls only Tellurium work.
 
 ## runtime-vulkan — P03/P05/P06
 
@@ -127,7 +127,7 @@ Do not introduce `ChunkDependencyGraph` as a replacement for Minecraft holders. 
 | `runtime/vulkan/production/MemoryVisibility.java`, `QueueOwner.java`, `SubmissionRing.java`, `CompletionPump.java` | External queue synchronization, coherency/atom alignment and asynchronous completion; `MemoryVisibilityTest`, `SubmissionStateTest` |
 | `runtime/vulkan/production/PipelineCompiler.java`, `PipelineCache.java`, `DispatchDescriptor.java`, `GpuExecutionReceipt.java`, `VulkanWorldgenExecutor.java` | Bounded compilation/admission, persistent device dispatch, full cache identities and actual native proof; `PipelineIdentityTest`, `DispatchBoundsTest`, `VulkanWorldgenExecutorTest`, opt-in `nativeWorldgenSmoke` |
 | `runtime/vulkan/production/DeviceFailureHandler.java`, `QuarantineLedger.java`, `RuntimeDiagnostics.java` | No reuse while completion is unproven; explicit disabled/lost state and bounded admission; `DeviceFailureModelTest`, `QuarantineAccountingTest` |
-| `src/nativeTest/java/dev/worldgennext/runtime/vulkan/` | Separate `IntegerIeeeDeviceTest`, `DenseWorldgenReplayTest`, `PersistentServiceTest`, `NonCoherentVisibilityTest`, `BusyShutdownTest`; required unsupported hardware paths fail or are explicitly scoped, never silently CPU-pass |
+| `src/nativeTest/java/dev/tellurium/runtime/vulkan/` | Separate `IntegerIeeeDeviceTest`, `DenseWorldgenReplayTest`, `PersistentServiceTest`, `NonCoherentVisibilityTest`, `BusyShutdownTest`; required unsupported hardware paths fail or are explicitly scoped, never silently CPU-pass |
 
 CPU tests exercise injected native interfaces without loading a driver. GPU campaigns execute one at a time. Error injection uses controlled seams; do not deliberately hang or reset the user's GPU to fabricate device-loss evidence.
 
@@ -136,7 +136,7 @@ CPU tests exercise injected native interfaces without loading a driver. GPU camp
 | Files / source roots | Contract and companion tests |
 | --- | --- |
 | Keep `oracle/ReplayCli.java`, `ReplayReport.java`, `SyntheticCorpus.java`, existing replay classes/tests | Preserve synthetic report identity and historical fixture counts |
-| `src/corpusApi/java/dev/worldgennext/oracle/schema/CorpusManifest.java`, `ChunkSnapshot.java`, `SnapshotField.java`, `CaptureIdentity.java`, `SnapshotIo.java` | Pure original/candidate interchange artifact; no candidate compiler/runtime or Minecraft dependency |
+| `src/corpusApi/java/dev/tellurium/oracle/schema/CorpusManifest.java`, `ChunkSnapshot.java`, `SnapshotField.java`, `CaptureIdentity.java`, `SnapshotIo.java` | Pure original/candidate interchange artifact; no candidate compiler/runtime or Minecraft dependency |
 | `oracle/minecraft/MinecraftReplayCli.java`, `CorpusValidator.java`, `ComparisonCoverage.java`, `ChunkSnapshotComparator.java`, `FailureBundle.java` | Independent field comparison, complete expected sets and reproducible mismatch bundles; `CorpusValidatorTest`, `ComparatorMutationTest`, `CoverageAccountingTest` |
 | `oracle/minecraft/ReferenceRun.java`, `CandidateRun.java`, `ProcessHarness.java`, `DeterminismPreflight.java`, `RunArtifactManifest.java` | Separate fresh processes/worlds, original-vs-original gate, exact dependencies and bounded process handling; `RunIsolationTest`, `ArtifactManifestTest` |
 | `oracle/benchmark/RunManifest.java`, `NoiseEndpoint.java`, `FullEndpoint.java`, `SavedEndpoint.java`, `ReopenVerifier.java`, `StageTimers.java`, `BaselineReport.java`, `BaselineReportBuilder.java`, `BaselineReportJson.java` | Endpoint-specific timings and logical save/reopen evidence; measured-row aggregation and deterministic baseline serialization; `EndpointContractTest`, `SaveFailureTest`, `BaselineReportTest` |
@@ -149,7 +149,7 @@ Compare state properties, metadata and declared endpoint fields directly. A chec
 | Files / source roots | Contract and companion evidence |
 | --- | --- |
 | `build.gradle`, `src/main/resources/META-INF/neoforge.mods.toml`, `pack.mcmeta` | Isolated NeoForge 21.1.176/Minecraft 1.21.1 server run with only the original-capture mod; no candidate classpath |
-| `src/main/java/dev/worldgennext/oracle1211/OracleCaptureMod.java` | Captures original `ChunkStatus.NOISE` state through Minecraft APIs and writes canonical ten-field snapshots; palette numbering is decoded/remapped |
+| `src/main/java/dev/tellurium/oracle1211/OracleCaptureMod.java` | Captures original `ChunkStatus.NOISE` state through Minecraft APIs and writes canonical ten-field snapshots; palette numbering is decoded/remapped |
 | `scripts/capture-original-corpus.ps1` | Five signed seeds × two centers per invocation, optional odd 5×5 core squares, explicit context/stack namespaces, fresh run roots by default, stale-output rejection and serial launches |
 | `docs/evidence/v0.2-original-oracle.md` | Executed 10-case original-vs-original result, hashes, command and explicit non-qualification limits |
 
@@ -157,21 +157,21 @@ Compare state properties, metadata and declared endpoint fields directly. A chec
 
 | Files / source roots | Contract and companion tests |
 | --- | --- |
-| Change `neoforge/WorldgenNextMod.java`, `DiagnosticSelfTest.java` | Compose the product and lifecycle only after qualification; diagnostics must report actual mode/capability |
+| Change `neoforge/TelluriumMod.java`, `DiagnosticSelfTest.java` | Compose the product and lifecycle only after qualification; diagnostics must report actual mode/capability |
 | `neoforge/snapshot/MinecraftSnapshotReader.java`, `DensityNodeReader.java`, `RegistrySnapshotReader.java`, `StructureBlendReader.java` | Only these adapters inspect mapped Minecraft worldgen types; no mutable game object escapes into the pure snapshot |
 | `neoforge/runtime/GenerationInterceptor.java`, `LiveNoiseBridge.java`, `QualifiedHookEvidence.java`, `MinecraftStageAdapter.java`, `MinecraftOwnershipToken.java`, `RuntimeComposition.java`, `CoordinatedNoiseAttempt.java` | Fail-closed NOISE interception, evidence-gated provider admission, capture/compute/stale-recheck/commit composition, runtime-owned coordinator submission, original-stage continuation and registered CPU/GPU executor adapters |
 | `neoforge/runtime/MinecraftCpuCandidate.java`, `MinecraftCpuNoiseProvider.java`, `MinecraftNoiseOwnership.java` | Immutable-input CPU capture/materialization split, finite exact-context qualification allowlist, evidence-ready version-pinned NOISE provider and holder/status ownership proof |
 | `neoforge/runtime/MinecraftGpuCandidate.java`, `MinecraftGpuNoiseProvider.java`, `build/gpu-end-check3-20260912.chunk.gpu-receipt.json` | Captured End candidate lowering, persistent-executor qualified provider and receipt-backed device replay; no production registration until independent oracle evidence admission |
 | `neoforge/runtime/MinecraftChunkCommitter.java`, `ChunkMutationJournal.java`, `MinecraftResultValidator.java`, `NoiseChunkLifecycleAdapter.java`, `MinecraftNoiseChunkLifecycle.java`, `MinecraftNoisePostProcessor.java` | Complete conservative mutation journal, preserved version-pinned NoiseChunk cache creation, rollback and the post-noise retrogen tail before status advancement |
 | `neoforge/runtime/ReloadCoordinator.java`, `ServerLifecycle.java`, `SaveBarrier.java` | Epoch changes, server/world close, actual persistence policy |
-| `neoforge/config/WorldgenNextConfig.java`, `neoforge/command/WorldgenNextCommands.java`, `neoforge/compat/CompatibilityRegistry.java`, `neoforge/runtime/QualificationEvidenceFile.java`, `neoforge/runtime/QualificationEvidenceBundleFile.java`, `neoforge/runtime/QualifiedHookEvidenceBundle.java`, `neoforge/runtime/HookTelemetry.java`, `NativeDependencyBootstrap.java` | Static CPU/GPU modes, tolerant canonical mode parsing, deterministic single- and multi-context hash-checked qualification receipt admission, ABI/compiler identity checks, clear unsupported reasons, lazy native loading, schema-1 operator status and schema-1/2 qualification receipts, plus process-local hook telemetry |
+| `neoforge/config/TelluriumConfig.java`, `neoforge/command/TelluriumCommands.java`, `neoforge/compat/CompatibilityRegistry.java`, `neoforge/runtime/QualificationEvidenceFile.java`, `neoforge/runtime/QualificationEvidenceBundleFile.java`, `neoforge/runtime/QualifiedHookEvidenceBundle.java`, `neoforge/runtime/HookTelemetry.java`, `NativeDependencyBootstrap.java` | Static CPU/GPU modes, tolerant canonical mode parsing, deterministic single- and multi-context hash-checked qualification receipt admission, ABI/compiler identity checks, clear unsupported reasons, lazy native loading, schema-1 operator status and schema-1/2 qualification receipts, plus process-local hook telemetry |
 | `neoforge/mixin/ChunkStatusTasksMixin.java`, narrowly required `neoforge/mixin/accessor/` classes | Only version-pinned access actually needed by capture/application; document injection target, ordering and ownership |
-| `src/main/resources/worldgennext.mixins.json`, changes to `META-INF/neoforge.mods.toml` | Checked server-only `ChunkStatusTasks.generateNoise` injection/resource declarations and supported dependency versions |
-| `src/oracleCapture/java/dev/worldgennext/capture/OriginalCaptureMod.java`, `OriginalChunkCapture.java`, `OriginalSnapshotReader.java`, `CaptureCommands.java` | Separately packaged read-only capture helper; original generation executes untouched and no production mutation hook/compiler loads |
+| `src/main/resources/tellurium.mixins.json`, changes to `META-INF/neoforge.mods.toml` | Checked server-only `ChunkStatusTasks.generateNoise` injection/resource declarations and supported dependency versions |
+| `src/oracleCapture/java/dev/tellurium/capture/OriginalCaptureMod.java`, `OriginalChunkCapture.java`, `OriginalSnapshotReader.java`, `CaptureCommands.java` | Separately packaged read-only capture helper; original generation executes untouched and no production mutation hook/compiler loads |
 | `src/oracleCapture/resources/META-INF/neoforge.mods.toml`, capture-only mixin configuration if needed | Distinct test artifact identity; never bundled into the release mod |
-| `src/gameTest/java/dev/worldgennext/neoforge/gametest/LiveNoiseTests.java`, `ChunkRollbackTests.java`, `ReloadTests.java`, `FullPipelineTests.java`, `SavedWorldTests.java`, `ConfigurationTests.java` | Replace diagnostic-only assertions deliberately; non-flat corpus remains a separate normal-server campaign |
+| `src/gameTest/java/dev/tellurium/neoforge/gametest/LiveNoiseTests.java`, `ChunkRollbackTests.java`, `ReloadTests.java`, `FullPipelineTests.java`, `SavedWorldTests.java`, `ConfigurationTests.java` | Replace diagnostic-only assertions deliberately; non-flat corpus remains a separate normal-server campaign |
 
-Oracle capture must observe the proper status/paused endpoint without changing generation outputs. Its test-only launch profile must be usable with no WorldgenNext product jar installed. Modded controls use the exact same terrain mods and datapacks as candidates.
+Oracle capture must observe the proper status/paused endpoint without changing generation outputs. Its test-only launch profile must be usable with no Tellurium product jar installed. Modded controls use the exact same terrain mods and datapacks as candidates.
 
 ## Root tooling, test data and operator documentation — P00/P01/P11/P12
 

@@ -3,7 +3,7 @@
   "status": "PARTIAL_ORIGINAL_VANILLA_NOISE_PREFLIGHT",
   "requiredContexts": ["vanilla-overworld", "vanilla-nether", "vanilla-end", "terralith-overworld", "tectonic-overworld", "combined-overworld"],
   "requiredEndpoints": ["NOISE", "FULL", "SAVED_REOPENED"],
-  "captureArtifact": "worldgennext-corpus-api",
+  "captureArtifact": "tellurium-corpus-api",
   "expectedCoreCounts": {"noisePerBackend": 1500, "fullPerBackend": 216, "savedReopenedPerBackend": 216},
   "sceneWitnesses": [],
   "executedPreflight": {

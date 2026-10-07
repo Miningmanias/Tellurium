@@ -204,7 +204,7 @@ class SummarizeTests(Folder):
 
 class CheckBenchReport(Folder):
     def report(self, name="report.json", **changes):
-        report = {"kind": "worldgennext_chunk_throughput", "status": "PASS", "endpoint": "MINECRAFT:SURFACE",
+        report = {"kind": "tellurium_chunk_throughput", "status": "PASS", "endpoint": "MINECRAFT:SURFACE",
                   "radiusChunks": 45, "center": [4000, 4000], "seed": 0,
                   "measured": {"requested": 8281, "completed": 8281, "failed": 0}}
         report.update(changes)

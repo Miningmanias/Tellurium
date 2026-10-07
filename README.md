@@ -1,4 +1,4 @@
-# WorldgenNext
+# Tellurium
 
 Faster chunk generation for Minecraft that produces the same world, for
 NeoForge and Fabric on Minecraft 1.21.1 and 1.21.11 (builds for 1.21.4 and
@@ -12,7 +12,11 @@ NeoForge and Fabric on Minecraft 1.21.1 and 1.21.11 (builds for 1.21.4 and
   equivalent versions of the hottest vanilla loops (ore veins, biome lookups).
 - **Background saving**: chunks are encoded and compressed off the server
   thread.
-- **Built-in pregenerator**: `/worldgennext pregen start <radius>`.
+- **Built-in pregenerator**: `/tellurium pregen start <radius>`.
+
+Tellurium was called WorldgenNext until 0.2.0. Settings in
+`config/worldgennext.toml` are copied to `config/tellurium.toml` the first
+time the renamed mod starts; the command is `/tellurium`.
 
 ## Install
 
@@ -21,18 +25,18 @@ NeoForge and Fabric on Minecraft 1.21.1 and 1.21.11 (builds for 1.21.4 and
    singleplayer worlds. On a multiplayer server only the server needs the mod.
 2. A GPU with Vulkan and 64-bit float support for the GPU part. Without one
    the mod logs why and keeps the CPU-side improvements.
-3. Put `worldgennext-neoforge-1.21.1-0.2.0.jar` (NeoForge) or
-   `worldgennext-fabric-1.21.1-0.2.0.jar` (Fabric) in `mods/`.
+3. Put `tellurium-neoforge-1.21.1-0.2.0.jar` (NeoForge) or
+   `tellurium-fabric-1.21.1-0.2.0.jar` (Fabric) in `mods/`.
    For Minecraft 1.21.11 the jars are
-   `worldgennext-neoforge-1.21.11-0.2.0.jar` (NeoForge 21.11.45+) and
-   `worldgennext-fabric-1.21.11-0.2.0.jar`; the tested list there holds the
+   `tellurium-neoforge-1.21.11-0.2.0.jar` (NeoForge 21.11.45+) and
+   `tellurium-fabric-1.21.11-0.2.0.jar`; the tested list there holds the
    vanilla Overworld, Nether and End, Terralith, Tectonic and the two
    together, and Distant Horizons and Voxy have not been run on it
    ([docs/evidence/minecraft-1.21.11.md](docs/evidence/minecraft-1.21.11.md)).
    For Minecraft 1.21.4 or 1.21.8 on Fabric the jar is
-   `worldgennext-fabric-1.21.4-0.2.0.jar` or
-   `worldgennext-fabric-1.21.8-0.2.0.jar`; for 1.21.8 on NeoForge (21.8.54+)
-   it is `worldgennext-neoforge-1.21.8-0.2.0.jar`. On those two versions the
+   `tellurium-fabric-1.21.4-0.2.0.jar` or
+   `tellurium-fabric-1.21.8-0.2.0.jar`; for 1.21.8 on NeoForge (21.8.54+)
+   it is `tellurium-neoforge-1.21.8-0.2.0.jar`. On those two versions the
    tested list holds the vanilla Overworld, Nether and End and Terralith
    (Tectonic generates with vanilla code there), and
    everything below about other mods, Distant Horizons, Voxy and singleplayer
@@ -42,7 +46,7 @@ NeoForge and Fabric on Minecraft 1.21.1 and 1.21.11 (builds for 1.21.4 and
    Lighting is not part of this mod, and every throughput figure below was
    measured with ScalableLux installed.
 
-Start the server (or open a world) and run `/worldgennext status`. In
+Start the server (or open a world) and run `/tellurium status`. In
 singleplayer the world's owner can use the commands without cheats enabled. It names the GPU, says what
 each dimension is generated with (and why, if that is vanilla code), and lists
 anything worth changing.
@@ -51,11 +55,11 @@ anything worth changing.
 
 | Command | What it does |
 | --- | --- |
-| `/worldgennext status` | What is active, chunk counts, tips |
-| `/worldgennext pregen start <radius>` | Generate a square, `radius` chunks in each direction from where you stand (from the console: the world spawn) |
-| `/worldgennext pregen start <radius> <x> <z>` | Same, centred on block coordinates |
-| `/worldgennext pregen start worldborder` | Generate everything inside the world border |
-| `/worldgennext pregen pause` / `resume` / `stop` / `status` | `resume` also continues a job that a restart interrupted |
+| `/tellurium status` | What is active, chunk counts, tips |
+| `/tellurium pregen start <radius>` | Generate a square, `radius` chunks in each direction from where you stand (from the console: the world spawn) |
+| `/tellurium pregen start <radius> <x> <z>` | Same, centred on block coordinates |
+| `/tellurium pregen start worldborder` | Generate everything inside the world border |
+| `/tellurium pregen pause` / `resume` / `stop` / `status` | `resume` also continues a job that a restart interrupted |
 
 Chunky works too. By itself it asks for 50 chunks at a time, which holds any
 fast generator to about 1,000 chunks/s, so this mod raises that limit when
@@ -85,13 +89,13 @@ WorldGen mod had about 12,000 after 150 s. `voxy.radius` sets the distance,
 
 The pregenerator works in the dimension the command is run in. From the
 console, or for another dimension, use
-`/execute in minecraft:the_nether run worldgennext pregen start 100`.
+`/execute in minecraft:the_nether run tellurium pregen start 100`.
 
 If the graphics driver resets or the GPU otherwise stops responding, the mod
-says so once in the log and in `/worldgennext status` and generates on the CPU
+says so once in the log and in `/tellurium status` and generates on the CPU
 until the next restart; chunks already generated are unaffected.
 
-Settings live in `config/worldgennext.toml`, written on first start:
+Settings live in `config/tellurium.toml`, written on first start:
 
 ```toml
 enabled = true            # false: behave exactly as without the mod
@@ -114,8 +118,8 @@ progress_seconds = 10
 **A world generator that is not on the tested list** (a datapack, another
 terrain mod) generates with vanilla code by default. To find out whether the
 GPU reproduces it, set `gpu.mode = "check"`, generate a few thousand chunks
-across different biomes (`/worldgennext pregen start 40`) and look at
-`/worldgennext status`: it counts the chunks compared with vanilla and the
+across different biomes (`/tellurium pregen start 40`) and look at
+`/tellurium status`: it counts the chunks compared with vanilla and the
 chunks that differ. Nothing the GPU computes is kept in that mode, and it is
 slower than vanilla. With no differences, `gpu.mode = "force"` turns the GPU
 on for that world. A check on the chunks you generated is evidence, not
@@ -182,9 +186,9 @@ the tested list, other mods that change chunk generation or saving, LAN play.
 Reference host: 24 logical cores, RTX 5070 Ti, 16 GB heap, ScalableLux, dev
 server, chunks generated to FULL and saved, measured after a 6,561-chunk
 warm-up. Whole-run figures; ranges are the lowest and highest of two or more
-runs. "Vanilla" is the same server with every WorldgenNext switch off.
+runs. "Vanilla" is the same server with every Tellurium switch off.
 
-| World generator | Vanilla | WorldgenNext |
+| World generator | Vanilla | Tellurium |
 | --- | --- | --- |
 | Vanilla Overworld | 124 (8,281 chunks) | 2,620–2,860 (32,761 chunks) |
 | Tectonic | 90–105 (3,721 chunks) | 2,702–2,790 |
@@ -198,7 +202,7 @@ saved chunk read back cleanly.
 Against other chunk-generation mods, same server, same Chunky pregeneration
 (NeoForge 21.1.255, Java 25, vanilla world, 35,721 and 142,129 chunks):
 vanilla 127 chunks/s; C2ME 930 and 1,064; C2ME with its OpenCL module 2,020-2,070
-and 2,140; WorldgenNext 2,960-2,970 and 3,479. Setup and caveats:
+and 2,140; Tellurium 2,960-2,970 and 3,479. Setup and caveats:
 [docs/evidence/comparison-c2me.md](docs/evidence/comparison-c2me.md).
 
 A cold start (121-chunk warm-up) gives 2,465–2,475 on vanilla Overworld. A
@@ -222,7 +226,7 @@ bash scripts/run-pregen.sh 60 vanilla
 This repository also contains the earlier, stricter qualification route (typed
 capture/program contracts, an independent Minecraft oracle, a bit-exact GPU
 route behind evidence gates). It ships in the jar as developer tooling under
-`/worldgennext dev` and generates nothing unless an operator supplies
+`/tellurium dev` and generates nothing unless an operator supplies
 qualification evidence. Start with [Plan.md](Plan.md),
 [architecture](docs/ARCHITECTURE.md), [file map](docs/FILE_MAP.md) and
 [validation status](docs/STATUS.md).
@@ -296,7 +300,7 @@ Replay reports are in `oracle-and-replay/build/replay/`. The dedicated game run 
 
 On the initial RTX5070Ti host, the normal-range diagnostic passed 917 comparisons. The strict GPU check failed its capability gate because the driver does not advertise FP64 subnormal preservation. The two results have different corpus IDs and neither establishes full floating-point or Minecraft qualification. See [validation status](docs/STATUS.md).
 
-The mod jars of every build are in `build/release/` after `gradlew build` (for NeoForge 1.21.1, `worldgennext-neoforge-1.21.1-0.2.0.jar`). The staged route's diagnostics are under `/worldgennext dev` (`status`, `status-json`, `write-default-config`, `selftest`); `selftest` compares synthetic CPU expressions and fixture material states and validates no world generation. Fabric packaging is deferred.
+The mod jars of every build are in `build/release/` after `gradlew build` (for NeoForge 1.21.1, `tellurium-neoforge-1.21.1-0.2.0.jar`). The staged route's diagnostics are under `/tellurium dev` (`status`, `status-json`, `write-default-config`, `selftest`); `selftest` compares synthetic CPU expressions and fixture material states and validates no world generation. Fabric packaging is deferred.
 
 ## Modules
 
@@ -311,7 +315,7 @@ The mod jars of every build are in `build/release/` after `gradlew build` (for N
 | frontend-mc1211 | Pure captured-node/router/snapshot lowering with explicit unsupported diagnostics |
 | runtime-vulkan | Persistent service lifecycle, disjoint leases, visibility, pipeline and quarantine models |
 | oracle-and-replay | Isolated corpus API, field-by-field comparator, failure bundles and endpoint baseline contracts |
-| oracle-1211 | Independent original-only NeoForge/Minecraft capture process; no WorldgenNext candidate dependency |
+| oracle-1211 | Independent original-only NeoForge/Minecraft capture process; no Tellurium candidate dependency |
 | mod | The mod itself, one source tree for every Minecraft version and loader: `common` (written for 1.21.1), `loader/neoforge` and `loader/fabric`, `versions/<version>` for what later versions need differently, and the table of builds in `targets.gradle`. Each build is a Gradle project named after its loader and version (`neoforge-1211`, `fabric-1211`, `fabric-1214`, `fabric-1218`, `neoforge-1218`, `fabric-12111`, `neoforge-12111`). See [mod/README.md](mod/README.md) |
 
 See the module READMEs for runnable diagnostics and detailed API limits. [docs/CONTRACTS.md](docs/CONTRACTS.md) fixes the shared boundaries for contributors.

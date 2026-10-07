@@ -3,7 +3,7 @@
 $ErrorActionPreference='Stop'
 if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'Tests require PowerShell 7.' }
 $matrix=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../replay-minecraft-noise-gpu-matrix.ps1'))
-$testRoot=Join-Path ([IO.Path]::GetTempPath()) ('worldgennext-matrix-contract-' + [guid]::NewGuid())
+$testRoot=Join-Path ([IO.Path]::GetTempPath()) ('tellurium-matrix-contract-' + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $testRoot | Out-Null
 $checks=0
 function Assert($condition,[string]$message) {
@@ -19,7 +19,7 @@ function Save-Manifest($contexts) {
     [IO.File]::WriteAllText($manifest,(@{schemaVersion=1;contexts=@($contexts)} | ConvertTo-Json -Depth 5))
 }
 function Write-FakeSnapshot([string]$path,[string]$seed,[int]$x,[int]$z,[string]$dimension) {
-    [IO.File]::WriteAllLines($path,[string[]]@('WORLDGENNEXT-SNAPSHOT-1',
+    [IO.File]::WriteAllLines($path,[string[]]@('TELLURIUM-SNAPSHOT-1',
         "identity=ORIGINAL/test-stack/$seed/$dimension/$x/$z/NOISE/$('a'*64)",
         "value=seed=$seed","value=dimension=$dimension",'value=endpoint=NOISE'))
 }
@@ -90,7 +90,7 @@ try {
     $text=[Text.Encoding]::UTF8.GetString($bytes)
     foreach ($badText in @($text.Replace('value=dimension=minecraft:overworld','value=dimension=minecraft:the_end'),
             $text.Replace('value=endpoint=NOISE','value=endpoint=FULL'),$text.Replace('value=seed=0','value=seed=1'),
-            $text.Replace('ORIGINAL/','CANDIDATE/'),$text.Replace('WORLDGENNEXT-SNAPSHOT-1','WRONG'),
+            $text.Replace('ORIGINAL/','CANDIDATE/'),$text.Replace('TELLURIUM-SNAPSHOT-1','WRONG'),
             ($text + "`nvalue=dimension=minecraft:overworld"))) {
         [IO.File]::WriteAllText($file,$badText)
         Reject { & $matrix @options -PlanOnly } 'header|identity|snapshot'
@@ -145,13 +145,13 @@ try {
     foreach ($case in $context.cases) {
         $artifact=Join-Path $context.arguments.OutputRoot ($case.relativeCase+'.chunk')
         [IO.File]::WriteAllText($artifact,'fake chunk')
-        $r=@{status='PASS';route='GPU_IEEE_BITS';resultAbi='chunk-result-v4';compilerVersion='worldgennext-gpu-live-v0.2'
+        $r=@{status='PASS';route='GPU_IEEE_BITS';resultAbi='chunk-result-v4';compilerVersion='tellurium-gpu-live-v0.2'
             comparedBlocks=7;mismatches=0;shaderHash='fake';spirvHash='fake';device=@{name='FAKE_NOT_GPU'}}
         [IO.File]::WriteAllText(($artifact+'.gpu-receipt.json'),($r | ConvertTo-Json))
         $rows+=@{case=$case.relativeCase.Replace('\','/');expected=$case.expected;actual=$artifact
             receipt=($artifact+'.gpu-receipt.json');comparisonExitCode=0;comparedBlocks=7}
     }
-    $fakeReport=@{kind='worldgennext_gpu_noise_replay';status='PASS';route='GPU_IEEE_BITS';frozenCompiledInputs=$true
+    $fakeReport=@{kind='tellurium_gpu_noise_replay';status='PASS';route='GPU_IEEE_BITS';frozenCompiledInputs=$true
         compiledInputsSha256=$fixtureSha;completeCoverage=$true;selectedSubset=$false;independentOracle=$true
         mismatches=0;comparedCases=250;comparedFields=2500;cases=$rows}
     $reportPath=Join-Path $context.arguments.OutputRoot 'replay-report.json'
@@ -217,6 +217,6 @@ try {
     $resolved=[IO.Path]::GetFullPath($testRoot)
     $tempPrefix=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\','/')+[IO.Path]::DirectorySeparatorChar
     if (-not $resolved.StartsWith($tempPrefix,[StringComparison]::OrdinalIgnoreCase) -or
-        [IO.Path]::GetFileName($resolved) -notlike 'worldgennext-matrix-contract-*') { throw 'Unsafe test cleanup path.' }
+        [IO.Path]::GetFileName($resolved) -notlike 'tellurium-matrix-contract-*') { throw 'Unsafe test cleanup path.' }
     Remove-Item -LiteralPath $resolved -Recurse -Force
 }

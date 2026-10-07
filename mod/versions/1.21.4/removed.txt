@@ -1,4 +1,4 @@
-# Shared 1.21.1 files with no counterpart on 1.21.4 (paths under dev/worldgennext/neoforge/).
+# Shared 1.21.1 files with no counterpart on 1.21.4 (paths under dev/tellurium/neoforge/).
 #
 # Chunk saving: 1.21.2 replaced ChunkSerializer with SerializableChunkData and already serialises a chunk off
 # the server thread, which is what these did.

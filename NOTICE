@@ -1,6 +1,6 @@
-WorldgenNext 0.1.0
+Tellurium 0.1.0
 
-New implementation code: Copyright (c) 2026 WorldgenNext contributors, MIT.
+New implementation code: Copyright (c) 2026 Tellurium contributors, MIT.
 The project is independent of GPUWorldGen and does not import its implementation.
 
 Gradle wrapper scripts and JAR originate from Gradle, Apache License 2.0.

@@ -19,14 +19,14 @@ root="$(pwd -W 2>/dev/null || pwd)"
 run="$root/build/run/kill-$(date -u +%Y%m%d-%H%M%S)"
 mkdir -p "$run/mods"
 cp build/test-mods/vanilla/*.jar "$run/mods/"
-common=("--no-daemon" "--console=plain" "-Dworldgennext.candidate.runDir=$run" "-Dworldgennext.candidate.seed=0" "-Dworldgennext.run.maxHeap=16G"
-        "-Dworldgennext.fast.pipelineCacheDir=$root/build/fast-cache")
+common=("--no-daemon" "--console=plain" "-Dtellurium.candidate.runDir=$run" "-Dtellurium.candidate.seed=0" "-Dtellurium.run.maxHeap=16G"
+        "-Dtellurium.fast.pipelineCacheDir=$root/build/fast-cache")
 IFS=';' read -ra extra <<< "$EXTRA"
 for p in "${extra[@]}"; do [ -n "$p" ] && common+=("-D$p"); done
 
-printf '[pregen]\nprogress_seconds = 2\n' > "$run/worldgennext.toml.seed"
-mkdir -p "$run/config" && cp "$run/worldgennext.toml.seed" "$run/config/worldgennext.toml"
-./gradlew.bat :neoforge-1211:runServer "${common[@]}" "-Dworldgennext.pregen.autostart=$RADIUS" > "$run/gradle-1.out" 2>&1 &
+printf '[pregen]\nprogress_seconds = 2\n' > "$run/tellurium.toml.seed"
+mkdir -p "$run/config" && cp "$run/tellurium.toml.seed" "$run/config/tellurium.toml"
+./gradlew.bat :neoforge-1211:runServer "${common[@]}" "-Dtellurium.pregen.autostart=$RADIUS" > "$run/gradle-1.out" 2>&1 &
 for _ in $(seq 1 120); do
   sleep 1
   grep -q "Pregeneration: " "$run/logs/latest.log" 2>/dev/null && break
@@ -38,10 +38,10 @@ cp "$run/logs/latest.log" "$run/logs/killed.log"
 echo "killed at: $(grep "Pregeneration: " "$run/logs/killed.log" | tail -1 | sed 's/^.*Pregeneration: //' | cut -c1-80)"
 echo "after kill:  $(python scripts/check-region-files.py "$run/candidate-world/region" --optional "$run/candidate-world/poi" --optional "$run/candidate-world/entities" | tail -3 | tr '\n' ' ')"
 
-ls "$run/candidate-world/worldgennext-pregen.properties" >/dev/null 2>&1 || { echo "KILL-RECOVERY FAIL: no saved pregeneration progress"; exit 1; }
+ls "$run/candidate-world/tellurium-pregen.properties" >/dev/null 2>&1 || { echo "KILL-RECOVERY FAIL: no saved pregeneration progress"; exit 1; }
 
-./gradlew.bat :neoforge-1211:runServer "${common[@]}" "-Dworldgennext.prototype.resume=true" "-Dworldgennext.pregen.autoresume=true" \
-    "-Dworldgennext.pregen.stopServerWhenDone=true" > "$run/gradle-2.out" 2>&1
+./gradlew.bat :neoforge-1211:runServer "${common[@]}" "-Dtellurium.prototype.resume=true" "-Dtellurium.pregen.autoresume=true" \
+    "-Dtellurium.pregen.stopServerWhenDone=true" > "$run/gradle-2.out" 2>&1
 grep -E "continuing at|Pregeneration finished" "$run/logs/latest.log" | sed -E 's/^\[[^]]*\] \[[^]]*\] \[[^]]*\]: /resume: /' | cut -c1-170
 readErrors=$(grep -ciE "wrong location|Failed to read|corrupt|Couldn't load chunk|Chunk file at|Invalid chunk|Region file .* (is truncated|has)" "$run/logs/latest.log")
 echo "resume: read errors in the log: $readErrors"

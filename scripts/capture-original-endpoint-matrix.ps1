@@ -59,7 +59,7 @@ foreach($entry in $inputContexts.contexts){
     if($endpoint -eq 'SAVED'){$row.reopenedExpectedRoot=Join-Path $capture "reopened/$id"}
     $entries+=$row
 }
-$plan=[pscustomobject]@{schemaVersion=1;kind='worldgennext_original_endpoint_matrix';status='PLAN_ONLY';endpoint=$endpoint;
+$plan=[pscustomobject]@{schemaVersion=1;kind='tellurium_original_endpoint_matrix';status='PLAN_ONLY';endpoint=$endpoint;
     expectedCases=($count*6);expectedRepeatCases=if($RepeatOriginal){$count*6}else{0};
     expectedReopenedCases=if($endpoint -eq 'SAVED'){$count*6}else{0};
     captureRoot=$capture;runRoot=$runs;contexts=$contexts;releaseQualification=$false;productionHookEnabled=$false}

@@ -4,7 +4,7 @@
 # Every configuration runs on the same server installation, seed (0), settings and JVM heap, on a fresh
 # world, with ScalableLux and Chunky installed and Chunky as the driver:
 #   vanilla        nothing else
-#   worldgennext   this mod's release jar
+#   tellurium   this mod's release jar
 #   c2me           Concurrent Chunk Management Engine (NeoForge)
 #   c2me-ocl       C2ME plus its OpenCL acceleration module
 # The time is taken from the server log: Chunky's "Task started" line to its "Task finished" line.
@@ -28,7 +28,7 @@ mv "$server"/mods/*.jar "$server/mods-stash/" 2>/dev/null
 cp build/test-mods/vanilla/ScalableLux-*.jar build/test-mods/chunky/Chunky-*.jar "$server/mods/"
 case "$config" in
   vanilla) ;;
-  worldgennext) cp "$(ls -t mod/targets/neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-*.jar | grep -v sources | head -1)" "$server/mods/" ;;
+  tellurium) cp "$(ls -t mod/targets/neoforge-1211/build/libs/tellurium-neoforge-1.21.1-*.jar | grep -v sources | head -1)" "$server/mods/" ;;
   c2me) cp build/test-mods/c2me/c2me-neoforge-mc*.jar "$server/mods/" ;;
   c2me-ocl) cp build/test-mods/c2me-ocl/c2me-neoforge-*.jar "$server/mods/" ;;
   *) echo "unknown configuration $config"; exit 2 ;;
@@ -42,7 +42,7 @@ printf -- '-Xmx16G\n%s\n' "$(echo $jvm | tr ' ' '\n')" > "$server/user_jvm_args.
 cd "$server"
 {
   for _ in $(seq 1 600); do sleep 1; grep -q "Done (" logs/latest.log 2>/dev/null && break; grep -qE "Failed to start the minecraft server|FATAL\]" logs/latest.log 2>/dev/null && break; done
-  if [ "$config" = worldgennext ]; then
+  if [ "$config" = tellurium ]; then
     for _ in $(seq 1 600); do sleep 1; grep -qE "the_end: .*(on the GPU|vanilla code)|GPU terrain generation is unavailable" logs/latest.log && break; done
   fi
   sleep 5

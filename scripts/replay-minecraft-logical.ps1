@@ -92,7 +92,7 @@ function Assert-Snapshot([string]$path, [string]$name) {
     Assert-NonReparse $path $name
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "$name is missing: $path" }
     if ((Get-Item -LiteralPath $path).Length -le 0) { throw "$name is empty: $path" }
-    if ((Get-Content -LiteralPath $path -TotalCount 1) -ne 'WORLDGENNEXT-SNAPSHOT-1') {
+    if ((Get-Content -LiteralPath $path -TotalCount 1) -ne 'TELLURIUM-SNAPSHOT-1') {
         throw "$name has an invalid snapshot header: $path"
     }
 }
@@ -215,32 +215,32 @@ function Invoke-LogicalBatch([object[]]$batch, [string]$runDir, [bool]$requireLi
     $required = $requireLiveNoise.ToString().ToLowerInvariant()
     $args = @(
         ':neoforge-1211:candidateLogicalSmoke', '--no-daemon', '--console=plain',
-        '-Dworldgennext.candidate.capture=true',
-        "-Dworldgennext.candidate.endpoint=$Endpoint",
-        '-Dworldgennext.candidate.live=true',
-        "-Dworldgennext.candidate.logicalBackend=$Backend",
-        "-Dworldgennext.candidate.timeoutMillis=$([long]$TimeoutMinutesPerBatch * 60 * 1000)",
-        "-Dworldgennext.candidate.requireLiveNoise=$required",
-        '-Dworldgennext.candidate.output=',
-        "-Dworldgennext.candidate.caseFile=$(Gradle-Path $manifest)",
-        "-Dworldgennext.candidate.runDir=$(Gradle-Path $runDir)",
-        "-Dworldgennext.candidate.liveNoiseResultDir=$(Gradle-Path $liveNoiseEvidence)",
-        "-Dworldgennext.candidate.seed=$($first.seed)",
-        "-Dworldgennext.candidate.dimension=$($first.dimension)"
+        '-Dtellurium.candidate.capture=true',
+        "-Dtellurium.candidate.endpoint=$Endpoint",
+        '-Dtellurium.candidate.live=true',
+        "-Dtellurium.candidate.logicalBackend=$Backend",
+        "-Dtellurium.candidate.timeoutMillis=$([long]$TimeoutMinutesPerBatch * 60 * 1000)",
+        "-Dtellurium.candidate.requireLiveNoise=$required",
+        '-Dtellurium.candidate.output=',
+        "-Dtellurium.candidate.caseFile=$(Gradle-Path $manifest)",
+        "-Dtellurium.candidate.runDir=$(Gradle-Path $runDir)",
+        "-Dtellurium.candidate.liveNoiseResultDir=$(Gradle-Path $liveNoiseEvidence)",
+        "-Dtellurium.candidate.seed=$($first.seed)",
+        "-Dtellurium.candidate.dimension=$($first.dimension)"
     )
     if ($Backend -eq 'GPU_IEEE_BITS') {
         $args += @(
-            '-Dworldgennext.gpuCandidate.nativeDraft=false',
-            "-Dworldgennext.gpuCandidate.batchElements=$GpuBatchElements",
-            '-Dworldgennext.gpuCandidate.maxShaderSourceChars=1500000',
-            '-Dworldgennext.gpuCandidate.sharedSplineShader=true',
-            '-Dworldgennext.gpuCandidate.normalNoiseSharedShader=true',
-            '-Dworldgennext.gpuCandidate.normalNoiseSharedGenericShader=true',
-            '-Dworldgennext.gpuCandidate.blendedNoiseSharedShader=true',
-            '-Dworldgennext.gpuCandidate.endIslandSharedShader=true',
-            '-Dworldgennext.gpuCandidate.densityDontInlinePrefix=wg_node_,wg_spline_',
-            '-Dworldgennext.gpuCandidate.exactAquiferStage=true',
-            '-Dworldgennext.gpuCandidate.exactAquiferBarrierInput=true'
+            '-Dtellurium.gpuCandidate.nativeDraft=false',
+            "-Dtellurium.gpuCandidate.batchElements=$GpuBatchElements",
+            '-Dtellurium.gpuCandidate.maxShaderSourceChars=1500000',
+            '-Dtellurium.gpuCandidate.sharedSplineShader=true',
+            '-Dtellurium.gpuCandidate.normalNoiseSharedShader=true',
+            '-Dtellurium.gpuCandidate.normalNoiseSharedGenericShader=true',
+            '-Dtellurium.gpuCandidate.blendedNoiseSharedShader=true',
+            '-Dtellurium.gpuCandidate.endIslandSharedShader=true',
+            '-Dtellurium.gpuCandidate.densityDontInlinePrefix=wg_node_,wg_spline_',
+            '-Dtellurium.gpuCandidate.exactAquiferStage=true',
+            '-Dtellurium.gpuCandidate.exactAquiferBarrierInput=true'
         )
     }
     Invoke-ReplayProcess -Command $gradle -Arguments ($args + $frozenGradleArgs) -WorkingDirectory $repoRoot `
@@ -272,9 +272,9 @@ function Invoke-LogicalBatch([object[]]$batch, [string]$runDir, [bool]$requireLi
             if ($Backend -eq 'GPU_IEEE_BITS') {
                 $receipt = Get-Content -LiteralPath ($stem + '.gpu-receipt.json') -Raw | ConvertFrom-Json
                 $commit = Get-Content -LiteralPath ($stem + '.gpu-commit.json') -Raw | ConvertFrom-Json
-                if ($receipt.kind -ne 'worldgennext_gpu_live_receipt' -or $receipt.status -ne 'BACKEND_VALIDATED' -or
+                if ($receipt.kind -ne 'tellurium_gpu_live_receipt' -or $receipt.status -ne 'BACKEND_VALIDATED' -or
                     $receipt.route -ne $Backend -or $receipt.resultAbi -ne 'chunk-result-v4' -or
-                    $receipt.compilerVersion -ne 'worldgennext-gpu-live-v0.2' -or
+                    $receipt.compilerVersion -ne 'tellurium-gpu-live-v0.2' -or
                     $receipt.submitted -le 0 -or $receipt.completed -ne $receipt.submitted -or
                     $receipt.validated -ne $receipt.completed -or $receipt.committed -ne 0 -or
                     $receipt.logicalGpuElements -le 0 -or $receipt.logicalGpuElements -gt $receipt.storageBlocks -or
@@ -283,7 +283,7 @@ function Invoke-LogicalBatch([object[]]$batch, [string]$runDir, [bool]$requireLi
                     $receipt.spirvHash -notmatch '^[0-9a-fA-F]{64}$' -or
                     [string]::IsNullOrWhiteSpace($receipt.executionId) -or
                     $receipt.chunkX -ne $case.chunkX -or $receipt.chunkZ -ne $case.chunkZ -or
-                    $commit.kind -ne 'worldgennext_gpu_live_commit' -or $commit.status -ne 'COMMITTED' -or
+                    $commit.kind -ne 'tellurium_gpu_live_commit' -or $commit.status -ne 'COMMITTED' -or
                     $commit.route -ne $Backend -or $commit.committed -ne $receipt.validated -or
                     $commit.executionId -ne $receipt.executionId -or $commit.contextKey -ne $receipt.contextKey -or
                     $commit.programHash -ne $receipt.programHash -or $commit.snapshotHash -ne $receipt.snapshotHash -or
@@ -337,7 +337,7 @@ if ($Reopen) {
 
 $report = [ordered]@{
     schemaVersion = 1
-    kind = 'worldgennext_candidate_logical_endpoint_replay'
+    kind = 'tellurium_candidate_logical_endpoint_replay'
     status = if ($Reopen) { 'PASS_CANDIDATE_VERIFICATION_ONLY' } else { 'PASS_CANDIDATE_ENDPOINT_ONLY' }
     endpoint = $Endpoint
     route = $Backend

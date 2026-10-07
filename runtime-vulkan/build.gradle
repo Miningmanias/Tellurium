@@ -15,7 +15,7 @@ tasks.register('nativeIntegerIeeeCompile', JavaExec) {
     dependsOn tasks.named('classes')
     classpath = sourceSets.main.runtimeClasspath
     jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
-    mainClass = 'dev.worldgennext.runtime.vulkan.NativeIntegerIeeeCompile'
+    mainClass = 'dev.tellurium.runtime.vulkan.NativeIntegerIeeeCompile'
 }
 
 tasks.register('nativeIntegerIeee', JavaExec) {
@@ -24,10 +24,10 @@ tasks.register('nativeIntegerIeee', JavaExec) {
     dependsOn tasks.named('classes')
     classpath = sourceSets.main.runtimeClasspath
     jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
-    mainClass = 'dev.worldgennext.runtime.vulkan.NativeIntegerIeeeRunner'
+    mainClass = 'dev.tellurium.runtime.vulkan.NativeIntegerIeeeRunner'
     args "--output=${layout.buildDirectory.file('reports/native-integer-ieee.json').get().asFile.absolutePath}"
-    if (providers.gradleProperty('worldgennext.ieeeRelease').map { it == 'true' }.orElse(false).get()) args '--release'
-    if (providers.gradleProperty('worldgennext.ieeeArithmeticOnly').map { it == 'true' }.orElse(false).get()) args '--arithmetic-only'
+    if (providers.gradleProperty('tellurium.ieeeRelease').map { it == 'true' }.orElse(false).get()) args '--release'
+    if (providers.gradleProperty('tellurium.ieeeArithmeticOnly').map { it == 'true' }.orElse(false).get()) args '--arithmetic-only'
 }
 
 tasks.register('nativeWorldgenSmoke', JavaExec) {
@@ -36,7 +36,7 @@ tasks.register('nativeWorldgenSmoke', JavaExec) {
     dependsOn tasks.named('classes')
     classpath = sourceSets.main.runtimeClasspath
     jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
-    mainClass = 'dev.worldgennext.runtime.vulkan.NativeWorldgenSmoke'
+    mainClass = 'dev.tellurium.runtime.vulkan.NativeWorldgenSmoke'
 }
 
 tasks.register('nativeRangeChoiceSmoke', JavaExec) {
@@ -45,8 +45,8 @@ tasks.register('nativeRangeChoiceSmoke', JavaExec) {
     dependsOn tasks.named('classes')
     classpath = sourceSets.main.runtimeClasspath
     jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
-    mainClass = 'dev.worldgennext.runtime.vulkan.NativeRangeChoiceSmoke'
-    if (providers.gradleProperty('worldgennext.rangeDraftControl').map { it == 'true' }.orElse(false).get()) args '--native-draft'
+    mainClass = 'dev.tellurium.runtime.vulkan.NativeRangeChoiceSmoke'
+    if (providers.gradleProperty('tellurium.rangeDraftControl').map { it == 'true' }.orElse(false).get()) args '--native-draft'
 }
 
 tasks.register('nativeVulkanLifecycle', JavaExec) {
@@ -55,7 +55,7 @@ tasks.register('nativeVulkanLifecycle', JavaExec) {
     dependsOn tasks.named('classes')
     classpath = sourceSets.main.runtimeClasspath
     jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
-    mainClass = 'dev.worldgennext.runtime.vulkan.NativeVulkanLifecycleRunner'
+    mainClass = 'dev.tellurium.runtime.vulkan.NativeVulkanLifecycleRunner'
 }
 
 tasks.register('nativeRawChainSuffixSmoke', JavaExec) {
@@ -64,7 +64,7 @@ tasks.register('nativeRawChainSuffixSmoke', JavaExec) {
     dependsOn tasks.named('classes')
     classpath = sourceSets.main.runtimeClasspath
     jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
-    mainClass = 'dev.worldgennext.runtime.vulkan.NativeRawChainSuffixSmoke'
+    mainClass = 'dev.tellurium.runtime.vulkan.NativeRawChainSuffixSmoke'
 }
 
 tasks.register('nativeSingleKnotSplineSmoke', JavaExec) {
@@ -73,7 +73,7 @@ tasks.register('nativeSingleKnotSplineSmoke', JavaExec) {
     dependsOn tasks.named('classes')
     classpath = sourceSets.main.runtimeClasspath
     jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
-    mainClass = 'dev.worldgennext.runtime.vulkan.NativeSingleKnotSplineSmoke'
+    mainClass = 'dev.tellurium.runtime.vulkan.NativeSingleKnotSplineSmoke'
 }
 
 tasks.register('nativeSharedFp64DivisionSmoke', JavaExec) {
@@ -82,7 +82,7 @@ tasks.register('nativeSharedFp64DivisionSmoke', JavaExec) {
     dependsOn tasks.named('classes')
     classpath = sourceSets.main.runtimeClasspath
     jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
-    mainClass = 'dev.worldgennext.runtime.vulkan.NativeSharedFp64DivisionSmoke'
+    mainClass = 'dev.tellurium.runtime.vulkan.NativeSharedFp64DivisionSmoke'
 }
 
 tasks.register('nativeBeardifierSmoke', JavaExec) {
@@ -91,10 +91,10 @@ tasks.register('nativeBeardifierSmoke', JavaExec) {
     dependsOn tasks.named('classes')
     classpath = sourceSets.main.runtimeClasspath
     jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
-    mainClass = 'dev.worldgennext.runtime.vulkan.NativeBeardifierSmoke'
-    if (providers.gradleProperty('worldgennext.beardifierInlineHelpers').map { it == 'true' }.orElse(false).get()) args '--inline-helpers'
-    if (providers.gradleProperty('worldgennext.beardifierTerralithPiece').map { it == 'true' }.orElse(false).get()) args '--terralith-piece'
-    if (providers.gradleProperty('worldgennext.beardifierInputKernel').map { it == 'true' }.orElse(false).get()) args '--input-kernel'
+    mainClass = 'dev.tellurium.runtime.vulkan.NativeBeardifierSmoke'
+    if (providers.gradleProperty('tellurium.beardifierInlineHelpers').map { it == 'true' }.orElse(false).get()) args '--inline-helpers'
+    if (providers.gradleProperty('tellurium.beardifierTerralithPiece').map { it == 'true' }.orElse(false).get()) args '--terralith-piece'
+    if (providers.gradleProperty('tellurium.beardifierInputKernel').map { it == 'true' }.orElse(false).get()) args '--input-kernel'
 }
 
 tasks.register('nativeBlendedReductionSmoke', JavaExec) {
@@ -103,7 +103,7 @@ tasks.register('nativeBlendedReductionSmoke', JavaExec) {
     dependsOn tasks.named('classes')
     classpath = sourceSets.main.runtimeClasspath
     jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
-    mainClass = 'dev.worldgennext.runtime.vulkan.NativeBlendedReductionSmoke'
+    mainClass = 'dev.tellurium.runtime.vulkan.NativeBlendedReductionSmoke'
 }
 
 tasks.register('nativeIntegerFloorSmoke', JavaExec) {
@@ -112,16 +112,16 @@ tasks.register('nativeIntegerFloorSmoke', JavaExec) {
     dependsOn tasks.named('classes')
     classpath = sourceSets.main.runtimeClasspath
     jvmArgs '-Dorg.lwjgl.system.stackSize=2048'
-    mainClass = 'dev.worldgennext.runtime.vulkan.NativeIntegerFloorSmoke'
+    mainClass = 'dev.tellurium.runtime.vulkan.NativeIntegerFloorSmoke'
 }
 
 tasks.register('fusedCompileProbe', JavaExec) {
     group = 'verification'
     description = 'Developer probe: compiles one fused NOISE kernel from a dumped source and reports driver time.'
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'dev.worldgennext.runtime.vulkan.fused.FusedCompileProbe'
+    mainClass = 'dev.tellurium.runtime.vulkan.fused.FusedCompileProbe'
     jvmArgs '-Dorg.lwjgl.system.stackSize=16384'
-    args((System.getProperty('worldgennext.probe.args', '') ?: '').split(' ').findAll { !it.isEmpty() })
+    args((System.getProperty('tellurium.probe.args', '') ?: '').split(' ').findAll { !it.isEmpty() })
 }
 
 tasks.register('printProbeClasspath') {

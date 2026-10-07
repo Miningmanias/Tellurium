@@ -9,13 +9,13 @@
 
 | Minecraft | Loader | Module | Jar | State |
 | --- | --- | --- | --- | --- |
-| 1.21.1 | NeoForge | `neoforge-1211` | `worldgennext-neoforge-1.21.1-<version>.jar` | released line; everything in `docs/STATUS.md` refers to it |
-| 1.21.1 | Fabric | `fabric-1211` | `worldgennext-fabric-1.21.1-<version>.jar` | `docs/evidence/fabric-port.md` |
-| 1.21.4 | Fabric | `fabric-1214` | `worldgennext-fabric-1.21.4-<version>.jar` | verified as below |
-| 1.21.8 | Fabric | `fabric-1218` | `worldgennext-fabric-1.21.8-<version>.jar` | verified as below |
-| 1.21.8 | NeoForge 21.8.54+ | `neoforge-1218` | `worldgennext-neoforge-1.21.8-<version>.jar` | verified as below |
-| 1.21.11 | Fabric | `fabric-12111` | `worldgennext-fabric-1.21.11-<version>.jar` | `docs/evidence/minecraft-1.21.11.md` |
-| 1.21.11 | NeoForge 21.11.45+ | `neoforge-12111` | `worldgennext-neoforge-1.21.11-<version>.jar` | `docs/evidence/minecraft-1.21.11.md` |
+| 1.21.1 | NeoForge | `neoforge-1211` | `tellurium-neoforge-1.21.1-<version>.jar` | released line; everything in `docs/STATUS.md` refers to it |
+| 1.21.1 | Fabric | `fabric-1211` | `tellurium-fabric-1.21.1-<version>.jar` | `docs/evidence/fabric-port.md` |
+| 1.21.4 | Fabric | `fabric-1214` | `tellurium-fabric-1.21.4-<version>.jar` | verified as below |
+| 1.21.8 | Fabric | `fabric-1218` | `tellurium-fabric-1.21.8-<version>.jar` | verified as below |
+| 1.21.8 | NeoForge 21.8.54+ | `neoforge-1218` | `tellurium-neoforge-1.21.8-<version>.jar` | verified as below |
+| 1.21.11 | Fabric | `fabric-12111` | `tellurium-fabric-1.21.11-<version>.jar` | `docs/evidence/minecraft-1.21.11.md` |
+| 1.21.11 | NeoForge 21.11.45+ | `neoforge-12111` | `tellurium-neoforge-1.21.11-<version>.jar` | `docs/evidence/minecraft-1.21.11.md` |
 
 The work is on 1.21.1 and 1.21.11, on both loaders; 1.21.4 and 1.21.8 are as
 this document left them, apart from the regression runs in the 1.21.11
@@ -103,7 +103,7 @@ After the change (released jars on real servers, one run each):
 | Fabric 1.21.8, 90,601 chunks, 4 GB heap | 44 s, 2,018 chunks/s; no errors, no warning; 104,329 chunks read back |
 | Fabric 1.21.4, 160,801 chunks, 16 GB heap | 67 s, 2,386 chunks/s; no errors; 178,929 chunks read back |
 | NeoForge 1.21.8, 160,801 chunks, 16 GB heap | 52 s, 3,057 chunks/s; no errors; 178,929 chunks read back |
-| Fabric 1.21.8 with Distant Horizons 3.3.3, `dh pregen` of 66,049 chunks (`LOADER=fabric MC=1.21.8 scripts/compare-dh.sh worldgennext 128`) | 35 s, 1,887 chunks/s of LOD; no errors, clean shutdown. This is also the only run of the Distant Horizons bridge on 1.21.8 |
+| Fabric 1.21.8 with Distant Horizons 3.3.3, `dh pregen` of 66,049 chunks (`LOADER=fabric MC=1.21.8 scripts/compare-dh.sh tellurium 128`) | 35 s, 1,887 chunks/s of LOD; no errors, clean shutdown. This is also the only run of the Distant Horizons bridge on 1.21.8 |
 | Fabric 1.21.1 (its save path is the original one), 251,001 chunks, 4 GB heap | 2 min, 2,441 chunks/s; no out-of-memory; 273,529 chunks read back; one error line, vanilla's mob-spawner message |
 
 Save and reopen was run again on all three builds after the change and

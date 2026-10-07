@@ -130,45 +130,45 @@ $gradleArgs = @(
     ':neoforge-1211:gpuCandidateSmoke',
     '--no-daemon',
     '--console=plain',
-    '-Dworldgennext.candidate.capture=true',
-    '-Dworldgennext.candidate.output=',
-    "-Dworldgennext.candidate.caseFile=$(Gradle-ArgsPath $manifest)",
-    "-Dworldgennext.candidate.runDir=$(Gradle-ArgsPath $runs)",
-    "-Dworldgennext.candidate.seed=$Seed",
-    "-Dworldgennext.candidate.chunkX=$ChunkX",
-    "-Dworldgennext.candidate.chunkZ=$ChunkZ",
-    '-Dworldgennext.candidate.endpoint=NOISE',
-    "-Dworldgennext.candidate.dimension=$Dimension",
-    "-Dworldgennext.candidate.timeoutMillis=$candidateTimeoutMillis",
-    '-Dworldgennext.gpuCandidate.capture=true',
-    "-Dworldgennext.gpuCandidate.deviceOnly=$($DeviceOnly.IsPresent.ToString().ToLowerInvariant())",
-    "-Dworldgennext.gpuCandidate.batchElements=$BatchElements",
-    "-Dworldgennext.gpuCandidate.maxShaderSourceChars=$MaxShaderSourceChars",
-    "-Dworldgennext.gpuCandidate.sharedSplineShader=$($SharedSpline.IsPresent.ToString().ToLowerInvariant())",
-    "-Dworldgennext.gpuCandidate.endIslandSharedShader=$($SharedEndIsland.IsPresent.ToString().ToLowerInvariant())",
-    "-Dworldgennext.gpuCandidate.blendedNoiseSharedShader=$($SharedBlended.IsPresent.ToString().ToLowerInvariant())",
-    "-Dworldgennext.gpuCandidate.nativeDraft=$nativeDraft",
-    "-Dworldgennext.gpuCandidate.enablePipelineOptimization=$($EnablePipelineOptimization.IsPresent.ToString().ToLowerInvariant())",
-    '-Dworldgennext.gpuCandidate.nativeDraftArithmetic=both',
-    '-Dworldgennext.gpuCandidate.normalNoiseSharedShader=true',
-    "-Dworldgennext.gpuCandidate.sharedNormalNoiseResidentChain=$($ResidentNormalNoise.IsPresent.ToString().ToLowerInvariant())",
-    '-Dworldgennext.gpuCandidate.normalNoiseSharedGenericShader=true',
-    '-Dworldgennext.gpuCandidate.rewriteCapturedNoiseSampler=true',
-    '-Dworldgennext.gpuCandidate.exactAquiferStage=true',
-    '-Dworldgennext.gpuCandidate.exactAquiferBarrierInput=true',
-    '-Dworldgennext.gpuCandidate.debugStages=true',
-    "-Dworldgennext.gpuCandidate.debugStagesFile=$(Gradle-ArgsPath (Join-Path $outputs 'stages.log'))",
-    "-Dworldgennext.gpuCandidate.stagedShaderDir=$(Gradle-ArgsPath (Join-Path $outputs 'shaders'))",
-    "-Dworldgennext.gpuCandidate.debugDensityParity=$densityParityDiagnostic",
-    "-Dworldgennext.gpuCandidate.debugDensityProbePoint=$probePoint",
-    "-Dworldgennext.gpuCandidate.debugDensityStageRoot=$probeRoot",
-    "-Dworldgennext.gpuCandidate.debugDensityStageRootSeedCpu=$($SeedCpuChildren.IsPresent.ToString().ToLowerInvariant())",
-    "-Dworldgennext.gpuCandidate.debugDensityStageCpuOracle=$($StageCpuOracle.IsPresent.ToString().ToLowerInvariant())",
-    "-Dworldgennext.gpuCandidate.debugDensityStageCpuOracleTolerance=$($StageOracleTolerance.ToString('R', [Globalization.CultureInfo]::InvariantCulture))",
-    "-Dworldgennext.gpuCandidate.debugDensitySemanticNodes=$SemanticNodes"
+    '-Dtellurium.candidate.capture=true',
+    '-Dtellurium.candidate.output=',
+    "-Dtellurium.candidate.caseFile=$(Gradle-ArgsPath $manifest)",
+    "-Dtellurium.candidate.runDir=$(Gradle-ArgsPath $runs)",
+    "-Dtellurium.candidate.seed=$Seed",
+    "-Dtellurium.candidate.chunkX=$ChunkX",
+    "-Dtellurium.candidate.chunkZ=$ChunkZ",
+    '-Dtellurium.candidate.endpoint=NOISE',
+    "-Dtellurium.candidate.dimension=$Dimension",
+    "-Dtellurium.candidate.timeoutMillis=$candidateTimeoutMillis",
+    '-Dtellurium.gpuCandidate.capture=true',
+    "-Dtellurium.gpuCandidate.deviceOnly=$($DeviceOnly.IsPresent.ToString().ToLowerInvariant())",
+    "-Dtellurium.gpuCandidate.batchElements=$BatchElements",
+    "-Dtellurium.gpuCandidate.maxShaderSourceChars=$MaxShaderSourceChars",
+    "-Dtellurium.gpuCandidate.sharedSplineShader=$($SharedSpline.IsPresent.ToString().ToLowerInvariant())",
+    "-Dtellurium.gpuCandidate.endIslandSharedShader=$($SharedEndIsland.IsPresent.ToString().ToLowerInvariant())",
+    "-Dtellurium.gpuCandidate.blendedNoiseSharedShader=$($SharedBlended.IsPresent.ToString().ToLowerInvariant())",
+    "-Dtellurium.gpuCandidate.nativeDraft=$nativeDraft",
+    "-Dtellurium.gpuCandidate.enablePipelineOptimization=$($EnablePipelineOptimization.IsPresent.ToString().ToLowerInvariant())",
+    '-Dtellurium.gpuCandidate.nativeDraftArithmetic=both',
+    '-Dtellurium.gpuCandidate.normalNoiseSharedShader=true',
+    "-Dtellurium.gpuCandidate.sharedNormalNoiseResidentChain=$($ResidentNormalNoise.IsPresent.ToString().ToLowerInvariant())",
+    '-Dtellurium.gpuCandidate.normalNoiseSharedGenericShader=true',
+    '-Dtellurium.gpuCandidate.rewriteCapturedNoiseSampler=true',
+    '-Dtellurium.gpuCandidate.exactAquiferStage=true',
+    '-Dtellurium.gpuCandidate.exactAquiferBarrierInput=true',
+    '-Dtellurium.gpuCandidate.debugStages=true',
+    "-Dtellurium.gpuCandidate.debugStagesFile=$(Gradle-ArgsPath (Join-Path $outputs 'stages.log'))",
+    "-Dtellurium.gpuCandidate.stagedShaderDir=$(Gradle-ArgsPath (Join-Path $outputs 'shaders'))",
+    "-Dtellurium.gpuCandidate.debugDensityParity=$densityParityDiagnostic",
+    "-Dtellurium.gpuCandidate.debugDensityProbePoint=$probePoint",
+    "-Dtellurium.gpuCandidate.debugDensityStageRoot=$probeRoot",
+    "-Dtellurium.gpuCandidate.debugDensityStageRootSeedCpu=$($SeedCpuChildren.IsPresent.ToString().ToLowerInvariant())",
+    "-Dtellurium.gpuCandidate.debugDensityStageCpuOracle=$($StageCpuOracle.IsPresent.ToString().ToLowerInvariant())",
+    "-Dtellurium.gpuCandidate.debugDensityStageCpuOracleTolerance=$($StageOracleTolerance.ToString('R', [Globalization.CultureInfo]::InvariantCulture))",
+    "-Dtellurium.gpuCandidate.debugDensitySemanticNodes=$SemanticNodes"
 )
 if ($InlineIeeeHelpers) {
-    $gradleArgs += '-Dworldgennext.gpuCandidate.densityDontInlinePrefix=wg_node_,wg_spline_'
+    $gradleArgs += '-Dtellurium.gpuCandidate.densityDontInlinePrefix=wg_node_,wg_spline_'
 }
 
 $gradle = Join-Path $repoRoot 'gradlew.bat'
@@ -283,7 +283,7 @@ $status = if ($timedOut) {
 
 $report = [ordered]@{
     schemaVersion = 1
-    kind = if ($DeviceOnly) { 'worldgennext_gpu_isolated_device_execution' } elseif ($FullChunk) { 'worldgennext_gpu_isolated_full_replay' } else { 'worldgennext_gpu_density_probe' }
+    kind = if ($DeviceOnly) { 'tellurium_gpu_isolated_device_execution' } elseif ($FullChunk) { 'tellurium_gpu_isolated_full_replay' } else { 'tellurium_gpu_density_probe' }
     status = $status
     gpuParity = if ($DeviceOnly) { 'NOT_ASSESSED_NO_CPU_COMPARISON' } elseif ($fullPassed) { if ($ExactProfile) { 'EXACT_PROFILE_GPU_VS_CPU_PARITY_ONLY' } else { 'DRAFT_GPU_VS_CPU_PARITY_ONLY' } } else { 'NOT_ASSESSED_DIAGNOSTIC_ONLY' }
     note = 'Isolated full replay compares GPU output with the owned CPU result, not an independent Minecraft oracle. One-case exact-profile receipts, diagnostic stops, native draft receipts, and timings do not qualify the G6 corpus or live hook.'

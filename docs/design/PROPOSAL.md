@@ -1,4 +1,4 @@
-# WorldgenNext — a separate chunk-generation engine
+# Tellurium — a separate chunk-generation engine
 
 > Historical design proposal. For the implemented v0.1 scope and validation, read ../../Plan.md and ../STATUS.md. Statements below describe the pre-implementation design assessment.
 
@@ -254,7 +254,7 @@ Create a new repository when implementation begins. This design folder is not th
 Suggested module boundaries:
 
 ```text
-worldgennext/
+tellurium/
   semantic-core/       typed program, effects, domains, identities
   frontend-mc1211/     Minecraft adapters and extension contracts
   compiler-jvm/        exact compiled CPU programs

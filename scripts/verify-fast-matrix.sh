@@ -15,7 +15,7 @@
 # Every run has the ScalableLux companion installed (build/test-mods/*).
 # Usage: scripts/verify-fast-matrix.sh [radiusChunks]
 #        EVALUATE_ONLY=1 scripts/verify-fast-matrix.sh   (look at the latest existing runs again; not a verification)
-#        STATUS=NOISE EXTRA="worldgennext.fast.surface=false" scripts/verify-fast-matrix.sh
+#        STATUS=NOISE EXTRA="tellurium.fast.surface=false" scripts/verify-fast-matrix.sh
 #        ROWS="terralith combined" scripts/verify-fast-matrix.sh   (subset)
 set -u
 cd "$(dirname "$0")/.."
@@ -23,10 +23,10 @@ RADIUS="${1:-45}"
 STATUS="${STATUS:-SURFACE}"
 EXTRA="${EXTRA:-}"
 status_lc=$(echo "$STATUS" | tr '[:upper:]' '[:lower:]')
-CACHE="worldgennext.fast.pipelineCacheDir=$(pwd -W 2>/dev/null || pwd)/build/fast-cache"
+CACHE="tellurium.fast.pipelineCacheDir=$(pwd -W 2>/dev/null || pwd)/build/fast-cache"
 # force: qualify the current kernels regardless of the shipped list (auto would silently use vanilla).
-G="worldgennext.fast.gpu=force;$CACHE"
-D="worldgennext.bench.release=end;worldgennext.bench.digest=true"
+G="tellurium.fast.gpu=force;$CACHE"
+D="tellurium.bench.release=end;tellurium.bench.digest=true"
 # MODULE=fabric-1211 MODS_ROOT=build/test-mods/fabric PREFIX=fabric- runs the matrix on Fabric, with its own labels.
 MODS="${MODS_ROOT:-build/test-mods}"
 P="${PREFIX:-}"
@@ -47,7 +47,7 @@ pair() { # name, mods subdirectory, extra script args, extra properties, "terrai
     # shellcheck disable=SC2086
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bench-cps.ps1 -Status "$STATUS" -Label "${P}mv-$name" -RadiusChunks "$RADIUS" \
         -ModsDir "$MODS/$mods" $args \
-        -Properties "$D;worldgennext.fast.gpu=off;worldgennext.parallelStructureSteps=false;worldgennext.parallelSurfaceCarvers=false;worldgennext.parallelFeatures=false;worldgennext.asyncChunkSave=false;worldgennext.asyncChunkCompress=false;worldgennext.biomeColumnCache=false;worldgennext.unloadTypeCache=false;worldgennext.fast.rtreeStoreSkip=false;worldgennext.fast.biomeIndex=false;worldgennext.fast.aquiferPrefill=false;worldgennext.fast.orePlacement=false;worldgennext.fast.lazyNoiseWrap=false;worldgennext.fast.uniformBiome=false;worldgennext.fast.cavePlans=false;worldgennext.fast.heightCache=false;worldgennext.asyncIoMailboxBatch=1;worldgennext.asyncGroupCommit=false;worldgennext.asyncChunkLoad=false;worldgennext.parallelMailboxThreads=false;worldgennext.fast.regionChunkCache=false;worldgennext.regionHeaderBatch=false;worldgennext.fast.freshRegionShortcut=false;worldgennext.fast.shapeCache=false;worldgennext.unloadPacing=false;worldgennext.promptTaskRelease=false;worldgennext.bench.productionThreadNames=false;$props" >"$vout" 2>&1 \
+        -Properties "$D;tellurium.fast.gpu=off;tellurium.parallelStructureSteps=false;tellurium.parallelSurfaceCarvers=false;tellurium.parallelFeatures=false;tellurium.asyncChunkSave=false;tellurium.asyncChunkCompress=false;tellurium.biomeColumnCache=false;tellurium.unloadTypeCache=false;tellurium.fast.rtreeStoreSkip=false;tellurium.fast.biomeIndex=false;tellurium.fast.aquiferPrefill=false;tellurium.fast.orePlacement=false;tellurium.fast.lazyNoiseWrap=false;tellurium.fast.uniformBiome=false;tellurium.fast.cavePlans=false;tellurium.fast.heightCache=false;tellurium.asyncIoMailboxBatch=1;tellurium.asyncGroupCommit=false;tellurium.asyncChunkLoad=false;tellurium.parallelMailboxThreads=false;tellurium.fast.regionChunkCache=false;tellurium.regionHeaderBatch=false;tellurium.fast.freshRegionShortcut=false;tellurium.fast.shapeCache=false;tellurium.unloadPacing=false;tellurium.promptTaskRelease=false;tellurium.bench.productionThreadNames=false;$props" >"$vout" 2>&1 \
         || launch="the reference run failed (see $vout)"
     # shellcheck disable=SC2086
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bench-cps.ps1 -Status "$STATUS" -Label "${P}mg-$name" -RadiusChunks "$RADIUS" \
@@ -99,21 +99,21 @@ pair() { # name, mods subdirectory, extra script args, extra properties, "terrai
   [ -n "${EVALUATE_ONLY:-}" ] && verdict="$verdict (historical: newest existing files, not run now)"
   echo "$name | vanilla $(cps "$vlog") cps | gpu $(cps "$glog") cps gpuChunks=${gpuChunks:-0} bail=${bail:-?} surface=${surface:-0} surfaceBail=${surfaceBail:-?} | $comparison| $verdict"
 }
-NETHER="worldgennext.bench.dimension=minecraft:the_nether;worldgennext.bench.centerX=300;worldgennext.bench.centerZ=300"
-END="worldgennext.bench.dimension=minecraft:the_end;worldgennext.bench.centerX=300;worldgennext.bench.centerZ=300"
+NETHER="tellurium.bench.dimension=minecraft:the_nether;tellurium.bench.centerX=300;tellurium.bench.centerZ=300"
+END="tellurium.bench.dimension=minecraft:the_end;tellurium.bench.centerX=300;tellurium.bench.centerZ=300"
 pair vanilla-overworld vanilla "" ""
 pair vanilla-seed12345 vanilla "-Seed 12345" ""
 pair vanilla-seedneg1 vanilla "-Seed -1" ""
 pair vanilla-nether vanilla "" "$NETHER"
 pair vanilla-end vanilla "" "$END"
 # Biome-specific surface code: badlands pillars and clay bands, icebergs, steep slopes.
-pair vanilla-eroded-badlands vanilla "" "worldgennext.bench.centerBiome=minecraft:eroded_badlands"
-pair vanilla-frozen-ocean vanilla "" "worldgennext.bench.centerBiome=minecraft:frozen_ocean"
-pair vanilla-deep-frozen-ocean vanilla "-Seed 12345" "worldgennext.bench.centerBiome=minecraft:deep_frozen_ocean"
-pair vanilla-frozen-peaks vanilla "" "worldgennext.bench.centerBiome=minecraft:frozen_peaks"
-pair vanilla-jagged-peaks vanilla "-Seed 12345" "worldgennext.bench.centerBiome=minecraft:jagged_peaks"
-pair vanilla-windswept-savanna vanilla "-Seed -1" "worldgennext.bench.centerBiome=minecraft:windswept_savanna"
-pair vanilla-mangrove-swamp vanilla "" "worldgennext.bench.centerBiome=minecraft:mangrove_swamp"
+pair vanilla-eroded-badlands vanilla "" "tellurium.bench.centerBiome=minecraft:eroded_badlands"
+pair vanilla-frozen-ocean vanilla "" "tellurium.bench.centerBiome=minecraft:frozen_ocean"
+pair vanilla-deep-frozen-ocean vanilla "-Seed 12345" "tellurium.bench.centerBiome=minecraft:deep_frozen_ocean"
+pair vanilla-frozen-peaks vanilla "" "tellurium.bench.centerBiome=minecraft:frozen_peaks"
+pair vanilla-jagged-peaks vanilla "-Seed 12345" "tellurium.bench.centerBiome=minecraft:jagged_peaks"
+pair vanilla-windswept-savanna vanilla "-Seed -1" "tellurium.bench.centerBiome=minecraft:windswept_savanna"
+pair vanilla-mangrove-swamp vanilla "" "tellurium.bench.centerBiome=minecraft:mangrove_swamp"
 pair terralith terralith "" ""
 pair tectonic tectonic "" ""
 pair combined combined "" ""

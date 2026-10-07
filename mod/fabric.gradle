@@ -3,7 +3,7 @@ plugins { id 'fabric-loom' version '1.13.6' }
 // The Fabric build of the mod for one Minecraft version: the build script of every Fabric target in
 // mod/targets.gradle.  Which sources it is built from is in mod/sources.gradle.
 def target = gradle.ext.modTargets[project.name]
-base { archivesName = "worldgennext-fabric-${target.minecraft}" }
+base { archivesName = "tellurium-fabric-${target.minecraft}" }
 
 dependencies {
     minecraft "com.mojang:minecraft:${target.minecraft}"
@@ -22,26 +22,26 @@ tasks.named('processResources') {
 }
 
 loom {
-    accessWidenerPath = new File(modSources.glue, 'src/main/resources/worldgennext.accesswidener')
+    accessWidenerPath = new File(modSources.glue, 'src/main/resources/tellurium.accesswidener')
     runs {
         configureEach {
-            // Same switches as the NeoForge dev runs: every -Dworldgennext.* given to Gradle reaches the game.
+            // Same switches as the NeoForge dev runs: every -Dtellurium.* given to Gradle reaches the game.
             System.properties.each { key, value ->
-                if (key.toString().startsWith('worldgennext.') && !(key.toString() in ['worldgennext.candidate.runDir', 'worldgennext.run.maxHeap', 'worldgennext.run.jvmArgs'])) {
+                if (key.toString().startsWith('tellurium.') && !(key.toString() in ['tellurium.candidate.runDir', 'tellurium.run.maxHeap', 'tellurium.run.jvmArgs'])) {
                     // Relative output paths are resolved here: the game's working directory is the run directory.
-                    property key.toString(), key == 'worldgennext.bench.output' && !value.toString().trim().isEmpty() ? project.file(value.toString().trim()).absolutePath : value.toString()
+                    property key.toString(), key == 'tellurium.bench.output' && !value.toString().trim().isEmpty() ? project.file(value.toString().trim()).absolutePath : value.toString()
                 }
             }
-            def maxHeap = System.getProperty('worldgennext.run.maxHeap', '').trim()
+            def maxHeap = System.getProperty('tellurium.run.maxHeap', '').trim()
             if (!maxHeap.isEmpty()) vmArg "-Xmx${maxHeap}"
             vmArg '-Dorg.lwjgl.system.stackSize=16384'
-            def directory = System.getProperty('worldgennext.candidate.runDir', '').trim()
+            def directory = System.getProperty('tellurium.candidate.runDir', '').trim()
             if (!directory.isEmpty()) runDir = project.projectDir.toPath().relativize(new File(directory).toPath()).toString().replace(File.separator, '/')
         }
         server { programArg 'nogui' }
         client {
             // Straight into an existing singleplayer world (a folder under <run directory>/saves).
-            def quickPlay = System.getProperty('worldgennext.client.quickPlay', '').trim()
+            def quickPlay = System.getProperty('tellurium.client.quickPlay', '').trim()
             if (!quickPlay.isEmpty()) programArgs '--quickPlaySingleplayer', quickPlay
         }
     }
@@ -82,13 +82,13 @@ tasks.register('generateNameTable') {
                 if (runtime != source && tokens.contains(source)) table << "${part[1]}\t${classRuntime}\t${source}\t${runtime}\n"
             }
         }
-        def file = nameTableDir.get().file('worldgennext/fabric-names.tsv').asFile
+        def file = nameTableDir.get().file('tellurium/fabric-names.tsv').asFile
         file.parentFile.mkdirs()
         file.setText(table.toString(), 'UTF-8')
     }
 }
 sourceSets.main.resources.srcDir(nameTableDir)
 tasks.named('processResources') { dependsOn 'generateNameTable' }
-tasks.matching { it.name == 'sourcesJar' }.configureEach { dependsOn 'generateNameTable'; exclude 'worldgennext/fabric-names.tsv' }
+tasks.matching { it.name == 'sourcesJar' }.configureEach { dependsOn 'generateNameTable'; exclude 'tellurium/fabric-names.tsv' }
 
 tasks.matching { it.name == 'runServer' || it.name == 'runClient' }.configureEach { dependsOn tasks.named('prepareCandidateRun') }

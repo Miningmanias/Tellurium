@@ -51,7 +51,7 @@ function Write-LogicalMatrixProgress([string]$status) {
         $published += $row.evidence.gpuCorePublications; $states += $row.evidence.gpuCommittedStorageStates
     }
     $report = [ordered]@{
-        schemaVersion=1; kind='worldgennext_logical_endpoint_matrix'; status=$status; endpoint=$Endpoint; route=$Backend
+        schemaVersion=1; kind='tellurium_logical_endpoint_matrix'; status=$status; endpoint=$Endpoint; route=$Backend
         coordinatorDispatch='INLINE_REFERENCE'; frozenCompiledInputs=$true; compiledInputsSha256=$frozen.Hash
         expectedCases=$plan.expectedCases; comparedCases=$compared; comparedFields=$fields
         expectedReopenedCases=$plan.expectedReopenedCases; reopenedComparedCases=$reopened; reopenedComparedFields=$reopenedFields

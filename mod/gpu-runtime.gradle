@@ -20,13 +20,13 @@ tasks.register('stageGpuRuntime', Sync) {
     dependsOn runtimeJar
     from(configurations.gpuRuntime)
     from(runtimeJar)
-    into gpuRuntimeDir.map { it.dir('META-INF/worldgennext-gpu') }
+    into gpuRuntimeDir.map { it.dir('META-INF/tellurium-gpu') }
     doLast {
-        def directory = gpuRuntimeDir.get().dir('META-INF/worldgennext-gpu').asFile
+        def directory = gpuRuntimeDir.get().dir('META-INF/tellurium-gpu').asFile
         def names = directory.listFiles().findAll { it.name.endsWith('.jar') }.collect { it.name }.sort()
         new File(directory, 'index.txt').text = names.join('\n') + '\n'
     }
 }
 sourceSets.main.resources.srcDir(gpuRuntimeDir)
 tasks.named('processResources') { dependsOn 'stageGpuRuntime' }
-tasks.matching { it.name == 'sourcesJar' }.configureEach { dependsOn 'stageGpuRuntime'; exclude 'META-INF/worldgennext-gpu/**' }
+tasks.matching { it.name == 'sourcesJar' }.configureEach { dependsOn 'stageGpuRuntime'; exclude 'META-INF/tellurium-gpu/**' }

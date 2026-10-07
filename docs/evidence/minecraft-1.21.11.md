@@ -5,8 +5,8 @@
 > `mod/common`, `mod/loader/<loader>`, `mod/versions/<version>`, `mod/sources.gradle`, `mod/fabric.gradle` and
 > `mod/neoforge.gradle`; the names remain as the Gradle projects of the builds. See `mod/README.md`.
 
-`fabric-12111` builds `worldgennext-fabric-1.21.11-<version>.jar` and
-`neoforge-12111` builds `worldgennext-neoforge-1.21.11-<version>.jar`
+`fabric-12111` builds `tellurium-fabric-1.21.11-<version>.jar` and
+`neoforge-12111` builds `tellurium-neoforge-1.21.11-<version>.jar`
 (NeoForge 21.11.45 or later). Both come from the shared 1.21.1 source, the
 files of the 1.21.4 and 1.21.8 modules, and what `fabric-12111` holds; how
 that works is in `docs/evidence/minecraft-versions.md`.

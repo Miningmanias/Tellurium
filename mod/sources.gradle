@@ -5,7 +5,7 @@
 //   mod/loader/<loader>         what differs per loader: Loader, the entry point, the loader's metadata
 //   mod/versions/<version>      what a later Minecraft version needs differently:
 //       src/main/java, src/main/resources   files that replace the file of the same path
-//       removed.txt                         files of mod/common with no counterpart (paths under dev/worldgennext/neoforge/)
+//       removed.txt                         files of mod/common with no counterpart (paths under dev/tellurium/neoforge/)
 //       renames.gradle                      names Minecraft merely changed (regular expression -> replacement)
 //
 // A target uses the version folders mod/targets.gradle lists for its Minecraft version, nearest first; where
@@ -17,7 +17,7 @@ def glue = rootProject.file("mod/loader/${target.loader}")
 def layers = gradle.ext.modVersions[target.minecraft].collect { rootProject.file("mod/versions/$it") }
 def removed = layers.collectMany { layer ->
     def list = new File(layer, 'removed.txt')
-    list.isFile() ? list.readLines('UTF-8').collect { it.trim() }.findAll { it && !it.startsWith('#') }.collect { 'dev/worldgennext/neoforge/' + it } : []
+    list.isFile() ? list.readLines('UTF-8').collect { it.trim() }.findAll { it && !it.startsWith('#') }.collect { 'dev/tellurium/neoforge/' + it } : []
 }
 // The index of the version folder a file belongs to, or -1 for mod/common and the loader's folder.
 def layerOf = { File file -> layers.findIndexOf { file.toPath().startsWith(it.toPath()) } }
@@ -81,9 +81,9 @@ ext.modSources = [
 // The dev server's run directory (scripts/run-pregen.sh, bench-cps.ps1).
 tasks.register('prepareCandidateRun') {
     doLast {
-        def directory = project.file(System.getProperty('worldgennext.candidate.runDir', layout.buildDirectory.dir('run/candidate').get().asFile.absolutePath))
-        def seed = System.getProperty('worldgennext.candidate.seed', '0')
-        if (Boolean.parseBoolean(System.getProperty('worldgennext.prototype.resume', 'false'))) {
+        def directory = project.file(System.getProperty('tellurium.candidate.runDir', layout.buildDirectory.dir('run/candidate').get().asFile.absolutePath))
+        def seed = System.getProperty('tellurium.candidate.seed', '0')
+        if (Boolean.parseBoolean(System.getProperty('tellurium.prototype.resume', 'false'))) {
             if (!new File(directory, 'server.properties').isFile() || !new File(directory, 'candidate-world/level.dat').isFile()) {
                 throw new GradleException('Prototype resume requires an existing candidate-world and server.properties')
             }
@@ -91,9 +91,9 @@ tasks.register('prepareCandidateRun') {
         }
         directory.mkdirs()
         new File(directory, 'eula.txt').text = 'eula=true\n'
-        def port = Integer.parseInt(System.getProperty('worldgennext.prototype.port', '25565'))
+        def port = Integer.parseInt(System.getProperty('tellurium.prototype.port', '25565'))
         if (port < 1 || port > 65535) throw new GradleException('Prototype port must be between 1 and 65535')
-        new File(directory, 'server.properties').text = "level-seed=${seed}\nlevel-name=candidate-world\nlevel-type=minecraft\\:normal\ngenerate-structures=${System.getProperty('worldgennext.run.generateStructures', 'true')}\nsync-chunk-writes=${System.getProperty('worldgennext.run.syncChunkWrites', 'true')}\nonline-mode=false\nserver-ip=127.0.0.1\nserver-port=${port}\nspawn-protection=0\nmax-tick-time=-1\nenable-command-block=true\n"
+        new File(directory, 'server.properties').text = "level-seed=${seed}\nlevel-name=candidate-world\nlevel-type=minecraft\\:normal\ngenerate-structures=${System.getProperty('tellurium.run.generateStructures', 'true')}\nsync-chunk-writes=${System.getProperty('tellurium.run.syncChunkWrites', 'true')}\nonline-mode=false\nserver-ip=127.0.0.1\nserver-port=${port}\nspawn-protection=0\nmax-tick-time=-1\nenable-command-block=true\n"
     }
 }
 

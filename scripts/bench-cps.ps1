@@ -37,21 +37,21 @@ if ($ModsDir) {
 # $env:MODULE picks another loader's module (fabric-1211).
 $module = if ($env:MODULE) { $env:MODULE } else { 'neoforge-1211' }
 $gradleArgs = @(":${module}:runServer", '--no-daemon', '--console=plain',
-    "-Dworldgennext.candidate.runDir=$runDir",
-    "-Dworldgennext.candidate.seed=$Seed",
-    "-Dworldgennext.run.maxHeap=$MaxHeap",
-    '-Dworldgennext.bench.autorun=true',
-    "-Dworldgennext.bench.status=$Status",
-    "-Dworldgennext.bench.radiusChunks=$RadiusChunks",
-    "-Dworldgennext.bench.warmupRadiusChunks=$WarmupRadiusChunks",
-    "-Dworldgennext.bench.inFlight=$InFlight",
-    "-Dworldgennext.bench.output=$report")
-if ($ReopenRunDir) { $gradleArgs += '-Dworldgennext.prototype.resume=true' }
+    "-Dtellurium.candidate.runDir=$runDir",
+    "-Dtellurium.candidate.seed=$Seed",
+    "-Dtellurium.run.maxHeap=$MaxHeap",
+    '-Dtellurium.bench.autorun=true',
+    "-Dtellurium.bench.status=$Status",
+    "-Dtellurium.bench.radiusChunks=$RadiusChunks",
+    "-Dtellurium.bench.warmupRadiusChunks=$WarmupRadiusChunks",
+    "-Dtellurium.bench.inFlight=$InFlight",
+    "-Dtellurium.bench.output=$report")
+if ($ReopenRunDir) { $gradleArgs += '-Dtellurium.prototype.resume=true' }
 Write-Host "RUNDIR $runDir"
 # The report this invocation is to write; a caller that compares runs takes its files from here, not from
 # whatever is newest in the folder.
 Write-Host "REPORT $report"
-if ($Jfr) { $gradleArgs += "-Dworldgennext.run.jfr=$Jfr" }
+if ($Jfr) { $gradleArgs += "-Dtellurium.run.jfr=$Jfr" }
 foreach ($p in ($Properties -split ';' | Where-Object { $_ })) { $gradleArgs += "-D$p" }
 $ErrorActionPreference = 'Continue'
 & (Join-Path $repoRoot 'gradlew.bat') @gradleArgs 2>&1 | ForEach-Object { "$_" }

@@ -21,7 +21,7 @@ import sys
 import urllib.parse
 import urllib.request
 
-AGENT = {'User-Agent': 'WorldgenNext-test-setup'}
+AGENT = {'User-Agent': 'Tellurium-test-setup'}
 FABRIC_API = 'P7dR8mSH'
 
 

@@ -17,7 +17,7 @@ import sys
 import urllib.parse
 import urllib.request
 
-AGENT = {'User-Agent': 'WorldgenNext-test-setup'}
+AGENT = {'User-Agent': 'Tellurium-test-setup'}
 
 
 def get(url):

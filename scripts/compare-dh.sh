@@ -2,7 +2,7 @@
 # Times a Distant Horizons LOD pregeneration on the installed NeoForge server, with or without this mod.
 #
 #   dh             ScalableLux + Distant Horizons
-#   worldgennext   the same plus this mod's release jar
+#   tellurium   the same plus this mod's release jar
 #
 # Driver: Distant Horizons' own command, `dh pregen start <dimension> 0 0 <chunk radius>`, on a fresh world
 # from a cold start.  Time is from the command to "Pregen is complete" in the server log.
@@ -12,9 +12,9 @@
 # for, so a pass that asks for nothing shows the first left nothing out), flushes saves and validates the
 # region files.  PRE=1 runs this mod's own pregenerator over the area first.
 # POST=1 runs it afterwards instead, to finish what the pass left unfinished.  DIM=<dimension id> picks the dimension.
-# This mod's mode is chosen with an extra JVM argument: -Dworldgennext.dh.mode=hybrid|direct|off.
+# This mod's mode is chosen with an extra JVM argument: -Dtellurium.dh.mode=hybrid|direct|off.
 #
-# Usage: scripts/compare-dh.sh <dh|worldgennext> [chunk radius] [extra JVM arguments]
+# Usage: scripts/compare-dh.sh <dh|tellurium> [chunk radius] [extra JVM arguments]
 set -u
 cd "$(dirname "$0")/.."
 config="${1:?configuration}"
@@ -41,7 +41,7 @@ mv "$server"/mods/*.jar "$server/mods-stash/" 2>/dev/null
 cp "$mods"/*.jar "$server/mods/"
 case "$config" in
   dh) ;;
-  worldgennext) cp "$(ls -t mod/targets/"$loader-$(echo "$mc" | tr -d .)"/build/libs/worldgennext-"$loader"-"$mc"-*.jar | grep -v sources | head -1)" "$server/mods/" ;;
+  tellurium) cp "$(ls -t mod/targets/"$loader-$(echo "$mc" | tr -d .)"/build/libs/tellurium-"$loader"-"$mc"-*.jar | grep -v sources | head -1)" "$server/mods/" ;;
   *) echo "unknown configuration $config"; exit 2 ;;
 esac
 [ -d "$server/world" ] && mv "$server/world" "$stash/world-$(date +%Y%m%d-%H%M%S)"
@@ -53,29 +53,29 @@ printf -- '-Xmx16G\n%s\n' "$(echo $jvm | tr ' ' '\n')" > "$server/user_jvm_args.
 cd "$server"
 {
   for _ in $(seq 1 600); do sleep 1; grep -q "Done (" logs/latest.log 2>/dev/null && break; grep -qE "Failed to start the minecraft server" logs/latest.log 2>/dev/null && break; grep -q 'Exception in thread "main"' console.out 2>/dev/null && { echo stop; exit; }; done
-  if [ "$config" = worldgennext ]; then
+  if [ "$config" = tellurium ]; then
     for _ in $(seq 1 600); do sleep 1; grep -qE "the_end: .*(on the GPU|vanilla code)|GPU terrain generation is unavailable" logs/latest.log && break; done
   fi
   sleep 5
   if [ -n "${PRE:-}" ]; then
     # This mod's pregenerator first; Distant Horizons builds LODs from the chunks as the server handles them.
-    echo "execute in $dimension run worldgennext pregen start $((radius + 4)) 0 0"
+    echo "execute in $dimension run tellurium pregen start $((radius + 4)) 0 0"
     for _ in $(seq 1 7200); do sleep 1; grep -q "Pregeneration finished" logs/latest.log && break; done
     sleep "${PRE_SETTLE:-0}"
   fi
   echo "dh pregen start $dimension 0 0 $radius"
   for _ in $(seq 1 7200); do sleep 1; grep -qE "Pregen is complete|Pregen failed|Pregen is cancelled" logs/latest.log && break; done
   sleep 2
-  [ "$config" = worldgennext ] && echo "worldgennext status"
+  [ "$config" = tellurium ] && echo "tellurium status"
   sleep 1
   if [ -n "${POST:-}" ]; then
     # Finish the area with this mod's pregenerator afterwards: chunks Distant Horizons' pass left unfinished
     # are completed the way they would be when a player gets there.
-    echo "execute in $dimension run worldgennext pregen start $((radius - 2)) 0 0"
+    echo "execute in $dimension run tellurium pregen start $((radius - 2)) 0 0"
     for _ in $(seq 1 7200); do sleep 1; grep -q "Pregeneration finished" logs/latest.log && break; done
     echo "save-all flush"
     sleep 15
-    [ "$config" = worldgennext ] && echo "worldgennext status"
+    [ "$config" = tellurium ] && echo "tellurium status"
     sleep 1
   fi
   if [ -n "${REPEAT:-}" ]; then
@@ -85,7 +85,7 @@ cd "$server"
     for _ in $(seq 1 7200); do sleep 1; [ "$(grep -c "Pregen is complete" logs/latest.log)" -ge 2 ] && break; done
     echo "save-all flush"
     sleep 25
-    [ "$config" = worldgennext ] && echo "worldgennext status"
+    [ "$config" = tellurium ] && echo "tellurium status"
     sleep 1
   fi
   echo "stop"

@@ -4,7 +4,7 @@ One source tree, built for every supported Minecraft version and loader.
 
 ```
 mod/
-  common/src/main/        the mod, written for Minecraft 1.21.1 (package dev.worldgennext.neoforge on every loader)
+  common/src/main/        the mod, written for Minecraft 1.21.1 (package dev.tellurium.neoforge on every loader)
   common/src/test/        unit tests (run by the NeoForge 1.21.1 build)
   common/src/gameTest/    NeoForge GameTests (the NeoForge 1.21.1 build)
   loader/neoforge/        Loader, NeoForgeEntry, neoforge.mods.toml
@@ -29,7 +29,7 @@ mod/
 | Something that depends on the mod loader | a method of `loader/Loader`, in both `loader/neoforge` and `loader/fabric` |
 | A Minecraft call that differs between versions | a method of `version/Version`: the 1.21.1 form in `common`, the others in `versions/<version>/src/main/java/.../version/Version.java`. Every `Version` has the same methods |
 | A mixin whose target changed in a version | a copy of the same path under `versions/<version>/src/main/java`; it replaces the common file from that version on |
-| A file with no counterpart in a version | a line in `versions/<version>/removed.txt`, and the version's own `worldgennext.mixins.json` if it was a mixin |
+| A file with no counterpart in a version | a line in `versions/<version>/removed.txt`, and the version's own `tellurium.mixins.json` if it was a mixin |
 | A name Minecraft merely changed | `versions/<version>/renames.gradle` (never logic) |
 | A new Minecraft version or loader build | a line in `targets.gradle`, a folder under `versions/` if it needs files |
 

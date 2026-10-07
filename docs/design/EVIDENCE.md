@@ -1,6 +1,6 @@
 # Evidence ledger
 
-Read-only investigation performed 8 September 2026 for the separate [WorldgenNext plan](PROPOSAL.md). This ledger separates observed source behavior, archived performance, and proposed engineering targets. No Minecraft benchmark or test was launched during this investigation.
+Read-only investigation performed 8 September 2026 for the separate [Tellurium plan](PROPOSAL.md). This ledger separates observed source behavior, archived performance, and proposed engineering targets. No Minecraft benchmark or test was launched during this investigation.
 
 ## Checkout and host
 

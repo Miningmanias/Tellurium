@@ -3,19 +3,19 @@ loaderVersion="[4,)"
 license="MIT"
 
 [[mods]]
-modId="worldgennext_oracle"
+modId="tellurium_oracle"
 version="0.2.0"
-displayName="WorldgenNext Independent Oracle"
-description='''Original-only Minecraft 1.21.1 chunk capture process. It has no WorldgenNext runtime dependency.'''
+displayName="Tellurium Independent Oracle"
+description='''Original-only Minecraft 1.21.1 chunk capture process. It has no Tellurium runtime dependency.'''
 
-[[dependencies.worldgennext_oracle]]
+[[dependencies.tellurium_oracle]]
 modId="neoforge"
 type="required"
 versionRange="[21.1.176,21.2)"
 ordering="NONE"
 side="SERVER"
 
-[[dependencies.worldgennext_oracle]]
+[[dependencies.tellurium_oracle]]
 modId="minecraft"
 type="required"
 versionRange="[1.21.1,1.21.2)"

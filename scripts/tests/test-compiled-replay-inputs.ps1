@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '../CompiledReplayInputs.ps1')
-$root = Join-Path ([IO.Path]::GetTempPath()) ('worldgennext-compiled-input-contract-' + [Guid]::NewGuid().ToString('N'))
+$root = Join-Path ([IO.Path]::GetTempPath()) ('tellurium-compiled-input-contract-' + [Guid]::NewGuid().ToString('N'))
 $modules = @('semantic-core','compiler-jvm','compiler-vulkan','material-codec','spatial-data',
         'chunk-engine','frontend-mc1211','runtime-vulkan','neoforge-1211')
 $checks = 0
@@ -51,7 +51,7 @@ try {
     $resolved = [IO.Path]::GetFullPath($root)
     $temporary = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\','/') + [IO.Path]::DirectorySeparatorChar
     if (-not $resolved.StartsWith($temporary, [StringComparison]::OrdinalIgnoreCase) -or
-            [IO.Path]::GetFileName($resolved) -notlike 'worldgennext-compiled-input-contract-*') {
+            [IO.Path]::GetFileName($resolved) -notlike 'tellurium-compiled-input-contract-*') {
         throw 'Refusing to delete a fixture tree outside its exact temporary parent'
     }
     if (Test-Path -LiteralPath $resolved) { Remove-Item -LiteralPath $resolved -Recurse -Force }

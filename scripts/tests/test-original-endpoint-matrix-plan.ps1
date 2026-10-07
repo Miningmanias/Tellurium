@@ -2,7 +2,7 @@
 $ErrorActionPreference='Stop'
 $runner=Join-Path $PSScriptRoot '../capture-original-endpoint-matrix.ps1'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
-$fixture=Join-Path ([IO.Path]::GetTempPath()) ('worldgennext-original-matrix-plan-'+[guid]::NewGuid())
+$fixture=Join-Path ([IO.Path]::GetTempPath()) ('tellurium-original-matrix-plan-'+[guid]::NewGuid())
 $capture=Join-Path $fixture 'captures';$runs=Join-Path $fixture 'runs';$checks=0
 function Check([bool]$condition,[string]$message){if(-not $condition){throw $message};$script:checks++}
 function Reject([scriptblock]$action,[string]$message){$failed=$false;try{& $action|Out-Null}catch{$failed=$true};Check $failed $message}
@@ -32,6 +32,6 @@ try{
     Write-Host "PASS original endpoint matrix MODEL_PLAN assertions=$checks (no game/native/child execution)"
 }finally{
     $absolute=[IO.Path]::GetFullPath($fixture);$temp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\','/')+[IO.Path]::DirectorySeparatorChar
-    if(-not $absolute.StartsWith($temp,[StringComparison]::OrdinalIgnoreCase) -or [IO.Path]::GetFileName($absolute) -notlike 'worldgennext-original-matrix-plan-*'){throw 'Unsafe fixture cleanup path'}
+    if(-not $absolute.StartsWith($temp,[StringComparison]::OrdinalIgnoreCase) -or [IO.Path]::GetFileName($absolute) -notlike 'tellurium-original-matrix-plan-*'){throw 'Unsafe fixture cleanup path'}
     if(Test-Path -LiteralPath $absolute){Remove-Item -LiteralPath $absolute -Recurse -Force}
 }

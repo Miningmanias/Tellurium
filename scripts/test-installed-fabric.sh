@@ -7,7 +7,7 @@
 # fetches the Minecraft server and its libraries on first start.  Mods: this mod, Fabric API, ScalableLux.
 #
 # DIM=<dimension id> pregenerates another dimension.  With gpu.mode = "check" in build/installed-fabric/config/
-# worldgennext.toml the run passes when chunks were compared with vanilla and none differed.
+# tellurium.toml the run passes when chunks were compared with vanilla and none differed.
 # Usage: scripts/test-installed-fabric.sh [radius in chunks] [extra JVM arguments]
 set -u
 cd "$(dirname "$0")/.."
@@ -28,7 +28,7 @@ free=$(df -Pk . | awk 'NR==2 {print int($4 / 1048576)}')
 stash=build/_to_delete/fabric-worlds
 mkdir -p "$stash" "$server/mods"
 mv "$server"/mods/*.jar "$stash/" 2>/dev/null
-cp "$(ls -t mod/targets/"$module"/build/libs/worldgennext-fabric-"$mc"-*.jar | grep -v sources | head -1)" "$server/mods/"
+cp "$(ls -t mod/targets/"$module"/build/libs/tellurium-fabric-"$mc"-*.jar | grep -v sources | head -1)" "$server/mods/"
 cp "$api"/*.jar "$lux"/*.jar "$server/mods/"
 [ -d "$server/world" ] && mv "$server/world" "$stash/world-$(date +%Y%m%d-%H%M%S)"
 rm -f "$server/logs/latest.log"
@@ -40,19 +40,19 @@ cd "$server"
   for _ in $(seq 1 900); do sleep 1; grep -q "Done (" logs/latest.log 2>/dev/null && break; grep -qE "Failed to start the minecraft server|Exception in thread \"main\"" logs/latest.log console.out 2>/dev/null && { echo stop; exit; }; done
   for _ in $(seq 1 600); do sleep 1; grep -qE "the_end:? .*(on the GPU|vanilla code|check mode)|GPU terrain generation is unavailable" logs/latest.log && break; done
   sleep 3
-  echo "worldgennext status"
-  echo "execute in ${DIM:-minecraft:overworld} run worldgennext pregen start $radius 0 0"
+  echo "tellurium status"
+  echo "execute in ${DIM:-minecraft:overworld} run tellurium pregen start $radius 0 0"
   for _ in $(seq 1 3600); do sleep 1; grep -q "Pregeneration finished" logs/latest.log && break; done
   echo "save-all flush"
   sleep 8
-  echo "worldgennext status"
+  echo "tellurium status"
   sleep 1
   echo "stop"
 } | java -Xmx16G $jvm -jar fabric-server-launch.jar nogui > console.out 2>&1
 cd - >/dev/null
 
 log="$server/logs/latest.log"
-grep -E "WorldgenNext [0-9.]+ loaded|Pregeneration finished|Chunks since start|overworld: " "$log" | sed -E 's/^\[[^]]*\] \[[^]]*\]: /  /' | tail -5 | cut -c1-200
+grep -E "Tellurium [0-9.]+ loaded|Pregeneration finished|Chunks since start|overworld: " "$log" | sed -E 's/^\[[^]]*\] \[[^]]*\]: /  /' | tail -5 | cut -c1-200
 # Not counted: "Failed to fetch mob spawner entity", which the unmodified game logs for the same dungeons
 # (docs/evidence/fabric-port.md).
 errors=$(grep -E "/ERROR\]|/FATAL\]|Mixin apply failed|InvalidInjectionException|InvalidMixinException" "$log" 2>/dev/null | grep -vc "Failed to fetch mob spawner entity")

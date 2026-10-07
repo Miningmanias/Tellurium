@@ -99,7 +99,7 @@ in its own pregeneration; `docs/evidence/comparison-distant-horizons.md`).
   allowance is cut.
 - Distant Horizons bridge: in a client at most 8 of its requests are in
   progress at once, rough-surface requests included
-  (`worldgennext.dh.activeTiles`; 64 on a dedicated server); the rest wait
+  (`tellurium.dh.activeTiles`; 64 on a dedicated server); the rest wait
   their turn. Tiles are started ahead outwards from the player as well as
   around the last request.
 - `compat/DistantHorizonsRoughSpeedup`: the density function the rough
@@ -123,12 +123,12 @@ the first row):
 | 12 | 52 | 35 | 5.5 s | 35,000 |
 | 48 (as before) | 104 to 115 | 75 to 76 | 15 s | 45,000 to 48,000 |
 
-`-Dworldgennext.dh.activeTiles=<n>` moves along this line. It is not a config
+`-Dtellurium.dh.activeTiles=<n>` moves along this line. It is not a config
 file setting yet.
 
 ## The start of a session (2026-10-06, later)
 
-The figures above leave out the first 8 seconds (`worldgennext.bench.tourDelay=8`). Measured from the
+The figures above leave out the first 8 seconds (`tellurium.bench.tourDelay=8`). Measured from the
 moment the player joins instead, one run each before these changes: Voxy 5 late ticks and 4 frames over
 33 ms in the minute, Distant Horizons 12 to 17 and 10 to 13, and Flight, where the player is thrown into
 ungenerated terrain at 240 blocks/s in the first half second, 13 late ticks with one gap of 1.4 s.

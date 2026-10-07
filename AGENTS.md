@@ -1,4 +1,4 @@
-# WorldgenNext working instructions
+# Tellurium working instructions
 
 Read Plan.md, docs/CONTRACTS.md and docs/TESTING.md before implementation.
 This repository is independent of D:\\Projects\\GPUWorldGen. Treat that checkout as read-only reference.

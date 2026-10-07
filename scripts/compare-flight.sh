@@ -27,7 +27,7 @@ mv "$server"/mods/*.jar "$server/mods-stash/" 2>/dev/null
 cp build/test-mods/vanilla/ScalableLux-*.jar "$server/mods/"
 case "$config" in
   vanilla) ;;
-  worldgennext) cp "$(ls -t mod/targets/neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-*.jar | grep -v sources | head -1)" "$server/mods/" ;;
+  tellurium) cp "$(ls -t mod/targets/neoforge-1211/build/libs/tellurium-neoforge-1.21.1-*.jar | grep -v sources | head -1)" "$server/mods/" ;;
   c2me) cp build/test-mods/c2me/c2me-neoforge-mc*.jar "$server/mods/" ;;
   c2me-ocl) cp build/test-mods/c2me-ocl/c2me-neoforge-*.jar "$server/mods/" ;;
   *) echo "unknown configuration $config"; exit 2 ;;
@@ -41,7 +41,7 @@ half=$((7 * 16))
 cd "$server"
 {
   for _ in $(seq 1 600); do sleep 1; grep -q "Done (" logs/latest.log 2>/dev/null && break; grep -qE "Failed to start the minecraft server" logs/latest.log 2>/dev/null && break; done
-  if [ "$config" = worldgennext ]; then
+  if [ "$config" = tellurium ]; then
     for _ in $(seq 1 600); do sleep 1; grep -qE "the_end: .*(on the GPU|vanilla code)|GPU terrain generation is unavailable" logs/latest.log && break; done
   fi
   sleep 5

@@ -1,4 +1,4 @@
-# WorldgenNext implementation plan
+# Tellurium implementation plan
 
 2026-10-02 owner decision: throughput work was pulled forward ahead of the
 remaining v0.2 gates. The mod now ships a fused native-FP64 GPU NOISE path
@@ -96,7 +96,7 @@ The [historical proposal](docs/design/PROPOSAL.md) remains design provenance. It
 ## v0.2 scope and decisions
 
 - Deliver the full usable NeoForge 1.21.1 product: independent same-stack oracle, complete typed frontend, owned CPU and real Vulkan NOISE generation, exact material/metadata output, bounded coordination/resources, live application, original downstream stages, FULL and saved/reopened worlds, configuration and installed-jar qualification.
-- Retain Minecraft's holder/ticket/status machinery as the sole chunk-state authority. WorldgenNext coordinates only its subordinate work. No second holder scheduler or required C2ME integration.
+- Retain Minecraft's holder/ticket/status machinery as the sole chunk-state authority. Tellurium coordinates only its subordinate work. No second holder scheduler or required C2ME integration.
 - Implement the `GPU_IEEE_BITS` numerical route and qualify its integer-based FP32/FP64 helpers before real GPU worldgen. The v0.1 normal-range diagnostic does not qualify arbitrary floating-point arithmetic.
 - Require vanilla Overworld/Nether/End and pinned Terralith, Tectonic/Lithostitched and combined contexts. Required GPU NOISE cannot be replaced by CPU fallback and still pass. Original CPU surface/carvers/features/light/spawning/save are planned stage owners.
 - Target Windows x64/Java 21/RTX 5070 Ti first, with CPU operation and Linux build/test/native-packaging automation. Other GPUs/platforms need separate evidence. Fabric remains a later adapter, following the existing NeoForge-first scope.

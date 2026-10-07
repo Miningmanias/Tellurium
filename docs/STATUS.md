@@ -1,4 +1,44 @@
-# WorldgenNext status — 2026-10-03
+# Tellurium status — 2026-10-03
+
+## 2026-10-06 — Renamed to Tellurium; code review
+
+The mod is called Tellurium everywhere: mod id `tellurium`, command
+`/tellurium`, `config/tellurium.toml`, system properties `tellurium.*`,
+packages `dev.tellurium.*`, jars `tellurium-<loader>-<minecraft>-<version>.jar`.
+A `config/worldgennext.toml` from an earlier build is copied to the new name
+on first start and left where it is. Not carried over: a paused
+pregeneration's progress file in the world folder
+(`worldgennext-pregen.properties`), the bridges' lists of chunks already
+handed to Distant Horizons or Voxy, and the pipeline cache folder (rebuilt on
+first start). The Gradle project names of the builds are unchanged.
+
+Two strings keep the old name on purpose: the version comment at the top of
+every kernel and the first comment of `fused_lib.glsl`. The tested-generator
+lists are keyed on the kernel text; the first attempt renamed the library's
+comment, every listed generator then counted as untested, and the
+installed-server tests failed (0 chunks on the GPU in the default mode) while
+the exactness matrix, which forces the GPU, passed. A unit test now pins both
+strings and the library's line ends, `.gitattributes` keeps kernel sources at
+LF, and the console check of the release check requires GPU terrain in the
+default mode.
+
+Older pages under `docs/` were renamed with the code, so the commands and
+property names they quote are the ones that work now, not literally what was
+typed then; the raw result files of the 0.1 runs (`docs/evidence/v0.1-*.json`,
+`v0.1-game-bootstrap.txt`) and the paths of this checkout were left as they
+were.
+
+The same day a code review's 19 findings were worked through:
+`docs/evidence/code-review-20261006.md`.
+
+Run on the renamed code: unit tests (584); the release check on NeoForge
+1.21.1 (exactness 3/3, carvers, save and reopen, kill and resume, console);
+installed servers in the default mode, 40,401 chunks each, all with terrain on
+the GPU: Fabric 1.21.11, NeoForge 1.21.11, Fabric 1.21.1. Not run on the
+renamed code: the 1.21.4 and 1.21.8 builds beyond compiling and their unit
+tests, the full 15-row matrix of any build, a Distant Horizons session, a
+released client. One Voxy session in the development client ran (73,984
+chunks handed over).
 
 ## 2026-10-06 — One source tree for every build
 
@@ -73,7 +113,7 @@ generator computes the aquifers' surface level differently. Evidence: `docs/evid
 ## 2026-10-06 — Fabric 1.21.1
 
 `fabric-1211` builds a Fabric jar from the same source. Loader-specific code
-is confined to `dev.worldgennext.neoforge.loader` (NeoForge: `Loader`,
+is confined to `dev.tellurium.neoforge.loader` (NeoForge: `Loader`,
 `NeoForgeEntry`; Fabric: its own `Loader`, `FabricEntry`, one mixin);
 `loader/Names` translates the Minecraft names the mod reads by reflection for
 a released Fabric game through a table the build writes. Verified: SURFACE
@@ -98,14 +138,14 @@ Also run: mod disabled in the config (generates at vanilla speed), GPU off
 (singleplayer, LAN host) the terrain within `voxy.radius` chunks of each
 player is generated tile by tile, nearest first, and each finished chunk is
 passed to Voxy's ingest service; the positions handed over are kept in
-`<world>/worldgennext-voxy/`. Tested with Voxy 0.2.16-beta through Roxy 0.3.3
+`<world>/tellurium-voxy/`. Tested with Voxy 0.2.16-beta through Roxy 0.3.3
 on NeoForge 21.1.255 in the dev client: 73,984 chunks in about 40 s (about
 1,950 chunks/s), heap steady, nothing regenerated in a second session, a
 flying player kept a 10.5 ms average tick. Voxy WorldGen 2.4.2 in the same
 setup: 15,167 chunks in the region files after 150 s, 29,588 on this mod's
 chunk generation. Not done: looking at what Voxy draws; dedicated servers
 (no Voxy in the process); unfinished chunks. The dev client can now run on a
-later NeoForge 21.1.x (`-Pworldgennext.neoforge=`). Evidence:
+later NeoForge 21.1.x (`-Ptellurium.neoforge=`). Evidence:
 `docs/evidence/comparison-voxy.md`.
 
 ## 2026-10-05 — Distant Horizons
@@ -142,7 +182,7 @@ Later the same day: `hybrid` fills tiles with this mod's own column writer
 listens to its chunk-processing event) and, unless
 `distant_horizons.full_chunks` is set, from chunks stopped at FEATURES once
 the ring around the tile has reached FEATURES. `dh pregen`: 2,041-2,119
-chunks/s. With `worldgennext.dh.columnsCheck` the writer matched Distant
+chunks/s. With `tellurium.dh.columnsCheck` the writer matched Distant
 Horizons' builder on every column in the Overworld, Nether, End and an
 already generated world (about 11 million columns); the differences seen
 (4 at the spawn, 706 of 18.9 million in singleplayer) are in ticking chunks.
@@ -165,10 +205,10 @@ Supersedes the FULL figures further down.
 - **Checks**: 15/15 contexts identical to serial vanilla at SURFACE; CARVERS
   subset identical; ore scan and biome shortcut compared in place with
   vanilla's results; FULL save/reopen passes for vanilla and combined.
-- **User-facing**: `config/worldgennext.toml`, `/worldgennext status`,
-  `/worldgennext pregen ...` (region-ordered, resumable). The staged route's
-  commands moved to `/worldgennext dev ...`, and its code from
-  `WorldgenNextMod` to `legacy/StagedRoute`; behaviour unchanged.
+- **User-facing**: `config/tellurium.toml`, `/tellurium status`,
+  `/tellurium pregen ...` (region-ordered, resumable). The staged route's
+  commands moved to `/tellurium dev ...`, and its code from
+  `TelluriumMod` to `legacy/StagedRoute`; behaviour unchanged.
 - **Singleplayer**: the mixins now apply on the client's integrated server too.
   Checked in a dev client: SURFACE digests of 8,281 chunks equal the dedicated
   vanilla reference; a 14,641-chunk pregeneration ran next to rendering with no
@@ -396,7 +436,7 @@ not a hidden successful TPS gate.
 
 ## v0.2 checkpoint
 
-The repository now builds `0.2.0` and contains executable correctness-first contracts across the semantic, CPU, Vulkan, material, spatial, coordinator, oracle and NeoForge configuration/runtime layers. The release jar packages those layers and native initialization remains lazy. Qualified provider attempts now pass through the runtime-owned bounded coordinator, and engine-side spatial requests now select a fixed route before consuming bounded typed sample tiles; the live Minecraft generation hook is still disabled by default. An explicit `worldgennext.prototype.cpuLive=true` launcher flag now exposes the existing CPU candidate through the ordinary NOISE hook for playable draft integration, without treating that path as qualification evidence.
+The repository now builds `0.2.0` and contains executable correctness-first contracts across the semantic, CPU, Vulkan, material, spatial, coordinator, oracle and NeoForge configuration/runtime layers. The release jar packages those layers and native initialization remains lazy. Qualified provider attempts now pass through the runtime-owned bounded coordinator, and engine-side spatial requests now select a fixed route before consuming bounded typed sample tiles; the live Minecraft generation hook is still disabled by default. An explicit `tellurium.prototype.cpuLive=true` launcher flag now exposes the existing CPU candidate through the ordinary NOISE hook for playable draft integration, without treating that path as qualification evidence.
 
 Open mandatory evidence: the independent candidate-paired same-stack oracle qualification beyond the now-complete 1,500-case CPU NOISE corpus, complete Minecraft density/noise/aquifer/ore semantics on every supported route, full qualified integer-carrier terrain execution, real GPU replay, qualified live commit/rollback, the required downstream FULL and SAVED/reopened matrices beyond the one-case witness, terrain-mod GPU matrix and stability campaigns. These are not inferred from focused tests, the 121-artifact CPU-live prototype smoke, or synthetic replay.
 
@@ -416,11 +456,11 @@ Planning update: [v0.2 complete functionality](V0.2-PLAN.md) is in progress. Foc
 | NeoForge development bootstrap | **11/11 required GameTests passed**, clean shutdown | Main mod registration, core self-test, explicit live-hook rejection, default-off version-pinned hook bypass, rejected-provider teardown, mapped range capture, bound 1.21.1 Overworld/Nether/End 15-root/direct-density smoke, real ProtoChunk rollback, injected mutation-failure restoration, cancellation forwarding and authoritative commit-token preflight |
 | Standalone replay launcher | **PASS** | Packaged launcher executes CPU/limited GPU and returns failure for strict unsupported hardware |
 | Original-only Minecraft oracle preflight | **PASS: 10/10 cases, 100/100 fields, 0 differences** | Vanilla Overworld NOISE; five signed seeds × two centers; clean original-vs-original processes; not candidate parity |
-| CPU candidate NOISE corpus | **PASS: 1,500/1,500 cases, 15,000/15,000 fields, 131,072,000/131,072,000 block states, 0 mismatches** | Opt-in WorldgenNext NeoForge candidate artifacts paired with independent original corpora; 750 vanilla cases plus 250 each for Terralith/Lithostitched, Tectonic/Lithostitched and the combined fixture; CPU-only G4 corpus evidence, not GPU or live qualification |
+| CPU candidate NOISE corpus | **PASS: 1,500/1,500 cases, 15,000/15,000 fields, 131,072,000/131,072,000 block states, 0 mismatches** | Opt-in Tellurium NeoForge candidate artifacts paired with independent original corpora; 750 vanilla cases plus 250 each for Terralith/Lithostitched, Tectonic/Lithostitched and the combined fixture; CPU-only G4 corpus evidence, not GPU or live qualification |
 | Coordinator-backed isolated NOISE wiring smoke | **PASS: one real candidate task, artifact 221,640 bytes, clean shutdown** | Fresh vanilla Overworld server at chunk (32,32); exercises bounded coordinator admission, request-local CPU backend, authoritative commit and endpoint publication; wiring witness only, not same-stack parity or live qualification |
 | Demand-driven spatial consumer/service | **PASS: bounded tile split, cache sharing, cancellation and typed partial surface edges** | `TiledSampleConsumer` and `SpatialWorkService` cover exact XYZ/halo windows with bounded in-flight tiles and static CPU/GPU selection; engine contract evidence only, not Minecraft regional sampling |
-| Coordinator/operator snapshot | **PASS: schema-1 text/JSON diagnostics** | Queue depth/capacity, active/retained records, reserved/budget bytes, independent work counters, effective hook/config identity and process-local hook decision/completion counters are exposed through `/worldgennext status-json`; telemetry only, not qualification evidence |
-| Draft CPU-live integration switch | **PASS: 121 live NOISE artifacts, receipts and committed sidecars; server reached `Done (95.755s)`** | `worldgennext.prototype.cpuLive=true` installs the isolated CPU candidate for an ordinary running server and preserves original downstream stages; disposable process was stopped after readiness; explicit prototype aid only, rejects `GPU_REQUIRED`, and is not G9/G12 evidence; see [prototype evidence](evidence/v0.2-cpu-live-prototype.md) |
+| Coordinator/operator snapshot | **PASS: schema-1 text/JSON diagnostics** | Queue depth/capacity, active/retained records, reserved/budget bytes, independent work counters, effective hook/config identity and process-local hook decision/completion counters are exposed through `/tellurium status-json`; telemetry only, not qualification evidence |
+| Draft CPU-live integration switch | **PASS: 121 live NOISE artifacts, receipts and committed sidecars; server reached `Done (95.755s)`** | `tellurium.prototype.cpuLive=true` installs the isolated CPU candidate for an ordinary running server and preserves original downstream stages; disposable process was stopped after readiness; explicit prototype aid only, rejects `GPU_REQUIRED`, and is not G9/G12 evidence; see [prototype evidence](evidence/v0.2-cpu-live-prototype.md) |
 | Multi-context qualification admission seam | **PASS: schema-2 aggregate receipt model and exact context allowlist** | Aggregates version-pinned route/ABI/compiler evidence across distinct captured contexts while rejecting duplicates, mixed identities, partial entries and missing request contexts; no corpus is claimed by the model itself |
 | Terralith + Lithostitched CPU NOISE slice | **PASS: 250/250 cases, 2,500/2,500 fields, 24,576,000/24,576,000 block states, 0 mismatches** | Terralith 2.6.2 + Lithostitched 1.8.0+beta6, Overworld, five signed seeds × 5×5 squares at both centers; CPU-only partial terrain-mod evidence, not the required six-context/GPU gate; see [evidence](evidence/v0.2-terrain-mods.md) |
 | Tectonic + Lithostitched CPU NOISE corpus | **PASS: 250/250 cases, 2,500/2,500 fields, 24,576,000/24,576,000 block states, 0 mismatches** | Tectonic 3.0.26 + Lithostitched 1.8.0+beta6, Overworld, five signed seeds × 5×5 squares at both centers; CPU-only context evidence, not GPU/live qualification; see [evidence](evidence/v0.2-terrain-mods.md) |
@@ -691,11 +731,11 @@ The 0.2.0 NeoForge jar packages the pure core modules and persistent-runtime cla
 
 Build outputs:
 
-- `neoforge-1211/build/libs/worldgennext-neoforge-1.21.1-0.2.0.jar` — correctness-first checkpoint mod.
-- `oracle-and-replay/build/libs/worldgennext-corpus-api-0.2.0.jar` — isolated pure corpus interchange artifact.
-- `oracle-1211/build/libs/worldgennext-oracle-1.21.1-0.2.0.jar` — independent original-only capture module; it is not the candidate product.
+- `neoforge-1211/build/libs/tellurium-neoforge-1.21.1-0.2.0.jar` — correctness-first checkpoint mod.
+- `oracle-and-replay/build/libs/tellurium-corpus-api-0.2.0.jar` — isolated pure corpus interchange artifact.
+- `oracle-1211/build/libs/tellurium-oracle-1.21.1-0.2.0.jar` — independent original-only capture module; it is not the candidate product.
 - `oracle-and-replay/build/distributions/oracle-and-replay-0.2.0.zip` — replay application and its runtime dependencies.
-- `build/distributions/worldgennext-0.2.0-sources.zip` — source/configuration/documentation archive.
+- `build/distributions/tellurium-0.2.0-sources.zip` — source/configuration/documentation archive.
 - `build/reports/tests/all/index.html` — aggregate CPU report.
 
 Artifact identity checkpoint (2026-09-14, SHA-256): NeoForge jar

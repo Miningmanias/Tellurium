@@ -13,7 +13,7 @@ $sourcePath = (Resolve-Path (Join-Path $repo $Source)).Path
 $cp = (& (Join-Path $repo 'gradlew.bat') ':runtime-vulkan:printProbeClasspath' '--no-daemon' '-q' 2>$null | Select-Object -Last 1)
 foreach ($k in ($Kernels -split ',')) {
     $log = Join-Path $repo "build/fast-src/probe-$k.log"
-    $argList = @('-Dorg.lwjgl.system.stackSize=16384', '-cp', $cp, 'dev.worldgennext.runtime.vulkan.fused.FusedCompileProbe', $sourcePath, $k) + ($Defines -split ' ' | Where-Object { $_ })
+    $argList = @('-Dorg.lwjgl.system.stackSize=16384', '-cp', $cp, 'dev.tellurium.runtime.vulkan.fused.FusedCompileProbe', $sourcePath, $k) + ($Defines -split ' ' | Where-Object { $_ })
     $p = Start-Process -FilePath (Join-Path $env:JAVA_HOME 'bin\java.exe') -ArgumentList $argList -RedirectStandardOutput $log -RedirectStandardError "$log.err" -PassThru -NoNewWindow
     if (-not $p.WaitForExit($TimeoutSeconds * 1000)) {
         $peak = [math]::Round($p.PeakWorkingSet64 / 1GB, 2)

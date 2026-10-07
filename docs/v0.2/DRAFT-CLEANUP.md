@@ -103,10 +103,10 @@ the production design.
 
 ## 2026-09-14
 
-- Added an explicit `worldgennext.prototype.cpuLive=true` development mode.
+- Added an explicit `tellurium.prototype.cpuLive=true` development mode.
   It installs the existing isolated CPU candidate provider into an ordinary
   running NeoForge server, keeps the original downstream stages, and supports
-  a bounded `worldgennext.prototype.cpuWorkers` pool. It is default-off,
+  a bounded `tellurium.prototype.cpuWorkers` pool. It is default-off,
   rejects `GPU_REQUIRED`, and remains unqualified prototype behavior; the
   production hook still requires an evidence-bearing registration. Expand the
   live CPU matrix, add proper route/context admission, and remove or replace
@@ -254,7 +254,7 @@ the production design.
 - Qualified CPU and GPU provider attempts now submit through the runtime-owned
   coordinator. The shared queue and host reservation are real, while the
   provider still supplies request-local backend and Minecraft commit handlers.
-  A schema-1 `/worldgennext status-json` snapshot now exposes queue/admission
+  A schema-1 `/tellurium status-json` snapshot now exposes queue/admission
   dimensions and every independent coordinator counter, but it is still
   operational telemetry rather than a durable qualification receipt. The
   draft does not yet coalesce holder retries or run continuation work on a
@@ -419,7 +419,7 @@ the production design.
   allocation from consuming tens of gigabytes while exploring the captured
   graph. Replace source-text reachability and heuristic size estimates with a
   compiler-owned graph/IR and measured per-driver limits before release.
-- `worldgennext.gpuCandidate.recreateDeviceInterval` is an opt-in containment
+- `tellurium.gpuCandidate.recreateDeviceInterval` is an opt-in containment
   switch for drivers that retain native shader compiler state across pipeline
   destruction. The interval-8 probe kept resident memory near 2.6--3 GiB but
   made the 410-stage ordinary run too slow and was stopped without a receipt.
@@ -717,7 +717,7 @@ in one command buffer with shader-write/read barriers, and reads back only the
 final buffer. Stage geometry, numeric profile, DontInline policy, pipeline
 flags and the aggregate shader/SPIR-V provenance are validated. The captured
 Perlin fan-out uses this chain. The multi-step integer FP64 divider can use it
-through the explicit `worldgennext.gpuCandidate.deviceResidentFp64DivisionChain=true`
+through the explicit `tellurium.gpuCandidate.deviceResidentFp64DivisionChain=true`
 experiment, but remains host-mediated by default after the target NVIDIA
 driver crashed at queue submission for the long 29-dispatch divider topology.
 
@@ -1079,7 +1079,7 @@ group-four defaults as a prototype experiment only; the complete Overworld
 GPU/FULL/SAVED/live gates remain open.
 
 The follow-up embedded-root smoke used only
-`worldgennext.gpuCandidate.capture=true` (no master capture flag and no
+`tellurium.gpuCandidate.capture=true` (no master capture flag and no
 explicit Perlin group size). It reached the real GPU coordinate, grouped
 Perlin and combine stages and returned `0.10744060995659291` before the
 intentional diagnostic stop. Its expected failure sidecar is
@@ -1090,7 +1090,7 @@ intentional diagnostic stop. Its expected failure sidecar is
 The native-draft full path now applies the aggressive small-module envelope
 only to the top-level density route. Interpolation children default to the
 wider `75k` source / `200` reachable-function envelope, with an explicit
-`worldgennext.gpuCandidate.interpolationAggressiveDensityStaging=true`
+`tellurium.gpuCandidate.interpolationAggressiveDensityStaging=true`
 override for compiler experiments. The bounded child probe changed the
 captured `wg_node_5` plan from the earlier `2,204` stages to `394` stages over
 `1,225` corner coordinates; the child completed real GPU stages before the
@@ -1656,7 +1656,7 @@ path, not numeric parity: the approximation deliberately omits barrier noise
 and quantizes pressure magnitude to a small signed carrier.
 
 The integer-pressure route is now confined to the explicit
-`worldgennext.gpuCandidate.exactAquiferStage=true` diagnostic (and the scalar
+`tellurium.gpuCandidate.exactAquiferStage=true` diagnostic (and the scalar
 trace). The default route retains its legacy FP64 pressure function, so the
 prototype baseline is not silently replaced by the unqualified approximation.
 The legacy ratio table is emitted only for the scalar trace; the normal exact
@@ -1722,7 +1722,7 @@ Additional cleanup debt:
 ## External aquifer barrier carrier — 2026-09-22
 
 The exact aquifer prototype now has an opt-in barrier-carrier seam:
-`worldgennext.gpuCandidate.exactAquiferBarrierInput=true`. The compiler emits
+`tellurium.gpuCandidate.exactAquiferBarrierInput=true`. The compiler emits
 the aquifer entry as a three-argument function, and the staged runtime sends a
 seven-word row (`x,y,z,densityLo,densityHi,barrierLo,barrierHi`). The captured
 barrier root is evaluated by its own real GPU stage, so the compact aquifer

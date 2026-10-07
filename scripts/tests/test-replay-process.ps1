@@ -1,7 +1,7 @@
 # Starts only tiny, owned PowerShell workers. No Gradle, Java, Minecraft or GPU.
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '../Invoke-ReplayProcess.ps1')
-$taskRoot = Join-Path ([IO.Path]::GetTempPath()) ('worldgennext-owned-process-' + [guid]::NewGuid())
+$taskRoot = Join-Path ([IO.Path]::GetTempPath()) ('tellurium-owned-process-' + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $taskRoot | Out-Null
 $taskExecutable = (Get-Process -Id $PID).Path
 $taskChecks = 0
@@ -45,7 +45,7 @@ try {
     $resolved = [IO.Path]::GetFullPath($taskRoot)
     $tempParent = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\','/')
     if (-not $resolved.StartsWith($tempParent + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -or
-        [IO.Path]::GetFileName($resolved) -notlike 'worldgennext-owned-process-*') {
+        [IO.Path]::GetFileName($resolved) -notlike 'tellurium-owned-process-*') {
         throw "Refusing unexpected temporary cleanup target: $resolved"
     }
     Remove-Item -LiteralPath $resolved -Recurse -Force

@@ -1,6 +1,6 @@
 # Synthetic oracle and replay
 
-This executable compares the independent `ReferenceInterpreter` against the prebound `CpuCompiler` or a real Vulkan dispatch. The fixed `worldgennext-synthetic-v1` corpus contains eight graphs and 131 integer points per graph: **1,048 expected comparisons**. It covers negative coordinates, range edges, both 4×8 and 8×4 interpolation geometries, an explicit semantic boundary, an unselected overflowing branch, negative zero and subnormal addition. The 131-point count exercises incomplete final GPU workgroups.
+This executable compares the independent `ReferenceInterpreter` against the prebound `CpuCompiler` or a real Vulkan dispatch. The fixed `tellurium-synthetic-v1` corpus contains eight graphs and 131 integer points per graph: **1,048 expected comparisons**. It covers negative coordinates, range edges, both 4×8 and 8×4 interpolation geometries, an explicit semantic boundary, an unselected overflowing branch, negative zero and subnormal addition. The 131-point count exercises incomplete final GPU workgroups.
 
 It is not a Minecraft oracle. Noise-router lowering, aquifers, ore materials, biomes, heightmaps, light and saved chunks are absent. A synthetic comparison cannot establish Minecraft parity or chunks per second.
 
@@ -16,7 +16,7 @@ Run from the repository root using JDK21:
 
 The dedicated tasks write `oracle-and-replay/build/replay/cpu-replay.json` and `gpu-smoke.json`. Relative `--output` paths resolve in the application module directory. `:oracle-and-replay:installDist` creates a standalone launcher under `oracle-and-replay/build/install/oracle-and-replay/bin/`.
 
-The separate `gpuSmokeNormal` task (CLI `gpu-smoke-normal`) writes `gpu-normal-range.json` with backend `VULKAN_NORMAL_RANGE_DIAGNOSTIC` and corpus `worldgennext-normal-range-diagnostic-v1`: seven fixtures, 917 samples, excluding the subnormal-addition fixture. It permits devices without advertised FP64 subnormal preservation. It never substitutes for the eight-fixture strict check, and reports full FP64 qualification as `NOT_PASSED`. This diagnostic exists because the initial RTX5070Ti driver lacks that advertised capability; the default strict gate remains intact.
+The separate `gpuSmokeNormal` task (CLI `gpu-smoke-normal`) writes `gpu-normal-range.json` with backend `VULKAN_NORMAL_RANGE_DIAGNOSTIC` and corpus `tellurium-normal-range-diagnostic-v1`: seven fixtures, 917 samples, excluding the subnormal-addition fixture. It permits devices without advertised FP64 subnormal preservation. It never substitutes for the eight-fixture strict check, and reports full FP64 qualification as `NOT_PASSED`. This diagnostic exists because the initial RTX5070Ti driver lacks that advertised capability; the default strict gate remains intact.
 
 Exit 0 means every expected fixture and sample passed. Exit 1 means an executed report failed comparison, capability or coverage. Exit 2 means invocation, setup or artifact-writing failure. GPU mode requires a qualified physical GPU; missing natives/devices, unsupported features, shader compilation errors, timeout, mismatch or incomplete coverage produce failure without CPU fallback. Native failure stops further submissions and exits the dedicated process.
 

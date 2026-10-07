@@ -15,14 +15,14 @@ uses for chunks the client receives.
   12 MB of heap, at most 1,024). Nothing is started while Voxy's ingest queue,
   which has no limit of its own, holds more than 8,192 sections.
 - **Memory of what was done.** The positions handed over are kept per
-  dimension in `<world>/worldgennext-voxy/`, so a later session generates and
-  loads nothing twice. `/worldgennext voxy forget` clears that for the
+  dimension in `<world>/tellurium-voxy/`, so a later session generates and
+  loads nothing twice. `/tellurium voxy forget` clears that for the
   dimension the command is run in, for after Voxy's stored data was deleted.
 - **Voxy is not changed.** Two of its methods are looked up by name
   (`VoxelIngestService.tryAutoIngestChunk`, and the queue length). On a
   dedicated server there is no Voxy in the process and nothing happens.
 - If the separate Voxy WorldGen mod is installed, this mod leaves the job to
-  it and says so in the log and in `/worldgennext status`.
+  it and says so in the log and in `/tellurium status`.
 
 ## Setup
 
@@ -102,4 +102,4 @@ roughly 80 and 175 chunks/s.
   chunk has to be lit.
 - If Voxy's ingest is switched off in its settings every hand-over is
   refused; the mod then waits 30 s before asking again and
-  `/worldgennext status` shows the count.
+  `/tellurium status` shows the count.

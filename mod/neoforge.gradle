@@ -3,23 +3,23 @@ plugins { id 'net.neoforged.moddev' version '2.0.148' }
 // The NeoForge build of the mod for one Minecraft version: the build script of every NeoForge target in
 // mod/targets.gradle.  Which sources it is built from is in mod/sources.gradle.
 def target = gradle.ext.modTargets[project.name]
-base { archivesName = "worldgennext-neoforge-${target.minecraft}" }
+base { archivesName = "tellurium-neoforge-${target.minecraft}" }
 
 apply from: rootProject.file('mod/sources.gradle')
 
 neoForge {
-    // -Pworldgennext.neoforge=<version> runs the dev client or server on a later NeoForge of the same Minecraft
+    // -Ptellurium.neoforge=<version> runs the dev client or server on a later NeoForge of the same Minecraft
     // version (some mods need one).
-    version = providers.gradleProperty('worldgennext.neoforge').getOrElse(target.neoforge)
+    version = providers.gradleProperty('tellurium.neoforge').getOrElse(target.neoforge)
     mods {
-        worldgennext {
+        tellurium {
             sourceSet sourceSets.main
             modSources.pureModules.each { sourceSet project(":$it").sourceSets.main }
         }
     }
     runs {
         configureEach {
-            loadedMods = [mods.worldgennext]
+            loadedMods = [mods.tellurium]
             // As in neoforge-1211: the launch-time LWJGL artifacts for the GPU runtime in development runs.
             // NeoForge for 1.21.11 has no additional runtime classpath any more (additionalClasspath: false in the table);
             // there the mod's own nested copy of the runtime is what a development run uses, as a released jar does.
@@ -30,25 +30,25 @@ neoForge {
                 additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl:3.3.3:natives-windows')
                 additionalRuntimeClasspathConfiguration.dependencies.add module('org.lwjgl:lwjgl-shaderc:3.3.3:natives-windows')
             }
-            def lwjglStackSize = System.getProperty('worldgennext.lwjgl.stackSize', '16384').trim()
+            def lwjglStackSize = System.getProperty('tellurium.lwjgl.stackSize', '16384').trim()
             if (!(lwjglStackSize ==~ /[1-9][0-9]*/)) {
-                throw new GradleException('worldgennext.lwjgl.stackSize must be a positive decimal stack-size value')
+                throw new GradleException('tellurium.lwjgl.stackSize must be a positive decimal stack-size value')
             }
             jvmArgument "-Dorg.lwjgl.system.stackSize=${lwjglStackSize}"
         }
         server {
             server()
-            gameDirectory = project.file(System.getProperty('worldgennext.candidate.runDir', layout.buildDirectory.dir('run/server').get().asFile.absolutePath))
+            gameDirectory = project.file(System.getProperty('tellurium.candidate.runDir', layout.buildDirectory.dir('run/server').get().asFile.absolutePath))
             programArgument '--nogui'
         }
         client {
             client()
-            gameDirectory = project.file(System.getProperty('worldgennext.candidate.runDir', layout.buildDirectory.dir('run/client').get().asFile.absolutePath))
+            gameDirectory = project.file(System.getProperty('tellurium.candidate.runDir', layout.buildDirectory.dir('run/client').get().asFile.absolutePath))
             // Straight into an existing singleplayer world (a folder under <gameDirectory>/saves).
-            def quickPlay = System.getProperty('worldgennext.client.quickPlay', '').trim()
+            def quickPlay = System.getProperty('tellurium.client.quickPlay', '').trim()
             if (!quickPlay.isEmpty()) programArguments.addAll '--quickPlaySingleplayer', quickPlay
-            // -Dworldgennext.client.window=1920x1080: the window's size (for recordings).
-            def window = System.getProperty('worldgennext.client.window', '').trim() =~ /^(\d+)x(\d+)$/
+            // -Dtellurium.client.window=1920x1080: the window's size (for recordings).
+            def window = System.getProperty('tellurium.client.window', '').trim() =~ /^(\d+)x(\d+)$/
             if (window.matches()) programArguments.addAll '--width', window.group(1), '--height', window.group(2)
         }
     }
@@ -62,26 +62,26 @@ tasks.named('processResources') {
 }
 
 tasks.named('jar', Jar) {
-    manifest { attributes('Implementation-Title': 'WorldgenNext', 'Implementation-Version': project.version) }
+    manifest { attributes('Implementation-Title': 'Tellurium', 'Implementation-Version': project.version) }
 }
 
 tasks.matching { it.name == 'runServer' || it.name == 'runClient' }.configureEach {
     dependsOn tasks.named('prepareCandidateRun')
-    // -Dworldgennext.run.java=<version>: run on that Java instead (a comparison with a mod that needs a newer one).
-    def runJava = System.getProperty('worldgennext.run.java', '').trim()
+    // -Dtellurium.run.java=<version>: run on that Java instead (a comparison with a mod that needs a newer one).
+    def runJava = System.getProperty('tellurium.run.java', '').trim()
     if (!runJava.isEmpty()) javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(runJava as int) }
-    // Every -Dworldgennext.* given to Gradle reaches the game (output paths resolved here: the game's working
+    // Every -Dtellurium.* given to Gradle reaches the game (output paths resolved here: the game's working
     // directory is the run directory).
     System.properties.each { key, value ->
-        if (key.toString().startsWith('worldgennext.') && !(key.toString() in ['worldgennext.candidate.runDir', 'worldgennext.run.maxHeap', 'worldgennext.run.jvmArgs', 'worldgennext.run.jfr', 'worldgennext.run.java'])) {
-            systemProperty key.toString(), key == 'worldgennext.bench.output' && !value.toString().trim().isEmpty() ? project.file(value.toString().trim()).absolutePath : value.toString()
+        if (key.toString().startsWith('tellurium.') && !(key.toString() in ['tellurium.candidate.runDir', 'tellurium.run.maxHeap', 'tellurium.run.jvmArgs', 'tellurium.run.jfr', 'tellurium.run.java'])) {
+            systemProperty key.toString(), key == 'tellurium.bench.output' && !value.toString().trim().isEmpty() ? project.file(value.toString().trim()).absolutePath : value.toString()
         }
     }
-    def maxHeap = System.getProperty('worldgennext.run.maxHeap', '').trim()
+    def maxHeap = System.getProperty('tellurium.run.maxHeap', '').trim()
     if (!maxHeap.isEmpty()) jvmArgs "-Xmx${maxHeap}"
-    def extraJvmArgs = System.getProperty('worldgennext.run.jvmArgs', '').trim()
+    def extraJvmArgs = System.getProperty('tellurium.run.jvmArgs', '').trim()
     if (!extraJvmArgs.isEmpty()) jvmArgs extraJvmArgs.split(/\s+/)
-    def jfr = System.getProperty('worldgennext.run.jfr', '').trim()
+    def jfr = System.getProperty('tellurium.run.jfr', '').trim()
     if (!jfr.isEmpty()) { def jfrFile = rootProject.file(jfr); jfrFile.parentFile.mkdirs(); jvmArgs "-XX:StartFlightRecording=filename=${jfrFile.absolutePath},settings=profile,dumponexit=true" }
 }
 

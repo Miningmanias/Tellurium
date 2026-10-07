@@ -38,7 +38,7 @@ function Read-LogicalMatrixHeader([string]$path) {
     $required = @('BLOCK_STATES','BIOMES','HEIGHTMAPS','POSTPROCESSING','LIGHT','TICKS',
         'BLOCK_ENTITIES','STRUCTURES','ENTITIES','LIFECYCLE')
     try {
-        if ($reader.ReadLine() -cne 'WORLDGENNEXT-SNAPSHOT-1') { throw "Wrong snapshot header: $path" }
+        if ($reader.ReadLine() -cne 'TELLURIUM-SNAPSHOT-1') { throw "Wrong snapshot header: $path" }
         while ($null -ne ($line = $reader.ReadLine())) {
             if ($line -cmatch '^(identity|value=seed|value=dimension|value=endpoint)=(.*)$') {
                 if ($values.ContainsKey($Matches[1])) { throw "Duplicate identity metadata: $path" }
@@ -60,7 +60,7 @@ function Assert-LogicalOriginalInventory($context, [string]$phase) {
     $inventoryPath=Join-Path $root 'capture-inventory.json'
     Assert-LogicalMatrixPlainPath $inventoryPath
     $i=Get-Content -LiteralPath $inventoryPath -Raw | ConvertFrom-Json
-    if ($i.schemaVersion -ne 1 -or $i.kind -cne 'worldgennext_original_capture_inventory' -or
+    if ($i.schemaVersion -ne 1 -or $i.kind -cne 'tellurium_original_capture_inventory' -or
             $i.status -cne 'CAPTURED_REFERENCE_ONLY' -or $i.context -cne $context.id -or
             $i.dimension -cne $context.dimension -or $i.endpoint -cne $context.endpoint -or $i.phase -cne $phase -or
             $i.stack -cne 'minecraft-1.21.1-neoforge-21.1.176' -or $i.caseCount -ne $context.cases.Count -or
@@ -202,7 +202,7 @@ function New-LogicalEndpointMatrixPlan {
         if ($reopened) { $context.reopenedInventorySha256=Assert-LogicalOriginalInventory $context 'REOPENED' }
         $contexts.Add($context)
     }
-    return [pscustomobject]@{schemaVersion=1; kind='worldgennext_logical_endpoint_matrix'; status='PLAN_ONLY'
+    return [pscustomobject]@{schemaVersion=1; kind='tellurium_logical_endpoint_matrix'; status='PLAN_ONLY'
         endpoint=$Endpoint; backend=$Backend; expectedCases=($required.Count*6); expectedFields=($required.Count*60)
         expectedReopenedCases=if ($Endpoint -eq 'SAVED') { $required.Count*6 } else { 0 }
         outputRoot=$output; runRoot=$runs; contexts=$contexts.ToArray(); releaseQualification=$false; productionHookEnabled=$false}
@@ -271,7 +271,7 @@ function Assert-LogicalEndpointContextReport {
     $report = Get-Content -LiteralPath (Join-Path $Context.outputRoot 'logical-endpoint-report.json') -Raw | ConvertFrom-Json
     $n = $Context.cases.Count; $saved = $Endpoint -eq 'SAVED'
     $status = if ($saved) { 'PASS_CANDIDATE_VERIFICATION_ONLY' } else { 'PASS_CANDIDATE_ENDPOINT_ONLY' }
-    if ($report.kind -cne 'worldgennext_candidate_logical_endpoint_replay' -or $report.status -cne $status -or
+    if ($report.kind -cne 'tellurium_candidate_logical_endpoint_replay' -or $report.status -cne $status -or
             $report.endpoint -cne $Endpoint -or $report.route -cne $Backend -or $report.coordinatorDispatch -cne 'INLINE_REFERENCE' -or
             $report.frozenCompiledInputs -ne $true -or $report.compiledInputsSha256 -ne $CompiledSha256 -or
             $report.releaseQualification -ne $false -or $report.productionHookEnabled -ne $false -or
@@ -340,22 +340,22 @@ function Assert-LogicalEndpointContextReport {
             Assert-LogicalMatrixPlainPath $row.publicationReceipt
             if ((Get-FileHash -LiteralPath $row.publicationReceipt -Algorithm SHA256).Hash -ne $row.publicationReceiptSha256) { throw 'GPU publication evidence changed after comparison.' }
             $c=Get-Content -LiteralPath $row.publicationReceipt -Raw | ConvertFrom-Json
-            if ($r.kind -cne 'worldgennext_gpu_live_receipt' -or $r.status -cne 'BACKEND_VALIDATED' -or $r.route -cne $Backend -or
-                    $r.resultAbi -cne 'chunk-result-v4' -or $r.compilerVersion -cne 'worldgennext-gpu-live-v0.2' -or
+            if ($r.kind -cne 'tellurium_gpu_live_receipt' -or $r.status -cne 'BACKEND_VALIDATED' -or $r.route -cne $Backend -or
+                    $r.resultAbi -cne 'chunk-result-v4' -or $r.compilerVersion -cne 'tellurium-gpu-live-v0.2' -or
                     $r.shaderHash -cnotmatch '^[0-9a-fA-F]{64}$' -or $r.spirvHash -cnotmatch '^[0-9a-fA-F]{64}$' -or
                     $null -eq $r.device -or -not $r.executionId -or $r.submitted -le 0 -or $r.completed -ne $r.submitted -or
                     $r.validated -ne $r.completed -or $r.committed -ne 0 -or
                     $r.logicalGpuElements -ne $(if ($Context.dimension -eq 'minecraft:overworld') { 98304 } else { 32768 }) -or
                     $r.storageBlocks -ne $abi.storageBlocks -or $r.storageBlocks -ne $r.submitted -or
-                    $c.kind -cne 'worldgennext_gpu_live_commit' -or $c.status -cne 'COMMITTED' -or $c.route -cne $Backend -or
+                    $c.kind -cne 'tellurium_gpu_live_commit' -or $c.status -cne 'COMMITTED' -or $c.route -cne $Backend -or
                     $c.committed -ne $r.validated -or $r.chunkX -ne $case.chunkX -or $r.chunkZ -ne $case.chunkZ) { throw 'Invalid GPU execution/publication evidence.' }
             foreach ($key in @('executionId','contextKey','snapshotHash','programHash','chunkX','chunkZ','worldEpoch','deviceGeneration')) {
                 if ($null -eq $r.$key -or $r.$key -cne $c.$key) { throw "Unlinked GPU receipt: $key" }
             }
             $gpuStates += [long]$c.committed
-        } elseif ($r.kind -cne 'worldgennext_cpu_live_receipt' -or $r.status -cne 'BACKEND_VALIDATED' -or
+        } elseif ($r.kind -cne 'tellurium_cpu_live_receipt' -or $r.status -cne 'BACKEND_VALIDATED' -or
                 $r.route -cne 'CPU_OWNED' -or $r.resultAbi -cne 'chunk-result-v4' -or
-                $r.compilerVersion -cne 'worldgennext-cpu-live-v0.2' -or -not $r.executionId -or
+                $r.compilerVersion -cne 'tellurium-cpu-live-v0.2' -or -not $r.executionId -or
                 $r.submitted -ne $abi.storageBlocks -or $r.completed -ne $r.submitted -or
                 $r.validated -ne $r.completed -or $r.committed -ne $r.validated) { throw 'Invalid CPU-owned execution evidence.' }
     }

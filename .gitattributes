@@ -6,3 +6,5 @@
 *.sh text eol=lf
 gradlew text eol=lf
 *.bat text eol=crlf
+*.glsl text eol=lf
+*.comp text eol=lf

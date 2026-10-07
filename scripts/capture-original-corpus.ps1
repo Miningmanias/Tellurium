@@ -93,7 +93,7 @@ $offsets = -$radius..$radius
 
 if ($PlanOnly) {
     return [pscustomobject]@{
-        kind = 'worldgennext_original_capture_plan'
+        kind = 'tellurium_original_capture_plan'
         execution = 'NOT_RUN'
         endpoint = $Endpoint
         dimension = $Dimension
@@ -174,13 +174,13 @@ foreach ($seed in $Seeds) {
     Write-CaseManifest $manifest $cases
     Write-Output "capturing batch $contextDirectoryName/seed-$seed cases=$($cases.Count)"
     $arguments = @(
-        '-Dworldgennext.oracle.capture=true', '-Dworldgennext.oracle.output=',
-        "-Dworldgennext.oracle.caseFile=$(Gradle-ArgsPath $manifest)",
-        "-Dworldgennext.oracle.runDir=$(Gradle-ArgsPath $runDir)",
-        "-Dworldgennext.oracle.seed=$seed",
-        "-Dworldgennext.oracle.endpoint=$Endpoint",
-        "-Dworldgennext.oracle.dimension=$Dimension",
-        "-Dworldgennext.oracle.stack=$StackFingerprint",
+        '-Dtellurium.oracle.capture=true', '-Dtellurium.oracle.output=',
+        "-Dtellurium.oracle.caseFile=$(Gradle-ArgsPath $manifest)",
+        "-Dtellurium.oracle.runDir=$(Gradle-ArgsPath $runDir)",
+        "-Dtellurium.oracle.seed=$seed",
+        "-Dtellurium.oracle.endpoint=$Endpoint",
+        "-Dtellurium.oracle.dimension=$Dimension",
+        "-Dtellurium.oracle.stack=$StackFingerprint",
         ':oracle-1211:oracleSmoke', '--no-daemon', '--console=plain'
     )
     Assert-OriginalCompiledInputs
@@ -193,7 +193,7 @@ foreach ($seed in $Seeds) {
     foreach ($captureCase in $cases) {
         if (-not (Test-Path -LiteralPath $captureCase.output)) { throw "Oracle capture did not produce $($captureCase.output)" }
         $firstLine = Get-Content -LiteralPath $captureCase.output -TotalCount 1
-        if ($firstLine -ne 'WORLDGENNEXT-SNAPSHOT-1') { throw "Oracle capture has an invalid header: $($captureCase.output)" }
+        if ($firstLine -ne 'TELLURIUM-SNAPSHOT-1') { throw "Oracle capture has an invalid header: $($captureCase.output)" }
         Write-Output "captured $contextDirectoryName/$($captureCase.case)"
         $originalRows.Add([pscustomobject]@{file=([IO.Path]::GetFileName($captureCase.output)); seed=$seed
             chunkX=$captureCase.chunkX;chunkZ=$captureCase.chunkZ;sha256=(Get-FileHash -LiteralPath $captureCase.output -Algorithm SHA256).Hash})
@@ -205,7 +205,7 @@ foreach ($seed in $Seeds) {
         $reopenManifest=Join-Path $runDir 'reopened-cases.tsv'
         Write-CaseManifest $reopenManifest $reopenCases
         $reopenArguments=@($arguments | ForEach-Object {
-            if ($_ -like '-Dworldgennext.oracle.caseFile=*') { "-Dworldgennext.oracle.caseFile=$(Gradle-ArgsPath $reopenManifest)" } else { $_ }
+            if ($_ -like '-Dtellurium.oracle.caseFile=*') { "-Dtellurium.oracle.caseFile=$(Gradle-ArgsPath $reopenManifest)" } else { $_ }
         })
         Assert-OriginalCompiledInputs
         Invoke-ReplayProcess -Command (Join-Path $root 'gradlew.bat') -Arguments ($reopenArguments + $frozenGradleArgs) `
@@ -237,7 +237,7 @@ foreach ($phase in @('INITIAL','REOPENED')) {
     foreach ($row in $rows) {
         if ((Get-FileHash -LiteralPath (Join-Path $where $row.file) -Algorithm SHA256).Hash -ne $row.sha256) { throw 'Original snapshot changed across capture/comparison.' }
     }
-    [ordered]@{schemaVersion=1;kind='worldgennext_original_capture_inventory';status='CAPTURED_REFERENCE_ONLY'
+    [ordered]@{schemaVersion=1;kind='tellurium_original_capture_inventory';status='CAPTURED_REFERENCE_ONLY'
         context=$contextDirectoryName;dimension=$Dimension;endpoint=$Endpoint;phase=$phase;stack=$StackFingerprint
         caseCount=$rows.Count;cases=$rows;modHashes=$modHashes;processes=$processRows.ToArray()
         frozenCompiledInputs=$FreezeCompiledInputs.IsPresent;compiledInputsSha256=if ($frozen) { $frozen.Hash } else { $null }

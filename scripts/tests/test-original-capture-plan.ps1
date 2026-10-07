@@ -10,7 +10,7 @@ function Reject([scriptblock]$operation, [string]$message) {
     try { & $operation | Out-Null } catch { $rejected = $true }
     Check $rejected $message
 }
-$fresh = Join-Path ([IO.Path]::GetTempPath()) ('worldgennext-oracle-plan-' + [guid]::NewGuid())
+$fresh = Join-Path ([IO.Path]::GetTempPath()) ('tellurium-oracle-plan-' + [guid]::NewGuid())
 $capture = Join-Path $fresh 'captures'
 $runs = Join-Path $fresh 'runs'
 $p = & $runner -Endpoint FULL -Seeds @('0','12345') -CoreSquareSideChunks 3 `

@@ -5,24 +5,24 @@ These are current implemented contracts. The planned production migrations are i
 The public files below are pinned before parallel implementation. Additive helpers are allowed; changing shared method signatures requires coordinator agreement.
 
 ## Semantic interfaces
-Package dev.worldgennext.semantic:
+Package dev.tellurium.semantic:
 - SamplePoint(int x,int y,int z)
 - CellGeometry(int width,int height): positive widths/heights; width divides16. floorDiv/floorMod coordinates.
 - WorldgenIdentity(long seed,String dimension,String graphHash,long epoch)
 - DensityExpression: nested Constant(double value), Coordinate(Axis axis), Add(left,right), Multiply(left,right), RangeChoice(input,double minInclusive,double maxExclusive,whenIn,whenOut), Interpolated(child,CellGeometry geometry). Axis X/Y/Z. Interpolated is a semantic boundary: child evaluated at lattice corners, interpolation in explicit vanilla Y then X then Z order; surrounding operations remain at block coordinate.
 - DensityEvaluator.evaluate(DensityExpression,SamplePoint): independent reference interpreter.
 - CompiledDensity.sample(SamplePoint).
-compiler-jvm package dev.worldgennext.compiler.jvm: new CpuCompiler().compile(DensityExpression) -> CompiledDensity, preserve lazy branches. Compilation means prebound executable program for v0.1; do not claim JVM bytecode JIT emission unless actually implemented.
-compiler-vulkan package dev.worldgennext.compiler.vulkan: new GlslCompiler().emit(DensityExpression) -> String complete GLSL450 compute shader. local_size_x64, binding0 readonly std430 ivec4 points[], binding1 writeonly std430 double values[], push_constant uint sampleCount; bounds-check dispatch tail. Preserve branch laziness and exact ordered arithmetic. No noise primitives or Minecraft graph support implied.
+compiler-jvm package dev.tellurium.compiler.jvm: new CpuCompiler().compile(DensityExpression) -> CompiledDensity, preserve lazy branches. Compilation means prebound executable program for v0.1; do not claim JVM bytecode JIT emission unless actually implemented.
+compiler-vulkan package dev.tellurium.compiler.vulkan: new GlslCompiler().emit(DensityExpression) -> String complete GLSL450 compute shader. local_size_x64, binding0 readonly std430 ivec4 points[], binding1 writeonly std430 double values[], push_constant uint sampleCount; bounds-check dispatch tail. Preserve branch laziness and exact ordered arithmetic. No noise primitives or Minecraft graph support implied.
 frontend-mc1211 owns adapter/capability contracts; v0.1 Minecraft graph lowering unsupported with explicit reason, no fake terrain.
 
 ## Material contract
-Package dev.worldgennext.material:
+Package dev.tellurium.material:
 SectionData.BLOCK_COUNT =4096; int blockStateId(int index), int nonAirCount(), long logicalChecksum().
 SectionCodec.encode(int[] states) [static] -> SectionData, SectionCodec.decode(SectionData) [static]->int[].
 Fixture-only block-state IDs are nonnegative integers, air0; not Minecraft global registry IDs.
 Immutable validated uniform and dense palette encodings; no aliasing of caller arrays. Logical checksum is representation-independent and NOT evidence of vanilla parity.
-Spatial package dev.worldgennext.spatial. Engine package dev.worldgennext.engine.
+Spatial package dev.tellurium.spatial. Engine package dev.tellurium.engine.
 Engine commits are unique, epoch-aware, validate before mutation, budgeted and cancellable. This is the MC-free model, not an installed chunk-system rewrite.
 
 ### GPU replay versus device generation
@@ -91,7 +91,7 @@ are formed from truncating quotients, never negative-operand GLSL `%`.
 
 Native pipeline optimization policy is set on compute-pipeline creation flags;
 shader-stage creation flags remain zero. Cache identity includes actual compute
-flags and the corrected `worldgennext-captured-v3-compute-flags` ABI.
+flags and the corrected `tellurium-captured-v3-compute-flags` ABI.
 `CompilationTelemetry` records successful shaderc/native pipeline creation
 counts/times and their cache hits for the executor lifetime. `resetTelemetry`
 resets dispatch counters only. These phase timers may overlap dispatch wall
@@ -168,11 +168,11 @@ GPU quotient nonfinites are rejected before the final decision stage. The
 small final kernel is fully inline; these are isolated containment defaults,
 not a promoted production or numeric/performance gate.
 
-runtime-vulkan package dev.worldgennext.runtime.vulkan owns LWJGL capabilities, shader compilation, tiny bounded native replay and GPU-smoke report APIs. CPU tests must run without loading Vulkan/native libraries; GPU tests explicitly opt in and strict GPU mode fails on missing capability.
-oracle-and-replay package dev.worldgennext.oracle consumes pinned APIs; synthetic replay must be clearly identified. Record actual compared counts; malformed/failed/mismatched/zero-coverage data cannot pass. CPU replay must not count GPU work.
-neoforge-1211 package dev.worldgennext.neoforge is a loadable diagnostic mod, ID worldgennext, version0.1.0, NeoForge21.1.176, Java21, ModDevGradle2.0.91. No chunk generation interception in v0.1. Include own pure modules in jar and dev runs; do not depend on old mod. Diagnostic commands/status are useful.
-The mod is one source tree, mod/, built for every target in mod/targets.gradle (Gradle projects neoforge-1211, fabric-1211, fabric-1214, fabric-1218, neoforge-1218, fabric-12111, neoforge-12111; build scripts mod/neoforge.gradle and mod/fabric.gradle; source selection mod/sources.gradle). mod/common is the mod as written for Minecraft 1.21.1; mod/loader/<loader> holds what differs per loader; mod/versions/<version> holds what a later Minecraft version needs differently: a version's module holds only replacing files, removed.txt, its mixin list and its own list of tested generators; shared code reaches version-specific Minecraft API through dev.worldgennext.neoforge.version.Version only; a name Minecraft merely changed may instead be listed in a port's portRenames, which never carries logic. A list of tested generators carries minecraft=<version> and is void on any other version; a version gets its list from its own matrix run, never by copying, and a second loader uses a version's list only after its own matrix run on that version. A change to kernel text shared with an already-listed version must leave that version's text unchanged or re-run its matrix. See docs/evidence/minecraft-versions.md.
-The Fabric builds add mod/loader/fabric (Loader, entry point, one mixin) to the common source; loader-specific code stays in dev.worldgennext.neoforge.loader, and Minecraft members read by reflection go through loader.Names. What was verified on Fabric is in docs/evidence/fabric-port.md.
+runtime-vulkan package dev.tellurium.runtime.vulkan owns LWJGL capabilities, shader compilation, tiny bounded native replay and GPU-smoke report APIs. CPU tests must run without loading Vulkan/native libraries; GPU tests explicitly opt in and strict GPU mode fails on missing capability.
+oracle-and-replay package dev.tellurium.oracle consumes pinned APIs; synthetic replay must be clearly identified. Record actual compared counts; malformed/failed/mismatched/zero-coverage data cannot pass. CPU replay must not count GPU work.
+neoforge-1211 package dev.tellurium.neoforge is a loadable diagnostic mod, ID tellurium, version0.1.0, NeoForge21.1.176, Java21, ModDevGradle2.0.91. No chunk generation interception in v0.1. Include own pure modules in jar and dev runs; do not depend on old mod. Diagnostic commands/status are useful.
+The mod is one source tree, mod/, built for every target in mod/targets.gradle (Gradle projects neoforge-1211, fabric-1211, fabric-1214, fabric-1218, neoforge-1218, fabric-12111, neoforge-12111; build scripts mod/neoforge.gradle and mod/fabric.gradle; source selection mod/sources.gradle). mod/common is the mod as written for Minecraft 1.21.1; mod/loader/<loader> holds what differs per loader; mod/versions/<version> holds what a later Minecraft version needs differently: a version's module holds only replacing files, removed.txt, its mixin list and its own list of tested generators; shared code reaches version-specific Minecraft API through dev.tellurium.neoforge.version.Version only; a name Minecraft merely changed may instead be listed in a port's portRenames, which never carries logic. A list of tested generators carries minecraft=<version> and is void on any other version; a version gets its list from its own matrix run, never by copying, and a second loader uses a version's list only after its own matrix run on that version. A change to kernel text shared with an already-listed version must leave that version's text unchanged or re-run its matrix. See docs/evidence/minecraft-versions.md.
+The Fabric builds add mod/loader/fabric (Loader, entry point, one mixin) to the common source; loader-specific code stays in dev.tellurium.neoforge.loader, and Minecraft members read by reflection go through loader.Names. What was verified on Fabric is in docs/evidence/fabric-port.md.
 
 ## Worker ownership
 Compiler worker: semantic-core, compiler-jvm, compiler-vulkan, frontend-mc1211.

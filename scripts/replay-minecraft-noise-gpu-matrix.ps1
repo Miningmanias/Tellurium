@@ -61,7 +61,7 @@ function Read-NoiseHeader([string]$path) {
     $reader = [IO.File]::OpenText($path)
     $values = @{}
     try {
-        if ($reader.ReadLine() -cne 'WORLDGENNEXT-SNAPSHOT-1') { throw "Wrong snapshot header: $path" }
+        if ($reader.ReadLine() -cne 'TELLURIUM-SNAPSHOT-1') { throw "Wrong snapshot header: $path" }
         while ($null -ne ($line = $reader.ReadLine())) {
             if ($line -cmatch '^(identity|value=seed|value=dimension|value=endpoint)=(.*)$') {
                 if ($values.ContainsKey($Matches[1])) { throw "Duplicate snapshot header: $path" }
@@ -180,7 +180,7 @@ function Get-MatrixPlan {
         }
     }
     return [pscustomobject]@{
-        schemaVersion=1; kind='worldgennext_gpu_noise_matrix'; status='PLAN_ONLY'; profile=$Profile
+        schemaVersion=1; kind='tellurium_gpu_noise_matrix'; status='PLAN_ONLY'; profile=$Profile
         expectedCases=1500; expectedFields=15000; qualification=$false; qualificationGate='NOT_G12'
         passedReceipts=0; comparedBlocks=0L; comparedCases=0; comparedFields=0; completeCoverage=$false
         frozenCompiledInputsSha=$null; compiledFingerprintStatus='NOT_RUN'
@@ -275,7 +275,7 @@ function Measure-MatrixContext($context, [string]$sha) {
         try {
             $r = Get-Content -LiteralPath $receipt -Raw | ConvertFrom-Json
             if ($r.status -ceq 'PASS' -and $r.route -ceq 'GPU_IEEE_BITS' -and $r.resultAbi -ceq 'chunk-result-v4' -and
-                $r.compilerVersion -ceq 'worldgennext-gpu-live-v0.2' -and $r.comparedBlocks -gt 0 -and
+                $r.compilerVersion -ceq 'tellurium-gpu-live-v0.2' -and $r.comparedBlocks -gt 0 -and
                 $null -ne $r.mismatches -and $r.mismatches -eq 0 -and $r.shaderHash -and $r.spirvHash -and $null -ne $r.device) {
                 $receipts++; $blocks += [long]$r.comparedBlocks; $valid[$case.relativeCase.Replace('\','/')]=$r
             }
@@ -285,7 +285,7 @@ function Measure-MatrixContext($context, [string]$sha) {
     try {
         if (-not (Test-Path -LiteralPath $reportPath -PathType Leaf)) { throw 'No independent comparison report.' }
         $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
-        if ($report.kind -cne 'worldgennext_gpu_noise_replay' -or $report.status -cne 'PASS' -or
+        if ($report.kind -cne 'tellurium_gpu_noise_replay' -or $report.status -cne 'PASS' -or
             $report.route -cne 'GPU_IEEE_BITS' -or $report.frozenCompiledInputs -ne $true -or
             $report.compiledInputsSha256 -ne $sha -or $report.completeCoverage -ne $true -or
             $report.selectedSubset -ne $false -or $report.independentOracle -ne $true -or

@@ -2,7 +2,7 @@ pluginManagement { repositories { gradlePluginPortal(); maven { url = 'https://m
 // Source distributions need these files. Gradle requires default-exclude changes in settings.
 org.apache.tools.ant.DirectoryScanner.removeDefaultExclude('**/.gitignore')
 org.apache.tools.ant.DirectoryScanner.removeDefaultExclude('**/.gitattributes')
-rootProject.name = 'worldgennext'
+rootProject.name = 'tellurium'
 include 'semantic-core', 'compiler-jvm', 'compiler-vulkan', 'material-codec', 'spatial-data', 'chunk-engine', 'frontend-mc1211', 'runtime-vulkan', 'oracle-and-replay', 'oracle-1211'
 // The builds of the mod, one Gradle project per entry of mod/targets.gradle.  A target's folder holds only
 // its build output; its build script is the one of its loader.

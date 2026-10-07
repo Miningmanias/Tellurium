@@ -37,7 +37,7 @@ if (-not (Test-Path -LiteralPath $gradlew -PathType Leaf)) {
 }
 
 $env:JAVA_HOME = $JavaHome
-Write-Host "Starting WorldgenNext CPU-live prototype"
+Write-Host "Starting Tellurium CPU-live prototype"
 Write-Host "  server run: $runPath"
 Write-Host "  NOISE artifacts: $resultPath"
 Write-Host "  workers: $Workers"
@@ -45,11 +45,11 @@ Write-Host "  startup timeout: $TimeoutMillis ms"
 Write-Host 'Stop the server with the Minecraft stop command or Ctrl+C.'
 
 & $gradlew ':neoforge-1211:runServer' '--no-daemon' '--console=plain' `
-    "-Dworldgennext.candidate.runDir=$runPath" `
-    '-Dworldgennext.prototype.cpuLive=true' `
-    "-Dworldgennext.prototype.cpuWorkers=$Workers" `
-    "-Dworldgennext.prototype.cpuLiveTimeoutMillis=$TimeoutMillis" `
-    "-Dworldgennext.candidate.liveNoiseResultDir=$resultPath"
+    "-Dtellurium.candidate.runDir=$runPath" `
+    '-Dtellurium.prototype.cpuLive=true' `
+    "-Dtellurium.prototype.cpuWorkers=$Workers" `
+    "-Dtellurium.prototype.cpuLiveTimeoutMillis=$TimeoutMillis" `
+    "-Dtellurium.candidate.liveNoiseResultDir=$resultPath"
 $serverExitCode = $LASTEXITCODE
 $latestLog = Join-Path $runPath 'logs\latest.log'
 $ready = $false
@@ -64,7 +64,7 @@ $reportDirectory = Split-Path -Parent $resultPath
 $reportPath = Join-Path $reportDirectory 'cpu-live-report.json'
 $report = [ordered]@{
     schemaVersion = 1
-    kind = 'worldgennext_cpu_live_prototype'
+    kind = 'tellurium_cpu_live_prototype'
     status = if ($ready -and $artifacts.Count -gt 0) { 'PASS_PROTOTYPE_WIRING_ONLY' } else { 'FAIL' }
     serverExitCode = $serverExitCode
     serverRunRoot = $runPath

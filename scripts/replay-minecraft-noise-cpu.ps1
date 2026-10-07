@@ -82,7 +82,7 @@ function Write-Checkpoint([string]$path, [object[]]$cases, [string]$expectedDire
     $completed = @($cases | Where-Object { $_.completed }).Count
     $checkpoint = [ordered]@{
         schemaVersion = 1
-        kind = 'worldgennext_cpu_noise_replay_checkpoint'
+        kind = 'tellurium_cpu_noise_replay_checkpoint'
         expectedDirectory = $expectedDirectory
         candidateDirectory = $candidateDirectory
         runDirectory = $runDirectory
@@ -222,13 +222,13 @@ foreach ($group in @($caseSpecs | Group-Object groupKey)) {
         Write-Host "CPU candidate batch context=$($first.context) seed=$($first.seed) dimension=$($first.dimension) batch=$batchNumber cases=$($batchCases.Count)"
         $gradleArgs = @(
             ':neoforge-1211:candidateSmoke', '--no-daemon',
-            '-Dworldgennext.candidate.capture=true',
-            '-Dworldgennext.candidate.output=',
-            "-Dworldgennext.candidate.caseFile=$(Gradle-ArgsPath $manifest)",
-            "-Dworldgennext.candidate.runDir=$(Gradle-ArgsPath $runDir)",
-            "-Dworldgennext.candidate.seed=$($first.seed)",
-            "-Dworldgennext.candidate.dimension=$($first.dimension)",
-            "-Dworldgennext.candidate.cpuWorkers=$(if ($env:WORLDGENNEXT_CANDIDATE_CPU_WORKERS) { $env:WORLDGENNEXT_CANDIDATE_CPU_WORKERS } else { '2' })"
+            '-Dtellurium.candidate.capture=true',
+            '-Dtellurium.candidate.output=',
+            "-Dtellurium.candidate.caseFile=$(Gradle-ArgsPath $manifest)",
+            "-Dtellurium.candidate.runDir=$(Gradle-ArgsPath $runDir)",
+            "-Dtellurium.candidate.seed=$($first.seed)",
+            "-Dtellurium.candidate.dimension=$($first.dimension)",
+            "-Dtellurium.candidate.cpuWorkers=$(if ($env:TELLURIUM_CANDIDATE_CPU_WORKERS) { $env:TELLURIUM_CANDIDATE_CPU_WORKERS } else { '2' })"
         )
         & $gradle @gradleArgs
         if ($LASTEXITCODE -ne 0) { throw "Candidate capture batch failed for seed $($first.seed) dimension $($first.dimension) batch $batchNumber" }
@@ -263,7 +263,7 @@ foreach ($result in $results) { $result.comparisonExitCode = $compareExit }
 
 $report = [ordered]@{
     schemaVersion = 1
-    kind = 'worldgennext_cpu_noise_replay'
+    kind = 'tellurium_cpu_noise_replay'
     status = 'PASS'
     expectedDirectory = $expected
     candidateDirectory = $outputs

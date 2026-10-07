@@ -1,0 +1,112 @@
+// SPDX-License-Identifier: MIT
+package dev.tellurium.neoforge.bench;
+
+import dev.tellurium.neoforge.version.Version;
+
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+
+/**
+ * Developer check of ordinary play: moves the first player to join across ungenerated terrain in steps, the
+ * way someone flying with an elytra would load it, and reports how the server kept up.
+ *
+ * <p>{@code -Dtellurium.bench.tour=<steps>} starts it; each step moves the player
+ * {@code tellurium.bench.tourStride} blocks (default 96) along x every
+ * {@code tellurium.bench.tourMillis} ms (default 500).  Chunks around the player are generated, sent,
+ * ticked, and unloaded behind them through the normal player-ticket path, which the pregenerator and the
+ * benchmark driver do not use.</p>
+ *
+ * <p>For recordings: {@code tellurium.bench.tourY} is the height (default 200),
+ * {@code tellurium.bench.tourYaw} and {@code tourPitch} fix where the player looks,
+ * {@code tourYawStep} turns the view by that many degrees per step (with a stride of 0 the player stays in
+ * place and looks around), and {@code tourSpectator=true} puts the player in spectator mode first, so that
+ * nothing falls between steps.</p>
+ */
+public final class PlayerTour {
+    private static final Logger LOG = LoggerFactory.getLogger("tellurium-bench");
+
+    private PlayerTour() {}
+
+    public static boolean requested() {
+        return Integer.getInteger("tellurium.bench.tour", 0) > 0;
+    }
+
+    public static void startAsync(MinecraftServer server) {
+        int steps = Integer.getInteger("tellurium.bench.tour", 0);
+        int stride = Integer.getInteger("tellurium.bench.tourStride", 96);
+        long pause = Long.getLong("tellurium.bench.tourMillis", 500L);
+        Thread thread = new Thread(() -> run(server, steps, stride, pause), "tellurium-bench-tour");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private static void run(MinecraftServer server, int steps, int stride, long pause) {
+        try {
+            ServerPlayer player = null;
+            for (int waited = 0; waited < 600 && player == null; waited++) {
+                Thread.sleep(500);
+                player = CompletableFuture.supplyAsync(() -> server.getPlayerList().getPlayers().stream().findFirst().orElse(null), server).join();
+            }
+            if (player == null) {
+                LOG.error("Tellurium player tour FAIL: no player joined");
+                return;
+            }
+            ServerPlayer traveller = player;
+            double startX = CompletableFuture.supplyAsync(traveller::getX, server).join();
+            double z = CompletableFuture.supplyAsync(traveller::getZ, server).join();
+            LOG.info("Tellurium player tour: {} steps of {} blocks every {} ms from x={}", steps, stride, pause, (int) startX);
+            double height = Double.parseDouble(System.getProperty("tellurium.bench.tourY", "200"));
+            String fixedYaw = System.getProperty("tellurium.bench.tourYaw"), fixedPitch = System.getProperty("tellurium.bench.tourPitch");
+            float yawStep = Float.parseFloat(System.getProperty("tellurium.bench.tourYawStep", "0"));
+            if (Boolean.getBoolean("tellurium.bench.tourSpectator")) {
+                CompletableFuture.runAsync(() -> traveller.setGameMode(net.minecraft.world.level.GameType.SPECTATOR), server).join();
+            }
+            // -Dtellurium.bench.tourDelay=<seconds>: stand still first (to leave the start of the session out of the figures).
+            Thread.sleep(1000L * Integer.getInteger("tellurium.bench.tourDelay", 0));
+            StutterProbe stutter = new StutterProbe(server);
+            long worstTickNanos = 0;
+            long begin = System.nanoTime();
+            for (int step = 1; step <= steps; step++) {
+                double x = startX + (double) step * stride;
+                int turned = step;
+                CompletableFuture.runAsync(() -> {
+                    ServerLevel level = Version.level(traveller);
+                    float yaw = fixedYaw == null ? traveller.getYRot() + yawStep : Float.parseFloat(fixedYaw) + turned * yawStep;
+                    float pitch = fixedPitch == null ? traveller.getXRot() : Float.parseFloat(fixedPitch);
+                    Version.teleport(traveller, level, x, height, z, yaw, pitch);
+                }, server).join();
+                Thread.sleep(pause);
+                // -Dtellurium.bench.tourHolders=true: every 300 steps, why the loaded chunks are loaded.
+                if (step % 300 == 0 && Boolean.getBoolean("tellurium.bench.tourHolders")) {
+                    LOG.info("Tellurium player tour holders: {}", CompletableFuture.supplyAsync(
+                            () -> ChunkThroughputBenchmark.holderDiagnostics(Version.level(traveller)), server).join());
+                }
+                worstTickNanos = Math.max(worstTickNanos, max(server.getTickTimesNanos()));
+            }
+            LOG.info("Tellurium player tour smoothness: {}", stutter.finish());
+            // Let the last chunks arrive and the ones left behind unload and save.
+            Thread.sleep(5000);
+            int loaded = CompletableFuture.supplyAsync(() -> Version.level(traveller).getChunkSource().getLoadedChunksCount(), server).join();
+            LOG.info(String.format(Locale.ROOT, "Tellurium player tour PASS: %d steps, %,d blocks in %.1f s; average tick %.1f ms,"
+                            + " longest recent tick %.0f ms; %,d chunks loaded at the end",
+                    steps, (long) steps * stride, (System.nanoTime() - begin) / 1e9, server.getAverageTickTimeNanos() / 1e6,
+                    worstTickNanos / 1e6, loaded));
+        } catch (InterruptedException stop) {
+            Thread.currentThread().interrupt();
+        } catch (RuntimeException failure) {
+            LOG.error("Tellurium player tour FAIL", failure);
+        }
+    }
+
+    private static long max(long[] values) {
+        long best = 0;
+        for (long value : values) best = Math.max(best, value);
+        return best;
+    }
+}

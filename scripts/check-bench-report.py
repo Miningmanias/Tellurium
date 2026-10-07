@@ -18,7 +18,7 @@ def load(path):
             report = json.load(handle)
     except (OSError, ValueError) as failure:
         raise SystemExit(f"unreadable report {path}: {failure}")
-    if not isinstance(report, dict) or report.get("kind") != "worldgennext_chunk_throughput":
+    if not isinstance(report, dict) or report.get("kind") != "tellurium_chunk_throughput":
         raise SystemExit(f"{path} is not a chunk throughput report")
     return report
 

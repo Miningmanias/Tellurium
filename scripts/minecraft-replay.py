@@ -29,8 +29,8 @@ def main() -> int:
     if not args.command:
         parser.error("provide the separately configured runner after --")
     env = os.environ.copy()
-    env["WORLDGENNEXT_ORIGINAL_WORLD"] = str(original)
-    env["WORLDGENNEXT_CANDIDATE_WORLD"] = str(candidate)
+    env["TELLURIUM_ORIGINAL_WORLD"] = str(original)
+    env["TELLURIUM_CANDIDATE_WORLD"] = str(candidate)
     return subprocess.call(args.command, env=env)
 
 

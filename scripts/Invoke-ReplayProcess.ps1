@@ -82,7 +82,7 @@ function Invoke-ReplayProcess {
     }
     $status = [ordered]@{
         schemaVersion = 1
-        kind = 'worldgennext_owned_replay_process'
+        kind = 'tellurium_owned_replay_process'
         status = if ($timedOut) { 'TIMEOUT' } elseif ($exited -and $exitCode -eq 0 -and -not $launchError) { 'PROCESS_COMPLETED' } else { 'PROCESS_FAILED' }
         ownedWorkerPid = $ownedPid
         workerExited = $exited

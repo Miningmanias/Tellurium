@@ -62,16 +62,16 @@ function Gradle-Path([string]$path) {
 function Invoke-SavedCandidate([string]$output, [bool]$requireLiveNoise) {
     $liveNoise = $requireLiveNoise.ToString().ToLowerInvariant()
     & (Join-Path $repoRoot 'gradlew.bat') ':neoforge-1211:candidateLogicalSmoke' '--no-daemon' '--console=plain' `
-        '-Dworldgennext.candidate.capture=true' `
-        '-Dworldgennext.candidate.endpoint=SAVED' `
-        '-Dworldgennext.candidate.live=true' `
-        "-Dworldgennext.candidate.requireLiveNoise=$liveNoise" `
-        "-Dworldgennext.candidate.output=$(Gradle-Path $output)" `
-        "-Dworldgennext.candidate.runDir=$(Gradle-Path $runDir)" `
-        "-Dworldgennext.candidate.seed=$Seed" `
-        "-Dworldgennext.candidate.chunkX=$ChunkX" `
-        "-Dworldgennext.candidate.chunkZ=$ChunkZ" `
-        "-Dworldgennext.candidate.dimension=$Dimension"
+        '-Dtellurium.candidate.capture=true' `
+        '-Dtellurium.candidate.endpoint=SAVED' `
+        '-Dtellurium.candidate.live=true' `
+        "-Dtellurium.candidate.requireLiveNoise=$liveNoise" `
+        "-Dtellurium.candidate.output=$(Gradle-Path $output)" `
+        "-Dtellurium.candidate.runDir=$(Gradle-Path $runDir)" `
+        "-Dtellurium.candidate.seed=$Seed" `
+        "-Dtellurium.candidate.chunkX=$ChunkX" `
+        "-Dtellurium.candidate.chunkZ=$ChunkZ" `
+        "-Dtellurium.candidate.dimension=$Dimension"
     if ($LASTEXITCODE -ne 0) { throw "Candidate SAVED capture failed for $output with exit code $LASTEXITCODE" }
     if (-not (Test-Path -LiteralPath $output)) { throw "Candidate SAVED capture did not produce $output" }
 }
@@ -99,7 +99,7 @@ $expectedHash = (Get-FileHash -LiteralPath $expected -Algorithm SHA256).Hash
 $reopenedHash = (Get-FileHash -LiteralPath $reopened -Algorithm SHA256).Hash
 $result = [ordered]@{
     schemaVersion = 1
-    kind = 'worldgennext_candidate_saved_reopen'
+    kind = 'tellurium_candidate_saved_reopen'
     status = 'PASS_CANDIDATE_VERIFICATION_ONLY'
     seed = $Seed
     dimension = $Dimension

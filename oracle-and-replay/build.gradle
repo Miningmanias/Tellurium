@@ -12,13 +12,13 @@ sourceSets {
 tasks.register('corpusApiJar', Jar) {
     group = 'build'
     description = 'Package the pure original/candidate corpus interchange API.'
-    archiveBaseName = 'worldgennext-corpus-api'
+    archiveBaseName = 'tellurium-corpus-api'
     from sourceSets.corpusApi.output
     dependsOn tasks.named('corpusApiClasses')
 }
 
 application {
-    mainClass = 'dev.worldgennext.oracle.ReplayCli'
+    mainClass = 'dev.tellurium.oracle.ReplayCli'
     // Modern drivers can enumerate enough extension structs to exceed LWJGL's 64 KiB default.
     applicationDefaultJvmArgs = ['-Dorg.lwjgl.system.stackSize=2048']
 }

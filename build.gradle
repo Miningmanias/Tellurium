@@ -1,8 +1,8 @@
 plugins { id 'base' }
-group = 'dev.worldgennext'
+group = 'dev.tellurium'
 version = '0.2.0'
 if (JavaVersion.current() != JavaVersion.VERSION_21) {
-    throw new GradleException('WorldgenNext builds require JDK 21. Set JAVA_HOME to a JDK 21 installation.')
+    throw new GradleException('Tellurium builds require JDK 21. Set JAVA_HOME to a JDK 21 installation.')
 }
 def moduleDependencies = [
     'compiler-jvm':['semantic-core'],
@@ -32,9 +32,9 @@ subprojects {
     }
     tasks.withType(AbstractArchiveTask).configureEach { preserveFileTimestamps = false; reproducibleFileOrder = true }
     tasks.withType(Jar).configureEach {
-        from(rootProject.file('LICENSE')) { into 'META-INF'; rename { 'worldgennext-LICENSE.txt' } }
-        from(rootProject.file('NOTICE')) { into 'META-INF'; rename { 'worldgennext-NOTICE.txt' } }
-        manifest { attributes('Implementation-Title': "WorldgenNext ${project.name}", 'Implementation-Version': project.version) }
+        from(rootProject.file('LICENSE')) { into 'META-INF'; rename { 'tellurium-LICENSE.txt' } }
+        from(rootProject.file('NOTICE')) { into 'META-INF'; rename { 'tellurium-NOTICE.txt' } }
+        manifest { attributes('Implementation-Title': "Tellurium ${project.name}", 'Implementation-Version': project.version) }
     }
     dependencies {
         testImplementation platform('org.junit:junit-bom:5.11.4')
@@ -134,9 +134,9 @@ tasks.register('verifyTerrainModLock') {
     group = 'verification'
     description = 'Verify a copied terrain-mod fixture against test-manifest/dependencies.lock.json.'
     doLast {
-        def directoryValue = System.getProperty('worldgennext.terrainModDirectory', '').trim()
+        def directoryValue = System.getProperty('tellurium.terrainModDirectory', '').trim()
         if (directoryValue.isEmpty()) {
-            throw new GradleException('Terrain fixture verification requires -Dworldgennext.terrainModDirectory=<fixture directory>')
+            throw new GradleException('Terrain fixture verification requires -Dtellurium.terrainModDirectory=<fixture directory>')
         }
         def fixtureDirectory = rootProject.file(directoryValue).canonicalFile
         if (!fixtureDirectory.isDirectory()) throw new GradleException("Terrain fixture directory is missing: $fixtureDirectory")
@@ -234,7 +234,7 @@ tasks.register('replayMinecraftNoiseGpu') {
             commandLine 'powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
                     rootProject.file('scripts/replay-minecraft-noise-gpu.ps1').absolutePath,
                     '-ExpectedRoot', rootProject.file('build/oracle-captures/original').absolutePath
-            def batch = System.getProperty('worldgennext.gpuCandidate.batchElements', '').trim()
+            def batch = System.getProperty('tellurium.gpuCandidate.batchElements', '').trim()
             if (!batch.isEmpty()) args '-BatchElements', batch
         }
     }
@@ -242,30 +242,30 @@ tasks.register('replayMinecraftNoiseGpu') {
 
 tasks.register('verifyReleaseJar') {
     group = 'verification'
-    description = 'Verify the WorldgenNext NeoForge jar contains the qualified-core/runtime classes without bundling game/test dependencies.'
+    description = 'Verify the Tellurium NeoForge jar contains the qualified-core/runtime classes without bundling game/test dependencies.'
     def modJar = project(':neoforge-1211').tasks.named('jar').flatMap { it.archiveFile }
     dependsOn ':neoforge-1211:jar'
     doLast {
         def artifact = modJar.get().asFile
         def required = [
             'META-INF/neoforge.mods.toml',
-        'dev/worldgennext/semantic/WorldgenIdentity.class',
-        'dev/worldgennext/compiler/jvm/CpuCompiler.class',
-        'dev/worldgennext/compiler/vulkan/worldgen/WorldgenShaderCompiler.class',
-        'dev/worldgennext/material/SectionCodec.class',
-            'dev/worldgennext/neoforge/config/WorldgenNextConfig.class',
-            'dev/worldgennext/runtime/vulkan/production/VulkanGenerationService.class'
+        'dev/tellurium/semantic/WorldgenIdentity.class',
+        'dev/tellurium/compiler/jvm/CpuCompiler.class',
+        'dev/tellurium/compiler/vulkan/worldgen/WorldgenShaderCompiler.class',
+        'dev/tellurium/material/SectionCodec.class',
+            'dev/tellurium/neoforge/config/TelluriumConfig.class',
+            'dev/tellurium/runtime/vulkan/production/VulkanGenerationService.class'
         ]
         new java.util.zip.ZipFile(artifact).withCloseable { zip ->
             required.each { name -> if (zip.getEntry(name) == null) throw new GradleException("Missing packaged entry: $name") }
             def metadata = zip.getInputStream(zip.getEntry(required[0])).getText('UTF-8')
-            if (!metadata.contains('worldgennext') || !metadata.contains('0.2.0')) throw new GradleException('Incorrect or unexpanded mod metadata')
+            if (!metadata.contains('tellurium') || !metadata.contains('0.2.0')) throw new GradleException('Incorrect or unexpanded mod metadata')
             def names = zip.entries().collect { it.name }
-            if (!names.any { it.startsWith('dev/worldgennext/neoforge/') && it.endsWith('.class') }) throw new GradleException('Missing NeoForge entrypoint classes')
+            if (!names.any { it.startsWith('dev/tellurium/neoforge/') && it.endsWith('.class') }) throw new GradleException('Missing NeoForge entrypoint classes')
             def forbidden = names.findAll { name -> ['net/minecraft/', 'net/neoforged/', 'org/junit/', 'dev/gpuworldgen/', 'org/lwjgl/'].any { name.startsWith(it) } }
             if (!forbidden.empty) throw new GradleException("Unexpected bundled implementation/dependency: ${forbidden.take(10)}")
         }
-        logger.lifecycle("Verified WorldgenNext jar: ${artifact.name}")
+        logger.lifecycle("Verified Tellurium jar: ${artifact.name}")
     }
 }
 tasks.named('check') { dependsOn tasks.named('verifyReleaseJar') }
@@ -274,16 +274,16 @@ tasks.register('checkReleaseJar') { group = 'verification'; description = 'Alias
 
 tasks.register('testInstalledMod') {
     group = 'verification'
-    description = 'Run the installed NeoForge jar in fresh disposable server directories; requires -Dworldgennext.installed.serverDir.'
+    description = 'Run the installed NeoForge jar in fresh disposable server directories; requires -Dtellurium.installed.serverDir.'
     dependsOn tasks.named('checkReleaseJar')
     doLast {
-        def serverDirectory = System.getProperty('worldgennext.installed.serverDir', '').trim()
+        def serverDirectory = System.getProperty('tellurium.installed.serverDir', '').trim()
         if (serverDirectory.isEmpty()) {
-            throw new GradleException('Installed-mod smoke is opt-in and requires -Dworldgennext.installed.serverDir=<empty NeoForge server template>')
+            throw new GradleException('Installed-mod smoke is opt-in and requires -Dtellurium.installed.serverDir=<empty NeoForge server template>')
         }
-        def serverJar = System.getProperty('worldgennext.installed.serverJar', '').trim()
-        def runRoot = System.getProperty('worldgennext.installed.runRoot', '').trim()
-        def javaHome = System.getProperty('worldgennext.installed.javaHome', '').trim()
+        def serverJar = System.getProperty('tellurium.installed.serverJar', '').trim()
+        def runRoot = System.getProperty('tellurium.installed.runRoot', '').trim()
+        def javaHome = System.getProperty('tellurium.installed.javaHome', '').trim()
         def arguments = ['powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
                          rootProject.file('scripts/test-installed-mod.ps1').absolutePath,
                          '-ServerDirectory', serverDirectory,
@@ -307,8 +307,8 @@ tasks.register('qualifyV02') {
 
 tasks.register('sourceBundle', Zip) {
     group = 'distribution'
-    description = 'Create a source-only WorldgenNext archive, excluding worlds, caches, generated binaries and Git state.'
-    archiveFileName = "worldgennext-${project.version}-sources.zip"
+    description = 'Create a source-only Tellurium archive, excluding worlds, caches, generated binaries and Git state.'
+    archiveFileName = "tellurium-${project.version}-sources.zip"
     destinationDirectory = layout.buildDirectory.dir('distributions')
     preserveFileTimestamps = false
     reproducibleFileOrder = true
@@ -316,7 +316,7 @@ tasks.register('sourceBundle', Zip) {
         exclude '.git/**', '**/.gradle/**', '**/build/**', '**/run/**', '**/runs/**', '.idea/**', '**/__pycache__/**', '**/*.pyc', '**/*.log', 'hs_err_pid*'
         // Not source: the launch-video workspace (renders and audio), local decompiled references and stray run folders.
         exclude 'launch-video/**', 'net/**', 'neoforge-ovw-*/**'
-        into "worldgennext-${project.version}"
+        into "tellurium-${project.version}"
     }
 }
 tasks.named('assemble') { dependsOn tasks.named('sourceBundle') }

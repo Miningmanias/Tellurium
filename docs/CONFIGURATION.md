@@ -1,19 +1,19 @@
-# WorldgenNext configuration
+# Tellurium configuration
 
-## Settings file: `config/worldgennext.toml`
+## Settings file: `config/tellurium.toml`
 
 Written with these defaults on first start; read once at startup, before any
 of the mod's code runs. Unknown options and invalid values are reported in the
-log and by `/worldgennext status`, and the default is used.
+log and by `/tellurium status`, and the default is used.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `enabled` | `true` | Master switch. `false` turns off everything the mod changes (every switch in the developer table below is set to its original-behaviour value). |
-| `gpu.mode` | `"auto"` | `"auto"`: GPU terrain for world generators on the tested list, vanilla code for the rest. `"check"`: generate with vanilla code, run the GPU as well for any generator its kernels build for, and compare block by block (after SURFACE where surface rules are on the GPU, after NOISE otherwise); `/worldgennext status` reports chunks compared and chunks that differ, and the log lists the first differences. `"force"`: GPU for any generator the kernels build for; untested generators are not guaranteed identical. `"off"`: no GPU, CPU-side optimizations stay on. |
+| `gpu.mode` | `"auto"` | `"auto"`: GPU terrain for world generators on the tested list, vanilla code for the rest. `"check"`: generate with vanilla code, run the GPU as well for any generator its kernels build for, and compare block by block (after SURFACE where surface rules are on the GPU, after NOISE otherwise); `/tellurium status` reports chunks compared and chunks that differ, and the log lists the first differences. `"force"`: GPU for any generator the kernels build for; untested generators are not guaranteed identical. `"off"`: no GPU, CPU-side optimizations stay on. |
 | `generation.parallel_steps` | `true` | Structure, surface, carver and feature steps of different chunks run at the same time. |
 | `saving.async` | `true` | Chunks are encoded and compressed on background threads when they unload. |
 | `saving.compression_level` | `1` | Deflate level for those chunks, 1–9. Level 1 files are about 12% larger than vanilla's; 6 matches vanilla's size. |
-| `pregen.in_flight` | `1024` | Chunks `/worldgennext pregen` works on at once (16–16384). Reduced to one per 12 MB of heap (not below 32) on small heaps. |
+| `pregen.in_flight` | `1024` | Chunks `/tellurium pregen` works on at once (16–16384). Reduced to one per 12 MB of heap (not below 32) on small heaps. |
 | `pregen.progress_seconds` | `10` | Seconds between progress messages. |
 | `pregen.tune_chunky` | `true` | If Chunky is installed and `chunky.maxWorkingCount` is not set, set it to `pregen.in_flight` (with the same small-heap reduction). Chunky's own default of 50 limits throughput to about 1,000 chunks/s. |
 | `voxy.generate` | `true` | Only if Voxy is installed and this is singleplayer or the host of a LAN world: generate the terrain around each player and hand it to Voxy. Left to Voxy WorldGen when that mod is installed. Measurements: `docs/evidence/comparison-voxy.md`. |
@@ -21,51 +21,51 @@ log and by `/worldgennext status`, and the default is used.
 | `distant_horizons.generator` | `"hybrid"` | Only if Distant Horizons is installed. `"hybrid"`: Distant Horizons keeps its own generator and plan (rough surface for far terrain first); the chunks it generates to refine that come from the server's chunk system. `"direct"`: all of its distant terrain is built from finished chunks; fastest to full detail, but nothing is shown for an area until its chunks are done. `"off"`: Distant Horizons is left alone. With `hybrid` and `direct` those chunks are real and are saved in the world. Measurements: `docs/evidence/comparison-distant-horizons.md`. |
 | `distant_horizons.full_chunks` | `false` | `hybrid` only. `false`: chunks made for Distant Horizons stop before lighting and are saved unfinished; the game finishes them when a player gets there. `true`: they are generated completely, so the area is fully pregenerated too (about 8% slower in the server test). |
 
-Voxy fine-tuning (system properties only): `worldgennext.voxy.inFlight` (chunks
-in progress at once, default the pregenerator's rule), `worldgennext.voxy.queueLimit`
+Voxy fine-tuning (system properties only): `tellurium.voxy.inFlight` (chunks
+in progress at once, default the pregenerator's rule), `tellurium.voxy.queueLimit`
 (sections in Voxy's ingest queue above which nothing is started, default 8,192),
-`worldgennext.voxy.loadedLimit` (loaded chunks above which nothing is started)
-and `worldgennext.voxy.log` (`true` writes progress and memory to the log every
+`tellurium.voxy.loadedLimit` (loaded chunks above which nothing is started)
+and `tellurium.voxy.log` (`true` writes progress and memory to the log every
 ten seconds).
 
-Distant Horizons fine-tuning (system properties only): `worldgennext.dh.columns`
+Distant Horizons fine-tuning (system properties only): `tellurium.dh.columns`
 (default `true`; `false` uses Distant Horizons' own chunk-to-LOD builder instead
-of this mod's column writer), `worldgennext.dh.columnsCheck` (`true` builds every
-tile both ways and compares them; `/worldgennext status` reports the result), `worldgennext.dh.readAhead`
+of this mod's column writer), `tellurium.dh.columnsCheck` (`true` builds every
+tile both ways and compares them; `/tellurium status` reports the result), `tellurium.dh.readAhead`
 (chunks started before Distant Horizons asks for them, default one per 4 MB of
-heap up to 4,096, `0` for none), `worldgennext.dh.readAheadReach` (how far from
-a request, in chunks, default 32), `worldgennext.dh.skipSecondBuild` (default
+heap up to 4,096, `0` for none), `tellurium.dh.readAheadReach` (how far from
+a request, in chunks, default 32), `tellurium.dh.skipSecondBuild` (default
 `true`; `false` lets Distant Horizons also rebuild each of those chunks from
-its load event), `worldgennext.dh.convert` (default `true`; `false` leaves the
+its load event), `tellurium.dh.convert` (default `true`; `false` leaves the
 chunk-to-LOD conversion on Distant Horizons' own threads),
-`worldgennext.dh.convertThreads` (default half the processors) and
-`worldgennext.dh.log` (`true` writes the bridge's counters to the log every
-ten seconds). `worldgennext.dh.mode` is the property behind
+`tellurium.dh.convertThreads` (default half the processors) and
+`tellurium.dh.log` (`true` writes the bridge's counters to the log every
+ten seconds). `tellurium.dh.mode` is the property behind
 the option above.
 
 Each option stands for one or more of the system properties below. A property
-given on the command line (`-Dworldgennext...`) wins over the file.
+given on the command line (`-Dtellurium...`) wins over the file.
 
 ## Commands (permission level 2, or the owner of a singleplayer world)
 
 | Command | Effect |
 | --- | --- |
-| `/worldgennext status` | GPU in use, what each dimension generates with and why, chunk counts, settings problems, tips. |
-| `/worldgennext pregen start <radius> [<centerX> <centerZ>]` | Generates a square of `(2·radius+1)²` chunks in the caller's dimension. Radius in chunks (max 5000); centre in block coordinates, default the caller's position (the world spawn from the console). |
-| `/worldgennext pregen start worldborder` | Generates the square that covers the dimension's world border (refused while the border is wider than 160,016 blocks). |
-| `/worldgennext voxy forget` | Forgets which chunks of the caller's dimension were handed to Voxy, so they are handed over again (for after Voxy's stored data was deleted). |
-| `/worldgennext pregen pause` / `resume` / `stop` / `status` | Pause keeps progress; `resume` also continues a job a restart cut short; `stop` discards it (generated chunks stay). |
-| `/worldgennext dev status`, `dev status-json`, `dev write-default-config`, `dev selftest` | Staged-route developer diagnostics (formerly directly under `/worldgennext`). |
+| `/tellurium status` | GPU in use, what each dimension generates with and why, chunk counts, settings problems, tips. |
+| `/tellurium pregen start <radius> [<centerX> <centerZ>]` | Generates a square of `(2·radius+1)²` chunks in the caller's dimension. Radius in chunks (max 5000); centre in block coordinates, default the caller's position (the world spawn from the console). |
+| `/tellurium pregen start worldborder` | Generates the square that covers the dimension's world border (refused while the border is wider than 160,016 blocks). |
+| `/tellurium voxy forget` | Forgets which chunks of the caller's dimension were handed to Voxy, so they are handed over again (for after Voxy's stored data was deleted). |
+| `/tellurium pregen pause` / `resume` / `stop` / `status` | Pause keeps progress; `resume` also continues a job a restart cut short; `stop` discards it (generated chunks stay). |
+| `/tellurium dev status`, `dev status-json`, `dev write-default-config`, `dev selftest` | Staged-route developer diagnostics (formerly directly under `/tellurium`). |
 
 The pregenerator walks one region file (32×32 chunks) at a time, outward from
 the centre. It works in the caller's dimension; `/execute in <dimension> run
-worldgennext pregen ...` selects another. Progress is kept in `worldgennext-pregen.properties` in the world
-folder. Unattended use: `-Dworldgennext.pregen.autostart=<radius>` starts a
+tellurium pregen ...` selects another. Progress is kept in `tellurium-pregen.properties` in the world
+folder. Unattended use: `-Dtellurium.pregen.autostart=<radius>` starts a
 job around the Overworld spawn when the server is up,
-`-Dworldgennext.pregen.autostartDimension=<id>` picks another dimension (centred
-on 0, 0), `-Dworldgennext.pregen.autoresume=true` continues an unfinished one instead,
-`-Dworldgennext.pregen.stopServerWhenDone=true` stops the server at the end,
-and `-Dworldgennext.statusOnStop=true` writes the status report to the log at
+`-Dtellurium.pregen.autostartDimension=<id>` picks another dimension (centred
+on 0, 0), `-Dtellurium.pregen.autoresume=true` continues an unfinished one instead,
+`-Dtellurium.pregen.stopServerWhenDone=true` stops the server at the end,
+and `-Dtellurium.statusOnStop=true` writes the status report to the log at
 shutdown.
 
 `sync-chunk-writes=true` in `server.properties` (the dedicated-server default)
@@ -83,60 +83,60 @@ in the last column of the second table restores the original code path.
 
 | Property | Default | Meaning |
 | --- | --- | --- |
-| `worldgennext.fast.gpu` | `auto` | `auto`: GPU NOISE only for routers on the qualified list; `force`: any router that compiles (unqualified); `off`: never. |
-| `worldgennext.fast.batch` | `64` | Maximum chunks per GPU batch. |
-| `worldgennext.fast.slots` | `4` | Batches that may be in flight. |
-| `worldgennext.fast.maxDelayMicros` | `1500` | Longest a request waits for a batch to fill. |
-| `worldgennext.fast.pipelineCacheDir` | `worldgennext-cache` | Directory for the Vulkan pipeline cache; `NONE` disables it. |
-| `worldgennext.parallelStructureSteps` | `true` | Run structure starts/references on the worker pool. |
-| `worldgennext.parallelSurfaceCarvers` | `true` | Run surface and carvers on the worker pool. |
-| `worldgennext.parallelFeatures` | `true` | Run features in parallel where 3×3 neighbourhoods are disjoint. |
+| `tellurium.fast.gpu` | `auto` | `auto`: GPU NOISE only for routers on the qualified list; `force`: any router that compiles (unqualified); `off`: never. |
+| `tellurium.fast.batch` | `64` | Maximum chunks per GPU batch. |
+| `tellurium.fast.slots` | `4` | Batches that may be in flight. |
+| `tellurium.fast.maxDelayMicros` | `1500` | Longest a request waits for a batch to fill. |
+| `tellurium.fast.pipelineCacheDir` | `tellurium-cache` | Directory for the Vulkan pipeline cache; `NONE` disables it. |
+| `tellurium.parallelStructureSteps` | `true` | Run structure starts/references on the worker pool. |
+| `tellurium.parallelSurfaceCarvers` | `true` | Run surface and carvers on the worker pool. |
+| `tellurium.parallelFeatures` | `true` | Run features in parallel where 3×3 neighbourhoods are disjoint. |
 
 | Property | Default | Original behaviour | Meaning |
 | --- | --- | --- | --- |
-| `worldgennext.fast.surface` | `true` | `false` | Surface rules on the GPU for qualified surface programs. |
-| `worldgennext.fast.aquiferPrefill` | `true` | `false` | Carvers reuse aquifer cell results the GPU already computed. |
-| `worldgennext.fast.lazyNoiseWrap` | `true` | `false` | NoiseChunk maps its router on first use instead of in its constructor. |
-| `worldgennext.fast.orePlacement` | `true` | `false` | Ore veins use the row-mask scan (`worldgennext.fast.oreRows=false` keeps the hoisted terms but the original visited index). |
-| `worldgennext.fast.cavePlans` | `true` | `false` | The cave systems of a starting chunk are walked once and replayed for each chunk they can reach, skipping tunnels whose bounding box misses the chunk. |
-| `worldgennext.fast.heightCache` | `true` | `false` | Terrain-height answers (`getBaseHeight`) are remembered per thread, keyed by generator, random state, position, heightmap type and level heights. |
-| `worldgennext.fast.uniformBiome` | `true` | `false` | Biome lookups skip the seeded cell choice when all eight candidate cells hold one biome. |
-| `worldgennext.fast.biomeIndex` | `true` | `false` | Exact per-column replacement for the climate R-tree search. |
-| `worldgennext.fast.rtreeStoreSkip` | `true` | `false` | The climate R-tree does not re-store a lookup result that is already the stored one. |
-| `worldgennext.biomeColumnCache` | `true` | `false` | Column-only climate functions are evaluated once per column (`worldgennext.biomeUnwrappedSampler=false` keeps the NoiseChunk for BIOMES). |
-| `worldgennext.fast.regionChunkCache` | `true` | `false` | A WorldGenRegion remembers the chunks it resolved, with the status each may be read at. |
-| `worldgennext.fast.shapeCache` | `true` | `false` | `Block.isShapeFullBlock` is memoized per thread instead of in a shared, lock-taking cache. |
-| `worldgennext.fast.freshRegionShortcut` | `true` | `false` | Region files created this session are not scanned for pre-1.18 chunks. |
-| `worldgennext.asyncChunkSave` | `true` | `false` | Section encoding of unloading chunks runs on a save pool (`asyncChunkSaveThreads`, `asyncChunkSaveQueue`). |
-| `worldgennext.asyncChunkCompress` | `true` | `false` | The save pool also compresses the chunk; the IO thread only writes. |
-| `worldgennext.asyncChunkCompressLevel` | `1` | — | Deflate level for precompressed chunks. |
-| `worldgennext.regionHeaderBatch` | `true` | `false` | Region headers are written when the IO worker runs dry instead of after every chunk. |
-| `worldgennext.asyncIoMailboxBatch` | `256` | `1` | Messages an IO worker handles per dispatch. |
-| `worldgennext.asyncChunkLoad` | `true` | `false` | Chunks read from disk are deserialized on the worker pool; the server thread only runs the point-of-interest consistency check and takes the finished chunk. |
-| `worldgennext.asyncGroupCommit` | `true` | `false` | With synchronous chunk writes on, region files are opened without DSYNC; the IO worker forces the files of a batch once (at most `worldgennext.asyncGroupCommitWrites` = 256 saves or 50 ms, or when it runs dry) and only then completes those saves. No effect when synchronous writes are off. |
-| `worldgennext.parallelMailboxThreads` | `true` | `false` | The chunk system's "worldgen" and "sorter" mailboxes run on their own threads (`worldgennext.parallelMailboxBatch`, default 64 messages per dispatch). |
-| `worldgennext.unloadTypeCache` | `true` | `false` | Remembers chunk types so unload saves do not re-read the region file. |
-| `worldgennext.unloadPacing` | `true` | `false` | Spreads unload saves over ticks and idle time. |
-| `worldgennext.promptTaskRelease` | `true` | `false` | Cancelled generation tasks release their chunk references at top priority. |
+| `tellurium.fast.surface` | `true` | `false` | Surface rules on the GPU for qualified surface programs. |
+| `tellurium.fast.aquiferPrefill` | `true` | `false` | Carvers reuse aquifer cell results the GPU already computed. |
+| `tellurium.fast.lazyNoiseWrap` | `true` | `false` | NoiseChunk maps its router on first use instead of in its constructor. |
+| `tellurium.fast.orePlacement` | `true` | `false` | Ore veins use the row-mask scan (`tellurium.fast.oreRows=false` keeps the hoisted terms but the original visited index). |
+| `tellurium.fast.cavePlans` | `true` | `false` | The cave systems of a starting chunk are walked once and replayed for each chunk they can reach, skipping tunnels whose bounding box misses the chunk. |
+| `tellurium.fast.heightCache` | `true` | `false` | Terrain-height answers (`getBaseHeight`) are remembered per thread, keyed by generator, random state, position, heightmap type and level heights. |
+| `tellurium.fast.uniformBiome` | `true` | `false` | Biome lookups skip the seeded cell choice when all eight candidate cells hold one biome. |
+| `tellurium.fast.biomeIndex` | `true` | `false` | Exact per-column replacement for the climate R-tree search. |
+| `tellurium.fast.rtreeStoreSkip` | `true` | `false` | The climate R-tree does not re-store a lookup result that is already the stored one. |
+| `tellurium.biomeColumnCache` | `true` | `false` | Column-only climate functions are evaluated once per column (`tellurium.biomeUnwrappedSampler=false` keeps the NoiseChunk for BIOMES). |
+| `tellurium.fast.regionChunkCache` | `true` | `false` | A WorldGenRegion remembers the chunks it resolved, with the status each may be read at. |
+| `tellurium.fast.shapeCache` | `true` | `false` | `Block.isShapeFullBlock` is memoized per thread instead of in a shared, lock-taking cache. |
+| `tellurium.fast.freshRegionShortcut` | `true` | `false` | Region files created this session are not scanned for pre-1.18 chunks. |
+| `tellurium.asyncChunkSave` | `true` | `false` | Section encoding of unloading chunks runs on a save pool (`asyncChunkSaveThreads`, `asyncChunkSaveQueue`). |
+| `tellurium.asyncChunkCompress` | `true` | `false` | The save pool also compresses the chunk; the IO thread only writes. |
+| `tellurium.asyncChunkCompressLevel` | `1` | — | Deflate level for precompressed chunks. |
+| `tellurium.regionHeaderBatch` | `true` | `false` | Region headers are written when the IO worker runs dry instead of after every chunk. |
+| `tellurium.asyncIoMailboxBatch` | `256` | `1` | Messages an IO worker handles per dispatch. |
+| `tellurium.asyncChunkLoad` | `true` | `false` | Chunks read from disk are deserialized on the worker pool; the server thread only runs the point-of-interest consistency check and takes the finished chunk. |
+| `tellurium.asyncGroupCommit` | `true` | `false` | With synchronous chunk writes on, region files are opened without DSYNC; the IO worker forces the files of a batch once (at most `tellurium.asyncGroupCommitWrites` = 256 saves or 50 ms, or when it runs dry) and only then completes those saves. No effect when synchronous writes are off. |
+| `tellurium.parallelMailboxThreads` | `true` | `false` | The chunk system's "worldgen" and "sorter" mailboxes run on their own threads (`tellurium.parallelMailboxBatch`, default 64 messages per dispatch). |
+| `tellurium.unloadTypeCache` | `true` | `false` | Remembers chunk types so unload saves do not re-read the region file. |
+| `tellurium.unloadPacing` | `true` | `false` | Spreads unload saves over ticks and idle time. |
+| `tellurium.promptTaskRelease` | `true` | `false` | Cancelled generation tasks release their chunk references at top priority. |
 
-Fault injection: `worldgennext.fast.loseDeviceAfterBatches=<n>` makes the engine
+Fault injection: `tellurium.fast.loseDeviceAfterBatches=<n>` makes the engine
 treat the GPU as lost after n batches, to exercise the fall-back to CPU
 generation and its reporting.
 
 Verification modes compare an optimized result with the original while the
-server runs: `worldgennext.fast.verify` and `worldgennext.fast.surfaceVerify`
+server runs: `tellurium.fast.verify` and `tellurium.fast.surfaceVerify`
 log and count differences (the original result is kept);
-`worldgennext.fast.biomeIndexVerify` counts them;
-`worldgennext.fast.oreVerify` and `worldgennext.fast.uniformBiomeVerify` fail
+`tellurium.fast.biomeIndexVerify` counts them;
+`tellurium.fast.oreVerify` and `tellurium.fast.uniformBiomeVerify` fail
 the chunk on a difference and print totals at shutdown.
 
-Diagnostics: `worldgennext.fast.verify=true` generates each chunk with both the
+Diagnostics: `tellurium.fast.verify=true` generates each chunk with both the
 original generator and the GPU and logs block mismatches (the original result
-is kept); `worldgennext.fast.profile=true` reports per-kernel GPU time;
-`worldgennext.fast.debugBuffers=true` with verify compares GPU intermediates
-with the CPU interpreter; `worldgennext.fast.dumpSourceDir=<dir>` writes the
+is kept); `tellurium.fast.profile=true` reports per-kernel GPU time;
+`tellurium.fast.debugBuffers=true` with verify compares GPU intermediates
+with the CPU interpreter; `tellurium.fast.dumpSourceDir=<dir>` writes the
 generated GLSL. The GPU runtime and its LWJGL bindings are nested in the mod
-jar and unpacked to `worldgennext-cache/gpu-runtime-*` in the game directory.
+jar and unpacked to `tellurium-cache/gpu-runtime-*` in the game directory.
 
 The v0.2 checkpoint exposes three explicit modes:
 
@@ -149,26 +149,26 @@ The file parser accepts `AUTO`, `AUTO_SUPPORTED`, or the hyphenated
 `AUTO-SUPPORTED` spelling as aliases for the same fixed `AUTO_SUPPORTED`
 policy. It writes only the canonical enum name when serializing a config.
 
-Resource budgets and request deadlines are bounded in `WorldgenNextConfig`. They are capacity and completion-safety controls, not optimization knobs. The configured `nativeBudgetBytes` reaches the provider-owned Vulkan executor and covers active/idle reusable input/output capacities plus bytes retained in quarantine after an unproven completion. A serialized slot reuses mapped storage, command objects, descriptors and fence only after the previous fence completes; descriptor ranges remain request-sized. Raw chains release idle scratch before their own budget admission. The version-pinned generation boundary remains vanilla by default: setting `enableQualifiedHook` alone cannot activate it, because provider registration also requires a complete independent qualification receipt (`QualifiedHookEvidence`).
+Resource budgets and request deadlines are bounded in `TelluriumConfig`. They are capacity and completion-safety controls, not optimization knobs. The configured `nativeBudgetBytes` reaches the provider-owned Vulkan executor and covers active/idle reusable input/output capacities plus bytes retained in quarantine after an unproven completion. A serialized slot reuses mapped storage, command objects, descriptors and fence only after the previous fence completes; descriptor ranges remain request-sized. Raw chains release idle scratch before their own budget admission. The version-pinned generation boundary remains vanilla by default: setting `enableQualifiedHook` alone cannot activate it, because provider registration also requires a complete independent qualification receipt (`QualifiedHookEvidence`).
 
 For a playable draft before the release qualification gates are closed, the
 development launcher supports an explicit CPU prototype hook:
 
 ```powershell
 .\gradlew.bat :neoforge-1211:runServer `
-  -Dworldgennext.prototype.cpuLive=true `
-  -Dworldgennext.prototype.cpuWorkers=2
+  -Dtellurium.prototype.cpuLive=true `
+  -Dtellurium.prototype.cpuWorkers=2
 ```
 
 This installs the captured CPU candidate into the real NOISE boundary for the
 running server, then lets the original SURFACE-through-FULL stages continue.
 It is disabled by default, rejects `GPU_REQUIRED`, is not evidence-backed
 qualification, and is not safe to advertise as exact for arbitrary worlds or
-mod stacks. Use `worldgennext.candidate.live=true` with the candidate capture
+mod stacks. Use `tellurium.candidate.live=true` with the candidate capture
 scripts for the bounded FULL/SAVED verifier instead. The prototype hook is a
 temporary integration aid and is recorded in `docs/v0.2/DRAFT-CLEANUP.md`.
 During startup fan-out it uses the larger prototype-only
-`worldgennext.prototype.cpuLiveTimeoutMillis` deadline (default `120000` ms,
+`tellurium.prototype.cpuLiveTimeoutMillis` deadline (default `120000` ms,
 never lower than configured `requestTimeoutMillis`); set it explicitly when a
 machine's CPU worker pool needs more time.
 
@@ -205,7 +205,7 @@ The generated single-context receipt is schema `1` and must contain `contextKey`
 `QualificationEvidenceFile.write(...)` helper emits a deterministic UTF-8
 properties file with no timestamp, requires complete admissible evidence, and
 refuses to overwrite an existing receipt. The artifact path is relative to the
-receipt file and must remain inside the receipt directory. WorldgenNext hashes
+receipt file and must remain inside the receipt directory. Tellurium hashes
 that regular file and rejects the receipt if the digest differs before
 constructing the provider. It also requires the receipt's result ABI and
 compiler identity to match the provider that is about to run. `AUTO_SUPPORTED`
@@ -255,20 +255,20 @@ unsigned draft provenance; it does not manufacture missing GPU or live-hook
 evidence.
 
 The isolated GPU candidate is enabled with
-`worldgennext.gpuCandidate.capture=true`; that flag also enables the
+`tellurium.gpuCandidate.capture=true`; that flag also enables the
 candidate-capture event and selects the GPU branch, so a separate
-`worldgennext.candidate.capture=true` flag is no longer required. The isolated
+`tellurium.candidate.capture=true` flag is no longer required. The isolated
 GPU candidate exposes draft-only density compiler probes:
-`worldgennext.gpuCandidate.densityDontInlinePrefix` overrides the ordinary
+`tellurium.gpuCandidate.densityDontInlinePrefix` overrides the ordinary
 graph/noise-wrapper/integer-helper prefix list (use `NONE` to disable it), and
-`worldgennext.gpuCandidate.stopAfterDensityStage` stops after a zero-based
+`tellurium.gpuCandidate.stopAfterDensityStage` stops after a zero-based
 stage for driver diagnostics. The direct second-branch path has its own
-`worldgennext.gpuCandidate.directBranchDontInlinePrefix` policy; its tested
+`tellurium.gpuCandidate.directBranchDontInlinePrefix` policy; its tested
 default is `wg_node_,wg_spline_` because marking captured normal-noise wrappers
 `DontInline` returned incorrect values on the target driver. `NONE` disables
 that direct policy for experiments.
 
-`worldgennext.gpuCandidate.directBranchProbeElements` limits the direct
+`tellurium.gpuCandidate.directBranchProbeElements` limits the direct
 branch diagnostic to a prefix of the chunk and requires
 `debugDensityBranchOnly=true`. `debugDensityBranchOnly=true` runs the exact
 direct-branch parity diagnostic and stops before ordinary density/material
@@ -277,7 +277,7 @@ the ordinary candidate path. `debugDensityBranchComponents=true` and
 `debugStages=true` write bounded diagnostic values/logs. These switches are
 draft probes only; none can create qualification evidence.
 
-`worldgennext.gpuCandidate.debugMaterialProbeCpuDensity=true` together with
+`tellurium.gpuCandidate.debugMaterialProbeCpuDensity=true` together with
 `cpuDensityMaterialFallback=true`, `debugDensityParity=true`, and a
 `debugDensityProbePoint` skips the expensive full density planner for one
 diagnostic point. It feeds that point's independently captured CPU density to
@@ -285,7 +285,7 @@ the GPU barrier/aquifer/ore/material stages and reports their result. This is
 downstream GPU execution evidence only; it is fail-closed from qualification
 and cannot produce a parity receipt.
 
-`worldgennext.gpuCandidate.debugDensityEmbeddedNormalNoiseRoot` selects a
+`tellurium.gpuCandidate.debugDensityEmbeddedNormalNoiseRoot` selects a
 fail-closed, diagnostic-only embedded normal-noise root such as
 `wg_node_2139`. It runs the GPU coordinate, Perlin-carrier and parent-combine
 prototype with zeroed child carriers, then reports the finite device value and
@@ -293,23 +293,23 @@ stops. It is a compiler/dispatch probe, not CPU parity or generation: it
 cannot create GPU, FULL, SAVED, terrain-mod or live-hook qualification
 evidence.
 
-`worldgennext.gpuCandidate.debugDensityInterpolationRoot` selects a captured
+`tellurium.gpuCandidate.debugDensityInterpolationRoot` selects a captured
 `wg_node_*` interpolation root for a one-point staged carrier diagnostic and
 requires `debugDensityProbePoint`. It reports the GPU interpolation carrier
 and stops before material execution; it is intended for per-stage isolation,
 not parity or qualification.
 
-`worldgennext.gpuCandidate.debugDensityInterpolationComponents=true` adds a
+`tellurium.gpuCandidate.debugDensityInterpolationComponents=true` adds a
 bounded eight-corner dump for the selected interpolation probe. It reports the
 GPU child carriers before the parent interpolation and stops with the other
 draft diagnostic; it is an isolation aid only and does not create a receipt.
 
-`worldgennext.gpuCandidate.debugDensityNodeExact=true` makes a selected
+`tellurium.gpuCandidate.debugDensityNodeExact=true` makes a selected
 `debugDensityNode=wg_node_<id>` probe use the retained integer-carrier shader
 instead of the native-draft rewrite. It is a diagnostic A/B switch only; it
 does not change the full route or qualify a hybrid profile.
 
-`worldgennext.gpuCandidate.debugDensityStageRoot=wg_node_<id>` runs one
+`tellurium.gpuCandidate.debugDensityStageRoot=wg_node_<id>` runs one
 selected root through the ordinary staged dependency planner on the single
 `debugDensityProbePoint` coordinate. It also accepts
 `semantic:<64-hex-node-fingerprint>`, where the fingerprint comes from the
@@ -319,35 +319,35 @@ compiler-owned `ProgramNode` metadata and is stable when transient
 therefore is the preferred compact probe for an exact-island root. It stops
 after the selected root and creates no candidate receipt.
 
-`worldgennext.gpuCandidate.debugDensityStageRootSeedCpu=true` derives the
+`tellurium.gpuCandidate.debugDensityStageRootSeedCpu=true` derives the
 selected direct root's child carriers from the compiler-owned semantic nodes
 and uses them only as explicit diagnostic inputs. It is a faster way to test a
 GPU parent without replaying the full dependency closure; it is never a
 production fallback and the diagnostic status records the seeded boundary.
 
-`worldgennext.gpuCandidate.debugDensityStageRootGpuChildren=true` evaluates
+`tellurium.gpuCandidate.debugDensityStageRootGpuChildren=true` evaluates
 the selected root's direct children one at a time on Vulkan, then evaluates
 the parent from those GPU-produced rows. This is a diagnostic containment route
 for semantic subtrees whose transitive stage plan exceeds the ordinary limit;
 it remains opt-in, may take substantially longer, and does not turn a partial
 subtree result into a complete GPU replay or qualification receipt. The route
 is bounded by
-`worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenMaxStages` (default
+`tellurium.gpuCandidate.debugDensityStageRootGpuChildrenMaxStages` (default
 `4096`) and calls the existing Vulkan pipeline-reclaim boundary every
-`worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenReclaimEvery`
+`tellurium.gpuCandidate.debugDensityStageRootGpuChildrenReclaimEvery`
 completed stages (default `1`). Lower the stage limit for a quick envelope
 probe. The wall-clock guard
-`worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenMaxMillis` defaults
+`tellurium.gpuCandidate.debugDensityStageRootGpuChildrenMaxMillis` defaults
 to `600000` and is checked at stage boundaries. Do not raise the ordinary
 `maxDensityStages` cap to work around this diagnostic.
 
-`worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenRecreateDeviceEvery`
+`tellurium.gpuCandidate.debugDensityStageRootGpuChildrenRecreateDeviceEvery`
 defaults to `0`. A positive value recreates the Vulkan device after that many
 completed recursive child stages, after host-carrier handoff. This is a slow,
 diagnostic-only escape hatch for drivers that retain compiler state after
 pipeline reclamation; it is never enabled by the ordinary route.
 
-`worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenNativeNoise=true`
+`tellurium.gpuCandidate.debugDensityStageRootGpuChildrenNativeNoise=true`
 is a second, explicitly unqualified escape hatch for that route. It keeps
 captured normal-noise leaves in the native-draft arithmetic profile instead of
 using the full exact integer helper closure for every leaf. All resulting
@@ -355,7 +355,7 @@ samples still execute on Vulkan, but this can introduce native-draft numeric
 drift; it is for compiler-envelope exploration only and is not a parity or
 qualification mode.
 
-`worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenSemanticLeaves=true`
+`tellurium.gpuCandidate.debugDensityStageRootGpuChildrenSemanticLeaves=true`
 enables the additional diagnostic leaf experiment. Captured `Shift` leaves
 are emitted as standalone exact semantic shaders before their two-word rows
 feed a minimal parent carrier shader. Captured `Noise` leaves use the existing
@@ -364,13 +364,13 @@ probe returned an incorrect zero on the target driver. It is enabled by
 default inside the opt-in GPU-child route and remains diagnostic-only. Set it
 to `false` to retain the older bounded Perlin leaf decomposition.
 
-`worldgennext.gpuCandidate.debugDensityStageRootGpuChildrenNativeCarrier=true`
+`tellurium.gpuCandidate.debugDensityStageRootGpuChildrenNativeCarrier=true`
 lowers only the opt-in semantic leaf/parent carrier stages to hardware FP32/
 FP64 arithmetic while retaining the raw two-word carrier ABI and real Vulkan
 dispatch. It is an explicitly unqualified compiler-envelope experiment; it
 does not change the exact `GPU_IEEE_BITS` route or permit a production hook.
 
-`worldgennext.gpuCandidate.debugDensitySemanticNodes=wg_node_<id>,...` adds
+`tellurium.gpuCandidate.debugDensitySemanticNodes=wg_node_<id>,...` adds
 CPU-only values, compiler-owned fingerprints and operations for selected
 semantic nodes to a `cpuDensityOnly=true` diagnostic. Entries may also be
 `semantic:<64-hex-node-fingerprint>`. It is intended to align stage-log values
@@ -378,7 +378,7 @@ with the generated shader's node map; use the reported fingerprint with the
 `semantic:` stage-root selector instead of persisting a transient numeric
 function ID. It does not execute or qualify a GPU route.
 
-`worldgennext.gpuCandidate.debugDensityStageRootChildValues=child=value;...`
+`tellurium.gpuCandidate.debugDensityStageRootChildValues=child=value;...`
 replaces the dependency replay for that direct root with explicit diagnostic
 child carriers. The parent still executes on Vulkan, but the supplied values
 are test inputs rather than production output. All direct children must be
@@ -388,7 +388,7 @@ subgraph and never qualifies a GPU route. A CPU-seeded stage diagnostic also
 reports the CPU value of the selected semantic root, so the GPU parent result
 and CPU root value can be compared at the same probe coordinate.
 
-`worldgennext.gpuCandidate.nativeDraftExactInterpolation` is an explicit
+`tellurium.gpuCandidate.nativeDraftExactInterpolation` is an explicit
 native-draft experiment. When `true`, captured interpolation parents and
 captured FP32 (`uint`) child stages use the exact integer-carrier shader while
 surrounding FP64/other graph stages remain native and the route remains
@@ -397,31 +397,31 @@ produced an Overworld parity receipt within the target driver's bounded
 compiler envelope. This switch is not a fallback, performance mode, or
 qualification claim.
 
-When that switch is enabled, `worldgennext.gpuCandidate.nativeDraftExactInterpolationRoots`
+When that switch is enabled, `tellurium.gpuCandidate.nativeDraftExactInterpolationRoots`
 optionally limits the exact child-stage island to a comma-separated list of
 function roots, with a trailing `*` meaning prefix match (for example,
 `wg_spline_*`). An empty value preserves the broader exact-`uint` experiment;
 the selector exists to keep one-child compiler probes bounded.
 
-`worldgennext.gpuCandidate.nativeDraftExactInterpolationDontInline=true` is a
+`tellurium.gpuCandidate.nativeDraftExactInterpolationDontInline=true` is a
 second diagnostic escape hatch for that experiment. It removes the broad
 density `DontInline` prefix from exact-island stages to reduce driver compiler
 state. It is disabled by default and is not a numerical or qualification fix.
 
-`worldgennext.gpuCandidate.recreateDeviceInterval` optionally recreates the
+`tellurium.gpuCandidate.recreateDeviceInterval` optionally recreates the
 Vulkan device after the requested number of density stages. It is intended
 only to contain development-driver shader compiler state for very large
 captured graphs; the default is `-1` (disabled). Device recreation adds
 substantial setup cost and has no qualification or performance meaning.
 
-`worldgennext.gpuCandidate.normalNoiseDeviceResidentChain` selects the
+`tellurium.gpuCandidate.normalNoiseDeviceResidentChain` selects the
 experimental one-command-buffer Perlin carrier chain. It defaults to `false`:
 the correctness-first draft uses separate GPU dispatches with host-visible
 intermediate carriers because the target NVIDIA driver crashed while updating
 the resident chain's descriptor set. The fallback is still GPU noise
 execution, but it is not a production resource policy or a performance claim.
 
-`worldgennext.gpuCandidate.normalNoiseSharedShader` selects the experimental
+`tellurium.gpuCandidate.normalNoiseSharedShader` selects the experimental
 single-dispatch captured-Perlin sampler and defaults to `false`. The
 correctness-first default uses bounded host-staged GPU Perlin groups. An older
 static experiment kept a complete captured Perlin function and its immutable
@@ -435,47 +435,47 @@ experiment. Both routes are prototype diagnostics; neither setting creates
 GPU, FULL, SAVED or live-generation qualification evidence.
 The generic sampler now loops through the highest populated octave level in
 the row rather than all 16 possible slots; sparse levels remain represented.
-`worldgennext.gpuCandidate.normalNoisePerlinGroupSize` bounds each fallback or
+`tellurium.gpuCandidate.normalNoisePerlinGroupSize` bounds each fallback or
 resident group to `1..4` octave calls. It defaults to `1` for the native-draft
 profile and `2` for the exact profile because native-draft leaves retain the
 exact carrier helper closure during staged Perlin compilation. Larger groups
 remain available only as explicit experiments and have no exact-parity or
 qualification claim.
-`worldgennext.gpuCandidate.normalNoiseSharedGenericShader` defaults to `true`
+`tellurium.gpuCandidate.normalNoiseSharedGenericShader` defaults to `true`
 for the shared route and selects the cached dynamic metadata sampler. Set it
 to `false` to use the older unrolled metadata shader when a driver cannot
 compile the generic level loop/table-indexing form. Both are diagnostic-only;
 the fallback still needs exact parity and a qualification artifact.
-`worldgennext.gpuCandidate.normalNoisePairShader` is an opt-in experiment that
+`tellurium.gpuCandidate.normalNoisePairShader` is an opt-in experiment that
 evaluates the two transformed Perlin roots of one normal-noise leaf in one
 module. It defaults to `false`: the current RTX driver made the paired
 38.5k-character module spend more than a minute in native compilation before
 dispatch, so the split host-staged path remains the draft default.
 
-`worldgennext.gpuCandidate.recreateDeviceBetweenNormalNoiseHalves` is an
+`tellurium.gpuCandidate.recreateDeviceBetweenNormalNoiseHalves` is an
 opt-in compiler-envelope escape hatch. When `true`, the split route recreates
 the Vulkan device between host-staged octave groups and after the first Perlin
 half before the second; it is
 disabled by default because it trades persistent-device reuse for driver-state
 reclamation and has no parity or qualification meaning by itself.
 
-`worldgennext.gpuCandidate.materialDontInlinePrefix` applies the equivalent
+`tellurium.gpuCandidate.materialDontInlinePrefix` applies the equivalent
 request-local function-control policy to the aquifer, ore, and final material
 dispatches. It defaults to `wg_,noise_`; use `NONE` only for a driver
 experiment. This is a draft compile-envelope control, not a numeric or
 performance qualification.
 
-`worldgennext.gpuCandidate.deviceResidentMaterial=true` selects the draft
+`tellurium.gpuCandidate.deviceResidentMaterial=true` selects the draft
 fixed-stride device-resident post-density row chain. It copies coordinates,
 density, aquifer, ore, and final state/mark fields through one raw-stage chain
 and remains disabled by default pending broader exact parity and saved-world
 validation. The
 long-divider experiment
-`worldgennext.gpuCandidate.deviceResidentFp64DivisionChain=true` is also
+`tellurium.gpuCandidate.deviceResidentFp64DivisionChain=true` is also
 disabled by default after a target-driver queue-submit crash; neither switch
 creates qualification evidence.
 
-`worldgennext.gpuCandidate.exactAquiferStage=true` replaces only the ordinary
+`tellurium.gpuCandidate.exactAquiferStage=true` replaces only the ordinary
 host-staged aquifer consumer with the captured `GPU_IEEE_BITS` aquifer shader
 while the native-draft density carrier, ore stage, and final material stage
 remain in use. It is a focused A/B diagnostic: a target-point probe corrected
@@ -489,14 +489,14 @@ contribution and the complete threshold behavior are still not qualified.
 Full exact-stage attempts also exceeded the target native compiler envelope
 before dispatch, so this switch remains diagnostic only.
 
-`worldgennext.gpuCandidate.exactAquiferStageNative=true` is a second opt-in
+`tellurium.gpuCandidate.exactAquiferStageNative=true` is a second opt-in
 compiler-envelope experiment. When the complete shader is already using the
 `GPU_NATIVE_DRAFT` profile, it keeps that native shader while selecting the
 exact aquifer consumer; otherwise the normal exact aquifer shader is used.
 This is a containment seam, not a numerical fix, fallback, or qualification
 mode, and it remains disabled by default.
 
-`worldgennext.gpuCandidate.exactAquiferBarrierInput=true` enables the draft
+`tellurium.gpuCandidate.exactAquiferBarrierInput=true` enables the draft
 external barrier carrier for the exact aquifer stage. The barrier root is
 evaluated in a separate GPU stage and supplied as two FP64 carrier words,
 keeping the compact aquifer module independent of the full barrier graph. It
@@ -507,7 +507,7 @@ before qualification. The resident form adds the carrier to a fifteen-word
 row and evaluates it as the first chain stage; it remains diagnostic-only.
 
 For this exact external-barrier consumer only,
-`worldgennext.gpuCandidate.aquiferDontInlinePrefix` defaults to `NONE`.
+`tellurium.gpuCandidate.aquiferDontInlinePrefix` defaults to `NONE`.
 Forcing every `wg_` helper DontInline miscompiled the dynamic barrier/density
 sum on the target driver. This stage-specific default leaves the ore and
 final-material compiler policies unchanged. An explicit prefix can restore
@@ -516,51 +516,51 @@ shared Perlin route and this policy, one seed-0 Overworld chunk completed
 `98,304/98,304` state parity and wrote a `DRAFT_PARITY_PASS` native-draft
 receipt. A one-ULP pressure boundary and the release matrix remain open.
 
-`worldgennext.gpuCandidate.debugAquiferMultiply=true` emits a tiny diagnostic
+`tellurium.gpuCandidate.debugAquiferMultiply=true` emits a tiny diagnostic
 FP64 multiply at the aquifer root. It exists only to reproduce the target
 driver compiler boundary and must remain disabled for ordinary probes and
 all qualification runs.
 
-`worldgennext.gpuCandidate.maxShaderSourceChars` fails the candidate closed
+`tellurium.gpuCandidate.maxShaderSourceChars` fails the candidate closed
 before shaderc/Vulkan compilation when the generated source exceeds the
 configured character count. The default is `900000`, chosen to leave the
 current bounded native-draft baseline below the observed multi-gigabyte
 compiler envelope. Set it to `-1` only for a deliberately bounded compiler
 experiment; an over-budget source is not a GPU or parity result.
 
-`worldgennext.gpuCandidate.deviceResidentDensityScratch=true` enables the
+`tellurium.gpuCandidate.deviceResidentDensityScratch=true` enables the
 experimental fixed-stride dependency-row chain for ordinary graph stages.
-`worldgennext.gpuCandidate.deviceResidentDensityMaxStages` bounds each linear
+`tellurium.gpuCandidate.deviceResidentDensityMaxStages` bounds each linear
 chain (default `16`, legal range `1..64`). Interpolation, blended-noise fan-out,
 and the FP64 divider retain their explicit stage ABIs. Resident stages default
 to the safer `wg_node_,wg_spline_` no-inline prefix through
-`worldgennext.gpuCandidate.residentDensityDontInlinePrefix`; `NONE` or a custom
+`tellurium.gpuCandidate.residentDensityDontInlinePrefix`; `NONE` or a custom
 comma-separated prefix is available for driver experiments. The scratch route
 is disabled by default and is not a qualification or performance claim.
 
 The ordinary captured blended-noise draft path uses
-`worldgennext.gpuCandidate.blendedNoiseDontInlinePrefix`, which defaults to
+`tellurium.gpuCandidate.blendedNoiseDontInlinePrefix`, which defaults to
 `NONE`. Each of the 40 captured octaves is emitted as a fixed literal-call
 shader and the arithmetic is allowed to inline because the target driver
 returned incorrect signed-zero or oversized carriers when `wg_fp64_` was
 marked `DontInline`. A comma-separated prefix list is available for bounded
 driver experiments, but the resulting path is not qualified by default.
-`worldgennext.gpuCandidate.blendedNoiseStaticGroupSize` bounds the number of
+`tellurium.gpuCandidate.blendedNoiseStaticGroupSize` bounds the number of
 fixed calls per shader (default `4` for `GPU_NATIVE_DRAFT`, `1` for
 `GPU_IEEE_BITS`, legal range `1..8`); smaller groups trade more dispatches for
 a smaller native compiler unit. The native-draft default is a bounded compiler
 containment experiment, not exact-parity or throughput qualification.
-`worldgennext.gpuCandidate.blendedNoisePipelineReclaimInterval` fences the
+`tellurium.gpuCandidate.blendedNoisePipelineReclaimInterval` fences the
 device and destroys cached pipelines after that many groups (default `2`, or
 `-1` to disable). This bounds driver-side pipeline retention during the draft
-fan-out. `worldgennext.gpuCandidate.blendedNoiseDeviceRecreateInterval` is an
+fan-out. `tellurium.gpuCandidate.blendedNoiseDeviceRecreateInterval` is an
 explicit heavier escape hatch for drivers that retain compiler state past
 pipeline destruction (default `-1`, disabled); it recreates the Vulkan device
 after the selected number of full groups and must remain a diagnostic policy,
 not a production default or a performance claim.
 
-`worldgennext.gpuCandidate.rewriteCapturedNoiseSampler` and
-`worldgennext.gpuCandidate.rewriteFp64DivisionLoop` default to `true` and
+`tellurium.gpuCandidate.rewriteCapturedNoiseSampler` and
+`tellurium.gpuCandidate.rewriteFp64DivisionLoop` default to `true` and
 select candidate-local source rewrites that keep captured permutation tables
 packed and the integer divider statically bounded. They do not alter the
 canonical compiler or its conformance shaders. The temporary
@@ -573,7 +573,7 @@ group); it cannot be combined with the sample limit.
 
 The isolated CPU candidate artifact producer captures Minecraft inputs on the
 server thread and pipelines immutable pure materialization through a bounded
-worker pool. `-Dworldgennext.candidate.cpuWorkers=2` controls that draft-only
+worker pool. `-Dtellurium.candidate.cpuWorkers=2` controls that draft-only
 pool (valid range `1..8`); it does not change the live provider's executor or
 the semantic result contract.
 
@@ -604,18 +604,18 @@ scope is `executor_lifetime_since_batch_start`, covering successful dispatches,
 elements, input/output bytes and wall-clock nanoseconds for the worker's
 persistent executor; it is diagnostic evidence, not a throughput claim.
 
-`/worldgennext dev status` reports `qualificationStatus=HOOK_DISABLED`,
+`/tellurium dev status` reports `qualificationStatus=HOOK_DISABLED`,
 `NO_RECEIPT_CONFIGURED`, `REJECTED:<reason>`, or `ADMITTED:<route>` so an
 operator can distinguish configuration from qualification state.
-`/worldgennext dev status-json` exposes the same native state plus a schema-1
+`/tellurium dev status-json` exposes the same native state plus a schema-1
 coordinator object containing lifecycle, queue depth/capacity, active and
 retained-terminal records, reserved/budget bytes, and every independent work
 counter. The live mod also exposes effective hook/config identity and a
 process-local `telemetry` object. Its counters distinguish hook calls,
 bypasses, replacement decisions, immediate failures, successful async target
 completions, async failures, and cancellations. They are diagnostic operator
-counters, not parity evidence. `/worldgennext dev write-default-config` creates a
-deterministic default `config/worldgennext.properties` only when the file does
+counters, not parity evidence. `/tellurium dev write-default-config` creates a
+deterministic default `config/tellurium.properties` only when the file does
 not already exist; it never overwrites a file and requires a restart to apply
 the new values. Machine-readable status also carries `qualificationStatus`,
 provider route/ABI/compiler identity, and the resolved qualification file so
@@ -631,7 +631,7 @@ original process. The script compares all ten logical fields and leaves the
 candidate route explicitly verification-only.
 
 For an installed-server smoke, the `testInstalledMod` Gradle task writes an
-explicit `config/worldgennext.properties` into each fresh disposable run. The
+explicit `config/tellurium.properties` into each fresh disposable run. The
 smoke checks that all three mode names load from the installed jar and that
 `CPU_ONLY` starts with native state `DISABLED`. It intentionally sets
 `enableQualifiedHook=false`; this verifies product configuration and lazy
@@ -682,7 +682,7 @@ was not observed. This new containment route is opt-in pending broader evidence:
 The launcher accepts all three vanilla dimensions. Selection is not a guarantee
 of support or parity. `:runtime-vulkan:nativeRangeChoiceSmoke` is a separate,
 bounded physical-device regression for a staged FP64 range parent, not terrain
-qualification. Add `-Pworldgennext.rangeDraftControl=true` to compare the explicitly
+qualification. Add `-Ptellurium.rangeDraftControl=true` to compare the explicitly
 unqualified native-draft control as well as the default integer-only profile.
 
 The independent corpus runner `scripts/replay-minecraft-noise-gpu.ps1` accepts
@@ -706,14 +706,14 @@ stops the runner. Process completion alone is never artifact/parity success.
 
 `-SharedEndIsland` selects the opt-in shared captured permutation suffix in
 both the probe and corpus runners, forwarding
-`worldgennext.gpuCandidate.endIslandSharedShader=true`. The probe reports
+`tellurium.gpuCandidate.endIslandSharedShader=true`. The probe reports
 completed shared End stages and requires one in a full End replay; other
 dimensions need not contain an End leaf. The outer-island positive/negative
 regression and limitations are in
 [shared End evidence](evidence/v0.2-shared-end-metadata.md).
 
 `-EnablePipelineOptimization` forwards the existing experimental
-`worldgennext.gpuCandidate.enablePipelineOptimization=true` selection to both
+`tellurium.gpuCandidate.enablePipelineOptimization=true` selection to both
 runners, including End neighbor/reduction stages. Without it, their default
 requests disable compute-pipeline optimization. Corrected compute flags are
 part of pipeline cache identity; shader-stage flags stay zero. Successful
@@ -745,26 +745,26 @@ experimental resident chain remains disabled by default.
 reductions, shared main/ten division and lazy branch behavior on the physical
 device (600 final and 1,200 intermediate checks, including NaN classification).
 It is not the release numeric or Minecraft gate. Exact isolated candidates use
-the shared reduction by default; `worldgennext.gpuCandidate.sharedBlendedReduction=false`
+the shared reduction by default; `tellurium.gpuCandidate.sharedBlendedReduction=false`
 retains the old monolithic diagnostic, whose combined-fixture trial timed out.
 Native-draft routes are unchanged. The production hook remains disabled.
 
 `:runtime-vulkan:nativeBeardifierSmoke
-'-Pworldgennext.beardifierInlineHelpers=true'` selects the passing inline-helper
+'-Ptellurium.beardifierInlineHelpers=true'` selects the passing inline-helper
 physical structure regression (896 raw-bit comparisons). Without that property,
 the broad out-of-line negative control currently fails with device loss on the
 test host. Neither policy is a Minecraft/full-corpus or release qualification.
 The isolated candidate uses inline helpers for standalone/resident structure
 stages; captured old-world blending remains unsupported.
 
-Add `'-Pworldgennext.beardifierInputKernel=true'` to exercise the owned shared
-13,824-word input suffix. Add `'-Pworldgennext.beardifierTerralithPiece=true'`
+Add `'-Ptellurium.beardifierInputKernel=true'` to exercise the owned shared
+13,824-word input suffix. Add `'-Ptellurium.beardifierTerralithPiece=true'`
 for the captured nonempty BEARD_THIN piece and its 7,936-point chunk envelope.
 The suffix/inline fixture passes 63,488 raw-bit comparisons across both layouts,
 both compute policies and full/127-element batches. This is primitive evidence;
 the first actual chunk completed but exposed 56 ore-state mismatches.
 
-`worldgennext.gpuCandidate.stagedOreInputs=true` selects independent staged GPU
+`tellurium.gpuCandidate.stagedOreInputs=true` selects independent staged GPU
 toggle/ridged/gap carriers, two shared-divider fractions and a fourteen-word
 ore decision row. The graph-input/prepare row remains ten words. It defaults on
 for exact isolated candidates and off for native-draft diagnostics. `false`
@@ -820,7 +820,7 @@ never admits a live hook or turns unmeasured execution into a parity/TPS claim.
 The independently admitted GPU provider uses this API so production requests
 will not run a complete CPU oracle alongside every device generation.
 
-`:runtime-vulkan:nativeIntegerIeee -Pworldgennext.ieeeArithmeticOnly=true`
+`:runtime-vulkan:nativeIntegerIeee -Ptellurium.ieeeArithmeticOnly=true`
 selects the bounded 19-operation arithmetic/RNG campaign. It explicitly omits
 captured-noise, End-island and weird-scaled campaigns and is not the release
 numeric gate.
@@ -834,12 +834,12 @@ without reuploading coordinate rows. It requires
 generic shared sampling and rejects legacy/pair chains. This is a draft route,
 not qualification or a live TPS claim. Nether/End captures without normal-noise leaves
 report no such resident stages. The ordinary passing host-staged route remains
-the default. `worldgennext.gpuCandidate.residentNormalNoiseMode=halves` is this
+the default. `tellurium.gpuCandidate.residentNormalNoiseMode=halves` is this
 containment mode. `row` retains the experimental full five-stage resident row;
 both full-row trials hit their process deadlines before a leaf completed.
 
 For the full-row experiment only,
-`worldgennext.gpuCandidate.residentNormalNoiseSamplerDontInlinePrefix=wg_shared_`
+`tellurium.gpuCandidate.residentNormalNoiseSamplerDontInlinePrefix=wg_shared_`
 retains sampler call boundaries without forcing every IEEE helper out of line.
 `NONE` is the fully inlined diagnostic control. The initial fully inlined,
 dynamic preserve-row loop exceeded the target driver envelope and hit its

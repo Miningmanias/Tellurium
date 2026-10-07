@@ -32,20 +32,20 @@ What the scripts require is deliberately more than a line of text in a log: a co
 
 The installed-jar smoke is opt-in and requires a disposable NeoForge server
 template containing `server.jar`, `eula.txt` with `eula=true`, and no existing
-worlds or WorldgenNext jar. It copies that template into fresh per-mode run
+worlds or Tellurium jar. It copies that template into fresh per-mode run
 directories, stages the release jar, starts each requested mode, waits for the
 Minecraft `Done` line and sends `stop`; logs and the JSON report are retained.
 It does not qualify terrain generation or enable the live hook:
 
 ```powershell
 .\gradlew.bat testInstalledMod `
-  '-Dworldgennext.installed.serverDir=C:/path/to/empty-neoforge-server-template' `
-  '-Dworldgennext.installed.runRoot=C:/path/to/fresh-installed-test-output' `
+  '-Dtellurium.installed.serverDir=C:/path/to/empty-neoforge-server-template' `
+  '-Dtellurium.installed.runRoot=C:/path/to/fresh-installed-test-output' `
   --no-daemon
 ```
 
 The task refuses to reuse a run root or overwrite an existing staged
-WorldgenNext jar. `CPU_ONLY` must report `native=DISABLED`; `GPU_REQUIRED` and
+Tellurium jar. `CPU_ONLY` must report `native=DISABLED`; `GPU_REQUIRED` and
 `AUTO_SUPPORTED` are boot/configuration checks with the qualified hook disabled,
 so they do not claim a physical-device result.
 
@@ -115,7 +115,7 @@ validation, authoritative commit and terminal completion. The one-case
 `build/coordinator-smoke/noise.snap` server run is a wiring smoke for that path;
 it does not replace the independent oracle, GPU, FULL/SAVED or stability gates.
 The coordinator also exposes an immutable diagnostic snapshot. The live
-`/worldgennext dev status-json` command reports its queue/admission dimensions and
+`/tellurium dev status-json` command reports its queue/admission dimensions and
 all distinct work counters, but that report is operational telemetry rather
 than qualification evidence.
 
@@ -214,7 +214,7 @@ evidence, not Minecraft qualification or the release numeric campaign. See
 [the retained native-compilation timeout and bounded fix](evidence/v0.2-shared-blended-reduction.md).
 
 `:runtime-vulkan:nativeBeardifierSmoke
-'-Pworldgennext.beardifierInlineHelpers=true'` checks 112 points through eight
+'-Ptellurium.beardifierInlineHelpers=true'` checks 112 points through eight
 physical structure/combine/policy/batch runs against independent Java formulas.
 It covers all terrain adjustments, junctions, negative/boundary points and
 four-/six-word row layouts. Its 896 raw-bit matches do not establish nonempty
@@ -222,9 +222,9 @@ Minecraft structure parity or release numeric qualification. The broad
 out-of-line control failed with device loss and is retained as negative
 evidence; see [captured structure evidence](evidence/v0.2-beardifier-gpu.md).
 
-The same smoke with `'-Pworldgennext.beardifierInputKernel=true'` checks owned
+The same smoke with `'-Ptellurium.beardifierInputKernel=true'` checks owned
 shared kernel metadata. The additional captured-piece switch
-`'-Pworldgennext.beardifierTerralithPiece=true'` passes 63,488 raw-bit comparisons
+`'-Ptellurium.beardifierTerralithPiece=true'` passes 63,488 raw-bit comparisons
 over 7,936 points, four-/six-word layouts, both compute policies and full/127
 slices. The ordinary all-adjustment suffix control separately passes 896
 comparisons. Neither implies successful complete Minecraft ore/material output;
