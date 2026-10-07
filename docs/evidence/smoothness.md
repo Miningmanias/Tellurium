@@ -126,6 +126,32 @@ the first row):
 `-Dworldgennext.dh.activeTiles=<n>` moves along this line. It is not a config
 file setting yet.
 
+## The start of a session (2026-10-06, later)
+
+The figures above leave out the first 8 seconds (`worldgennext.bench.tourDelay=8`). Measured from the
+moment the player joins instead, one run each before these changes: Voxy 5 late ticks and 4 frames over
+33 ms in the minute, Distant Horizons 12 to 17 and 10 to 13, and Flight, where the player is thrown into
+ungenerated terrain at 240 blocks/s in the first half second, 13 late ticks with one gap of 1.4 s.
+
+In that flight run every worker thread was inside this mod's biome gathering (the 6x6 quart columns a
+chunk's surface rules can read) for the first burst of far chunks, while the server waited for the
+player's own chunk. Three changes:
+
+- Biome gathering asks for each neighbouring chunk once and reads the biome containers section by section,
+  instead of going through the chunk's height and status checks for each of 3,456 quarts.
+- When the first player joins, far terrain starts at a quarter of its allowance and has all of it about
+  nine seconds later. How fast Voxy's area fills did not change measurably (5,392 chunks 9 s after joining
+  and 56,460 after 39 s; 6,415 and 55,113 before).
+- Building the kernels of a later dimension no longer blocks submissions for one that is ready (the device's
+  monitor was held for the whole build).
+
+Afterwards, from the moment of joining: Flight 5 to 8 late ticks, still with one gap of 1.0 to 1.9 s at
+the very start, Voxy 8 late ticks (one run). So the burst is gone from the thread dumps and the stall is
+not: with the workers idle, the server waits about a second for the first fully generated chunk of a
+session that is one second old (cold code, a chain of stages for one chunk). A player cannot fly at that
+speed half a second after joining; the tour can. From 8 s on the three scenes are where they were, within
+run-to-run differences (Flight 6 late ticks / 0 long frames, Voxy 2 / 1, Distant Horizons 21 / 19).
+
 ## Not done, not known
 
 - Only 1.21.1 on NeoForge was measured. The code is common to every build, but

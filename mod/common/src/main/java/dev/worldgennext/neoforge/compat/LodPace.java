@@ -31,6 +31,8 @@ public final class LodPace {
     /** A collector pause from this length on takes part of the allowance away too. */
     private static final long LONG_PAUSE_MILLIS = 25;
     private static final double PAUSE_CUT = 0.85;
+    /** The allowance when the first player joins; with {@link #GAIN} it is whole again after about nine seconds. */
+    private static final double JOINING = 0.25;
 
     /** Blocks a second: below the first a player is walking or sprinting, from the second on the allowance is at its travelling part. */
     private static final double SLOW = 10.0, FAST = 30.0, TRAVELLING = 0.375;
@@ -74,7 +76,11 @@ public final class LodPace {
         lastTickEnd = now;
         if (last == 0) return;
         // With nobody online there is no game to keep smooth: a pregeneration from the console runs flat out.
-        anyone = server.getPlayerCount() > 0;
+        boolean someone = server.getPlayerCount() > 0;
+        // A player who has just joined needs the chunks around them first, a thousand or more of them; far
+        // terrain starts at a part of its allowance and is given the rest over the next seconds.
+        if (someone && !anyone) share = Math.min(share, JOINING);
+        anyone = someone;
         if (!anyone) {
             share = 1.0;
             travelling = 1.0;
