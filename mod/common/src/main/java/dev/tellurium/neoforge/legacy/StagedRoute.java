@@ -70,7 +70,7 @@ import java.util.concurrent.TimeUnit;
  * under {@code /tellurium dev}.</p>
  */
 public final class StagedRoute {
-    private static final String MOD_ID = TelluriumMod.MOD_ID;
+    private static final String MOD_ID = TelluriumMod.NAME; // the log category
     private static final String VERSION = TelluriumMod.VERSION;
     /** Benchmark-only ceiling probe (empty NOISE); requires the benchmark autorun to be active. */
     private static final boolean BENCH_NULL_NOISE = Boolean.getBoolean("tellurium.bench.nullNoise")

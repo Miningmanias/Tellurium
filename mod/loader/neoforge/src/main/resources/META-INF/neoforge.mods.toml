@@ -4,7 +4,7 @@ license="MIT"
 issueTrackerURL="https://github.com/Miningmanias/Tellurium/issues"
 
 [[mods]]
-modId="tellurium"
+modId="tellurium_worldgen"
 version="${version}"
 displayName="Tellurium"
 displayURL="https://github.com/Miningmanias/Tellurium"
@@ -15,14 +15,14 @@ description='''Faster chunk generation that produces the same world. Terrain and
 [[mixins]]
 config="tellurium.mixins.json"
 
-[[dependencies.tellurium]]
+[[dependencies.tellurium_worldgen]]
 modId="neoforge"
 type="required"
 versionRange="[${neoforge},)"
 ordering="NONE"
 side="BOTH"
 
-[[dependencies.tellurium]]
+[[dependencies.tellurium_worldgen]]
 modId="minecraft"
 type="required"
 versionRange="[${minecraft}]"

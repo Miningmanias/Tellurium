@@ -27,8 +27,6 @@ First public alpha.
 - Saved worlds are about 12% larger by default (`saving.compression_level = 6` for vanilla's size).
 - Chunk save listeners of other NeoForge 1.21.1 mods may see chunk data before it is complete;
   `saving.async = false` avoids that.
-- The mod id is `tellurium`. Another mod on Modrinth uses the same id; the two cannot be installed
-  together.
 
 The mod was called WorldgenNext during development; `config/worldgennext.toml` is copied to
 `config/tellurium.toml` on first start.

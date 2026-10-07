@@ -47,9 +47,12 @@ import java.util.function.Consumer;
  * evidence-gated route lives in {@link StagedRoute} and is developer tooling.</p>
  */
 public final class TelluriumMod {
-    public static final String MOD_ID = "tellurium";
+    /** The mod's id for the loaders: the Modrinth project's name, with the underscore NeoForge's ids need. */
+    public static final String MOD_ID = "tellurium_worldgen";
+    /** The short name: the command (/tellurium), the log category and the config file. */
+    public static final String NAME = "tellurium";
     public static final String VERSION = "0.2.0-alpha.1";
-    private static final Logger LOG = LoggerFactory.getLogger(MOD_ID);
+    private static final Logger LOG = LoggerFactory.getLogger(NAME);
 
     private TelluriumMod() {}
 
@@ -169,7 +172,7 @@ public final class TelluriumMod {
     }
 
     public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(Commands.literal(MOD_ID).requires(TelluriumMod::mayUse)
+        dispatcher.register(Commands.literal(NAME).requires(TelluriumMod::mayUse)
                 .then(Commands.literal("status").executes(context -> {
                     for (String line : StatusReport.lines(context.getSource().getServer())) say(context, line);
                     return 1;
