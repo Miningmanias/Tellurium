@@ -1,6 +1,6 @@
 # Tellurium
 
-<img src="docs/branding/tellurium-logo-256.png" alt="Tellurium" width="96" align="right">
+<img src="docs/branding/tellurium-icon-pixel-256.png" alt="Tellurium" width="96" align="right">
 
 **Faster chunk generation for Minecraft that gives you the same world.** Tellurium moves terrain and
 surface generation onto the graphics card (Vulkan, any vendor), runs the remaining steps across all

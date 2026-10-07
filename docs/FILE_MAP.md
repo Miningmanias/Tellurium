@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **686**, plus this generated index.
+Indexed project files: **689**, plus this generated index.
 
 ## semantic-core
 
@@ -618,6 +618,9 @@ The mod: common source, per-loader and per-Minecraft-version files, and the buil
 | [docs/ATTRIBUTION.md](../docs/ATTRIBUTION.md) | Documentation |
 | [docs/branding/launch-video.md](../docs/branding/launch-video.md) | Documentation |
 | [docs/branding/modrinth-page.md](../docs/branding/modrinth-page.md) | Documentation |
+| [docs/branding/tellurium-icon-pixel-16.png](../docs/branding/tellurium-icon-pixel-16.png) | Tooling, data or provenance |
+| [docs/branding/tellurium-icon-pixel-256.png](../docs/branding/tellurium-icon-pixel-256.png) | Tooling, data or provenance |
+| [docs/branding/tellurium-icon-pixel-512.png](../docs/branding/tellurium-icon-pixel-512.png) | Tooling, data or provenance |
 | [docs/branding/tellurium-logo-256.png](../docs/branding/tellurium-logo-256.png) | Tooling, data or provenance |
 | [docs/branding/tellurium-logo-chunk.png](../docs/branding/tellurium-logo-chunk.png) | Tooling, data or provenance |
 | [docs/branding/tellurium-logo-chunk.svg](../docs/branding/tellurium-logo-chunk.svg) | Tooling, data or provenance |
