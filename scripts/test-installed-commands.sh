@@ -57,4 +57,15 @@ cd - >/dev/null
 
 log="$server/logs/latest.log"
 grep -E "\[worldgennext(-fast)?/\]|MinecraftServer/\]: " "$log" | grep -vE "Starting|Loading|Default game|Generating keypair|Preparing|Stopping|Saving|ThreadedAnvil|Done \("   | sed -E 's/^\[[^]]*\] \[[^]]*\] \[[^]]*\]: //' | cut -c1-210
-echo "errors: $(grep -cE "/ERROR\]|/FATAL\]" "$log"); unexpected or unknown commands: $(grep -ciE "unexpected error|Unknown or incomplete command|Incorrect argument" "$log")"
+errors=$(grep -E "/ERROR\]|/FATAL\]" "$log" 2>/dev/null | grep -vc "Failed to fetch mob spawner entity")
+unknown=$(grep -ciE "unexpected error|Unknown or incomplete command|Incorrect argument" "$log" 2>/dev/null)
+echo "errors: ${errors:-no log}; unexpected or unknown commands: ${unknown:-no log}"
+# The commands have to have been understood, the three pregenerations they start have to have finished, and
+# the server must not have logged an error of any kind meanwhile.
+finished=$(grep -cE "Pregeneration finished: (1,681|289|729) " "$log" 2>/dev/null)
+if [ "${errors:-1}" = 0 ] && [ "${unknown:-1}" = 0 ] && [ "${finished:-0}" -ge 3 ]; then
+  echo "COMMANDS PASS"
+else
+  echo "COMMANDS FAIL (errors ${errors:-?}, unknown commands ${unknown:-?}, pregenerations finished ${finished:-0} of 3)"
+  exit 1
+fi

@@ -15,7 +15,9 @@ function Reject([scriptblock]$action, [string]$reason) {
 }
 try {
     foreach ($module in $modules) {
-        $directory = Join-Path $root "$module/build/classes/java/main"
+        # The mod's reference target is built under mod/targets; the library modules at the root.
+        $moduleHome = if ($module -eq 'neoforge-1211') { 'mod/targets/neoforge-1211' } else { $module }
+        $directory = Join-Path $root "$moduleHome/build/classes/java/main"
         New-Item -ItemType Directory -Path $directory -Force | Out-Null
         [IO.File]::WriteAllBytes((Join-Path $directory 'Fixture.class'), [byte[]]@(1,2,3))
     }
@@ -30,7 +32,7 @@ try {
     [IO.File]::WriteAllBytes($fixture, [byte[]]@(1,2,4))
     Reject { Assert-WorldgenCompiledInputSnapshot $root $first.Hash } 'same-size bytecode drift rejected'
     [IO.File]::WriteAllBytes($fixture, [byte[]]@(1,2,3))
-    $resources = Join-Path $root 'neoforge-1211/build/resources/main'
+    $resources = Join-Path $root 'mod/targets/neoforge-1211/build/resources/main'
     New-Item -ItemType Directory -Path $resources -Force | Out-Null
     [IO.File]::WriteAllText((Join-Path $resources 'metadata.json'), '{}')
     $withResource = Get-WorldgenCompiledInputSnapshot $root

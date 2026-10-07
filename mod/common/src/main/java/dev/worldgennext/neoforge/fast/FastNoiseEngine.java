@@ -111,8 +111,8 @@ public final class FastNoiseEngine {
     public static final boolean CHECK = Boolean.getBoolean("worldgennext.fast.check");
     /** Fuse the SURFACE stage into the NOISE batch where the level's surface rules could be lowered. */
     public static final boolean SURFACE = Boolean.parseBoolean(System.getProperty("worldgennext.fast.surface", "true"));
-    private static final int BATCH = Integer.getInteger("worldgennext.fast.batch", 64);
-    private static final int SLOTS = Integer.getInteger("worldgennext.fast.slots", 4);
+    private static final int BATCH = Math.max(1, Integer.getInteger("worldgennext.fast.batch", 64));
+    private static final int SLOTS = Math.max(1, Integer.getInteger("worldgennext.fast.slots", 4));
     private static final long MAX_DELAY_NANOS = TimeUnit.MICROSECONDS.toNanos(Long.getLong("worldgennext.fast.maxDelayMicros", 1500));
     private static final ThreadLocal<Boolean> ORIGINAL = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
@@ -121,6 +121,8 @@ public final class FastNoiseEngine {
     private final FusedGpuBackend device;
     private final Map<RandomState, LevelProgram> programs = new ConcurrentHashMap<>();
     private final ArrayDeque<Request> queue = new ArrayDeque<>();
+    /** Guarded by {@link #queue}: false once the GPU worker has taken its last look at the queue. */
+    private boolean accepting = true;
     private final Thread worker;
     private volatile boolean running = true;
     final AtomicLong gpuChunks = new AtomicLong(), fallbackChunks = new AtomicLong(), bailChunks = new AtomicLong(),
@@ -263,23 +265,32 @@ public final class FastNoiseEngine {
         return SETTLING.contains(level);
     }
 
-    // The compile thread may be inside the driver, building a pipeline, when the server stops; that call cannot
-    // be interrupted and can take minutes on a cold cache.  The device is closed by whichever comes last:
-    // stop() or the end of the compile thread.  Both fields are guarded by this.
+    // Two threads use the device: the compile thread, which may be inside the driver building a pipeline when
+    // the server stops (that call cannot be interrupted and can take minutes on a cold cache), and the GPU
+    // worker, which may be waiting for a batch the GPU has not finished.  The device is closed by whichever
+    // comes last: stop(), the end of the compile thread or the end of the worker.  Guarded by this.
     private boolean compileFinished;
+    private boolean workerFinished;
     private boolean closeRequested;
 
     private synchronized void compilerFinished() {
         compileFinished = true;
-        if (closeRequested) device.close();
+        if (closeRequested && workerFinished) device.close();
+    }
+
+    private synchronized void workerFinished() {
+        workerFinished = true;
+        if (closeRequested && compileFinished) device.close();
     }
 
     private synchronized void closeDevice() {
-        if (compileFinished) {
+        closeRequested = true;
+        if (compileFinished && workerFinished) {
             device.close();
-        } else {
-            closeRequested = true;
+        } else if (!compileFinished) {
             LOG.info("GPU kernels were still being built at shutdown; the GPU device is released when the current build ends");
+        } else {
+            LOG.info("The GPU was still working on a batch at shutdown; the GPU device is released when it has finished or been given up");
         }
     }
 
@@ -474,7 +485,7 @@ public final class FastNoiseEngine {
         // fillFromNoise is called on the single worldgen mailbox thread; the structure and biome
         // gathering below runs on a worker (the original does the same work inside its own async task).
         CompletableFuture<ChunkAccess> result = new CompletableFuture<>();
-        Util.backgroundExecutor().execute(() -> {
+        Runnable prepare = () -> {
             try {
                 if (!prepareAndQueue(program, generator, blender, randomState, structures, chunk, result)) {
                     fallbackChunks.incrementAndGet();
@@ -493,7 +504,12 @@ public final class FastNoiseEngine {
             } catch (Throwable failure) {
                 result.completeExceptionally(failure);
             }
-        });
+        };
+        try {
+            Util.backgroundExecutor().execute(prepare);
+        } catch (java.util.concurrent.RejectedExecutionException shuttingDown) {
+            return null; // the pool is closing: the caller runs the original code itself
+        }
         return result;
     }
 
@@ -506,6 +522,10 @@ public final class FastNoiseEngine {
             Beardifier beardifier = Beardifier.forStructuresInChunk(structures, chunk.getPos());
             // Terrain adaptation another mod added to Beardifier is not in the two lists read below.
             if (ForeignBeardifier.affects(beardifier)) return false;
+            // The GPU result replaces whole sections.  The original code only places what is not air, so a block
+            // something put into the chunk before this step survives it where the terrain is air; such a chunk
+            // is left to the original code.
+            for (LevelChunkSection section : chunk.getSections()) if (!section.hasOnlyAir()) return false;
             List<int[]> rigid = new ArrayList<>();
             List<int[]> joints = new ArrayList<>();
             var pieceIterator = Version.beardEntries(PIECES.get(beardifier));
@@ -532,6 +552,8 @@ public final class FastNoiseEngine {
         if (beard.length > 2048) return false;
         short[] biomes = program.surfaceHeader() != 0 ? gatherBiomes(program, structures, chunk) : null;
         synchronized (queue) {
+            // After the worker's last look at the queue nothing would ever take the request out again.
+            if (!accepting || device.lost()) return false;
             queue.add(new Request(program, chunk, generator, blender, randomState, structures, beard, pieces, junctions,
                     biomes, result, System.nanoTime()));
             queue.notifyAll();
@@ -562,16 +584,28 @@ public final class FastNoiseEngine {
             int minQuartY = program.geometry().minY() >> 2;
             int firstQuartX = chunk.getPos().x * 4 - 1, firstQuartZ = chunk.getPos().z * 4 - 1;
             short[] out = new short[36 * quartHeight];
+            // The window touches at most the nine chunks around this one; each is asked for once.
+            ChunkAccess[] sources = new ChunkAccess[9];
+            int firstChunkX = firstQuartX >> 2, firstChunkZ = firstQuartZ >> 2;
             for (int ix = 0; ix < 6; ix++) {
                 for (int iz = 0; iz < 6; iz++) {
                     int qx = firstQuartX + ix, qz = firstQuartZ + iz;
-                    ChunkAccess source = region.getChunk(qx >> 2, qz >> 2, ChunkStatus.BIOMES, false);
-                    if (source == null) return null;
+                    int slot = ((qx >> 2) - firstChunkX) * 3 + (qz >> 2) - firstChunkZ;
+                    ChunkAccess source = sources[slot];
+                    if (source == null) {
+                        source = region.getChunk(qx >> 2, qz >> 2, ChunkStatus.BIOMES, false);
+                        if (source == null) return null;
+                        // A chunk of another height would need the clamping the game does for it.
+                        if (Version.minY(source) != program.geometry().minY() || source.getHeight() != program.geometry().storageHeight()) return null;
+                        sources[slot] = source;
+                    }
                     int base = (ix * 6 + iz) * quartHeight;
                     Object previous = null;
                     int id = -1;
+                    // What ChunkAccess.getNoiseBiome reads, a section at a time: the same container and the
+                    // same cell, without working out the chunk's height and status again for every quart.
                     for (int iy = 0; iy < quartHeight; iy++) {
-                        var holder = source.getNoiseBiome(qx, minQuartY + iy, qz);
+                        var holder = source.getSection(iy >> 2).getNoiseBiome(qx & 3, (minQuartY + iy) & 3, qz & 3);
                         if (holder != previous) {
                             previous = holder;
                             id = surface.biomeIds().getInt(holder);
@@ -630,8 +664,31 @@ public final class FastNoiseEngine {
         }
     }
 
+    /**
+     * The GPU worker.  However it ends, every request it accepted ends too: what is still in flight or queued
+     * goes to the original code, and from then on {@link #prepareAndQueue} sends chunks there itself.
+     */
     private void loop() {
         List<InFlight> inFlight = new ArrayList<>();
+        try {
+            loop(inFlight);
+        } catch (Throwable failure) {
+            LOG.error("GPU terrain generation stopped after an unexpected error; terrain generates on the CPU until the server is restarted", failure);
+        } finally {
+            running = false;
+            List<Request> left = new ArrayList<>();
+            for (InFlight batch : inFlight) left.addAll(batch.requests());
+            synchronized (queue) {
+                accepting = false;
+                left.addAll(queue);
+                queue.clear();
+            }
+            for (Request r : left) runOriginal(r);
+            workerFinished();
+        }
+    }
+
+    private void loop(List<InFlight> inFlight) {
         Map<FusedGpuBackend.Program, Integer> nextSlot = new IdentityHashMap<>();
         while (running || !inFlight.isEmpty()) {
             boolean progress = false;
@@ -651,8 +708,19 @@ public final class FastNoiseEngine {
                     progress = true;
                 }
             }
+            if (device.lost()) {
+                // Nothing can be submitted any more, and a slot whose batch was never proven finished stays
+                // taken for good: what is queued would wait for a free slot for ever.
+                List<Request> waiting;
+                synchronized (queue) {
+                    waiting = new ArrayList<>(queue);
+                    queue.clear();
+                }
+                for (Request r : waiting) runOriginal(r);
+                if (!waiting.isEmpty()) progress = true;
+            }
             // Submit new batches while slots are free.
-            List<Request> taken = takeBatch(inFlight.size());
+            List<Request> taken = device.lost() ? List.of() : takeBatch(inFlight.size());
             if (!taken.isEmpty()) {
                 LevelProgram program = taken.get(0).program();
                 FusedGpuBackend.Slot slot = freeSlot(program.program(), inFlight, nextSlot);
@@ -671,10 +739,7 @@ public final class FastNoiseEngine {
                     progress = true;
                 }
             }
-            if (!running && inFlight.isEmpty()) {
-                synchronized (queue) { while (!queue.isEmpty()) runOriginal(queue.poll()); }
-                break;
-            }
+            if (!running && inFlight.isEmpty()) break; // what is still queued is finished by loop()
             if (!progress) LockSupport.parkNanos(inFlight.isEmpty() ? 200_000L : 20_000L);
         }
     }
@@ -698,12 +763,17 @@ public final class FastNoiseEngine {
 
     private FusedGpuBackend.Slot freeSlot(FusedGpuBackend.Program program, List<InFlight> inFlight,
                                                    Map<FusedGpuBackend.Program, Integer> nextSlot) {
-        for (int attempt = 0; attempt < program.slotCount(); attempt++) {
-            int index = nextSlot.merge(program, 1, (a, b) -> (a + b) % program.slotCount());
+        int count = program.slotCount();
+        int first = nextSlot.getOrDefault(program, 0);
+        for (int attempt = 0; attempt < count; attempt++) {
+            int index = (first + attempt) % count;
             FusedGpuBackend.Slot slot = program.slot(index);
             boolean busy = false;
             for (InFlight f : inFlight) if (f.slot() == slot) { busy = true; break; }
-            if (!busy && !slot.pending()) return slot;
+            if (!busy && !slot.pending()) {
+                nextSlot.put(program, (index + 1) % count);
+                return slot;
+            }
         }
         return null;
     }
@@ -847,13 +917,16 @@ public final class FastNoiseEngine {
                 r.result().complete(vanilla);
                 return;
             }
-            LevelChunkSection[] sections = r.chunk().getSections();
-            for (LevelChunkSection section : sections) section.acquire();
+            // A copy: the applier puts new sections into the chunk's own array, and what is released has to be
+            // what was acquired.
+            LevelChunkSection[] acquired = r.chunk().getSections().clone();
+            int held = 0;
             try {
+                for (; held < acquired.length; held++) acquired[held].acquire();
                 FastChunkApplier.apply(r.chunk(), data, heights, r.program().paletteInfo(),
                         g.minY(), g.genHeight(), g.cellWidth(), g.cellHeight());
             } finally {
-                for (LevelChunkSection section : sections) section.release();
+                for (int i = 0; i < held; i++) acquired[i].release();
             }
             if (r.biomes() != null) {
                 FastSurfaceState.mark(r.chunk());
@@ -947,10 +1020,14 @@ public final class FastNoiseEngine {
 
     private void runOriginal(Request r) {
         fallbackChunks.incrementAndGet();
-        original(r).whenComplete((chunk, error) -> {
-            if (error != null) r.result().completeExceptionally(error);
-            else r.result().complete(chunk);
-        });
+        try {
+            original(r).whenComplete((chunk, error) -> {
+                if (error != null) r.result().completeExceptionally(error);
+                else r.result().complete(chunk);
+            });
+        } catch (Throwable failure) {
+            r.result().completeExceptionally(failure);
+        }
     }
 
     private static CompletableFuture<ChunkAccess> original(Request r) {

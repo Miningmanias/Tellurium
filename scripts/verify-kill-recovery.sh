@@ -36,7 +36,7 @@ powershell.exe -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name
 wait 2>/dev/null
 cp "$run/logs/latest.log" "$run/logs/killed.log"
 echo "killed at: $(grep "Pregeneration: " "$run/logs/killed.log" | tail -1 | sed 's/^.*Pregeneration: //' | cut -c1-80)"
-echo "after kill:  $(python scripts/check-region-files.py "$run/candidate-world/region" "$run/candidate-world/poi" "$run/candidate-world/entities" | tail -3 | tr '\n' ' ')"
+echo "after kill:  $(python scripts/check-region-files.py "$run/candidate-world/region" --optional "$run/candidate-world/poi" --optional "$run/candidate-world/entities" | tail -3 | tr '\n' ' ')"
 
 ls "$run/candidate-world/worldgennext-pregen.properties" >/dev/null 2>&1 || { echo "KILL-RECOVERY FAIL: no saved pregeneration progress"; exit 1; }
 
@@ -45,11 +45,11 @@ ls "$run/candidate-world/worldgennext-pregen.properties" >/dev/null 2>&1 || { ec
 grep -E "continuing at|Pregeneration finished" "$run/logs/latest.log" | sed -E 's/^\[[^]]*\] \[[^]]*\] \[[^]]*\]: /resume: /' | cut -c1-170
 readErrors=$(grep -ciE "wrong location|Failed to read|corrupt|Couldn't load chunk|Chunk file at|Invalid chunk|Region file .* (is truncated|has)" "$run/logs/latest.log")
 echo "resume: read errors in the log: $readErrors"
-final=$(python scripts/check-region-files.py "$run/candidate-world/region" "$run/candidate-world/poi" "$run/candidate-world/entities" | tail -3 | tr '\n' ' ')
-echo "after resume: $final"
 side=$((2 * RADIUS + 1))
-case "$final" in *" 0 problems"*) ;; *) echo "KILL-RECOVERY FAIL: invalid chunks after the resume"; exit 1 ;; esac
+# Every chunk of the square has to be on disk and readable after the resume, not merely "no problems found".
+final=$(python scripts/check-region-files.py --min-chunks $((side * side)) "$run/candidate-world/region" --optional "$run/candidate-world/poi" --optional "$run/candidate-world/entities" | tail -3 | tr '\n' ' '; exit "${PIPESTATUS[0]}") && valid=yes || valid=
+echo "after resume: $final"
+[ -n "$valid" ] || { echo "KILL-RECOVERY FAIL: invalid or missing chunks after the resume"; exit 1; }
 grep -q "Pregeneration finished" "$run/logs/latest.log" || { echo "KILL-RECOVERY FAIL: the resumed job did not finish"; exit 1; }
 [ "$readErrors" = "0" ] || { echo "KILL-RECOVERY FAIL: chunk read errors after the kill"; exit 1; }
-python scripts/check-region-files.py "$run/candidate-world/region" >/dev/null || exit 1
 echo "KILL-RECOVERY PASS (radius $RADIUS, $((side * side)) chunks requested, $run)"

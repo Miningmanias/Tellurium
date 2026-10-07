@@ -48,9 +48,27 @@ $gradleArgs = @(":${module}:runServer", '--no-daemon', '--console=plain',
     "-Dworldgennext.bench.output=$report")
 if ($ReopenRunDir) { $gradleArgs += '-Dworldgennext.prototype.resume=true' }
 Write-Host "RUNDIR $runDir"
+# The report this invocation is to write; a caller that compares runs takes its files from here, not from
+# whatever is newest in the folder.
+Write-Host "REPORT $report"
 if ($Jfr) { $gradleArgs += "-Dworldgennext.run.jfr=$Jfr" }
 foreach ($p in ($Properties -split ';' | Where-Object { $_ })) { $gradleArgs += "-D$p" }
 $ErrorActionPreference = 'Continue'
 & (Join-Path $repoRoot 'gradlew.bat') @gradleArgs 2>&1 | ForEach-Object { "$_" }
-if (-not (Test-Path -LiteralPath $report)) { throw "No benchmark report written; see $runDir\logs\latest.log" }
+$gradleExit = $LASTEXITCODE
+if (-not (Test-Path -LiteralPath $report)) {
+    Write-Host "BENCH FAIL: no benchmark report written (Gradle exit $gradleExit); see $runDir\logs\latest.log"
+    exit 1
+}
 Get-Content -LiteralPath $report
+# A report alone is not a finished run: it has to say so, and the game has to have exited normally after it.
+# ($status would be the -Status parameter: PowerShell's variable names ignore case.)
+$reportStatus = (Get-Content -LiteralPath $report -Raw | ConvertFrom-Json).status
+if ($reportStatus -ne 'PASS') {
+    Write-Host "BENCH FAIL: the report's status is '$reportStatus'"
+    exit 1
+}
+if ($gradleExit -ne 0) {
+    Write-Host "BENCH FAIL: Gradle exited with $gradleExit after the report was written; see $runDir\logs\latest.log"
+    exit 1
+}

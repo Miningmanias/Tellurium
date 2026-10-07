@@ -6,9 +6,15 @@
 # A row passes only when the digests are identical AND the GPU generated the
 # chunks (and, at SURFACE status, their surface); every other outcome,
 # including a script error, is a FAIL.
+# What is compared is what this invocation produced: each run's report, digest and
+# log are taken from the paths that run printed, both runs have to exit
+# successfully with a report that says PASS, and the two reports have to cover the
+# same chunks.  Files of earlier runs are never picked up; EVALUATE_ONLY=1 looks at
+# the newest existing files instead and says so in every line it prints, and its
+# result is "MATRIX HISTORICAL", never "MATRIX PASS".
 # Every run has the ScalableLux companion installed (build/test-mods/*).
 # Usage: scripts/verify-fast-matrix.sh [radiusChunks]
-#        EVALUATE_ONLY=1 scripts/verify-fast-matrix.sh   (re-evaluate the latest existing runs)
+#        EVALUATE_ONLY=1 scripts/verify-fast-matrix.sh   (look at the latest existing runs again; not a verification)
 #        STATUS=NOISE EXTRA="worldgennext.fast.surface=false" scripts/verify-fast-matrix.sh
 #        ROWS="terralith combined" scripts/verify-fast-matrix.sh   (subset)
 set -u
@@ -27,29 +33,48 @@ P="${PREFIX:-}"
 passed=0
 total=0
 cps() { grep -E "measured phase" "$1" 2>/dev/null | tail -1 | sed -E 's/.*, ([0-9.]+) cps.*/\1/'; }
+printed() { grep -m1 "^$1 " "$2" 2>/dev/null | sed "s/^$1 //" | tr -d '\r' | tr '\\' '/'; }
 wanted() { [ -z "${ROWS:-}" ] && return 0; for r in $ROWS; do [ "$r" = "$1" ] && return 0; done; return 1; }
 pair() { # name, mods subdirectory, extra script args, extra properties, "terrain-only" when the surface rules are expected to stay on the CPU
   local name="$1" mods="$2" args="$3" props="$4"
   wanted "$name" || return 0
   total=$((total + 1))
+  local vreport="" greport="" vrun="" grun="" launch="" vout gout
+  mkdir -p build/bench/matrix-logs
   if [ -z "${EVALUATE_ONLY:-}" ]; then
+    vout="build/bench/matrix-logs/${P}mv-$name-$status_lc.out"
+    gout="build/bench/matrix-logs/${P}mg-$name-$status_lc.out"
     # shellcheck disable=SC2086
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bench-cps.ps1 -Status "$STATUS" -Label "${P}mv-$name" -RadiusChunks "$RADIUS" \
         -ModsDir "$MODS/$mods" $args \
-        -Properties "$D;worldgennext.fast.gpu=off;worldgennext.parallelStructureSteps=false;worldgennext.parallelSurfaceCarvers=false;worldgennext.parallelFeatures=false;worldgennext.asyncChunkSave=false;worldgennext.asyncChunkCompress=false;worldgennext.biomeColumnCache=false;worldgennext.unloadTypeCache=false;worldgennext.fast.rtreeStoreSkip=false;worldgennext.fast.biomeIndex=false;worldgennext.fast.aquiferPrefill=false;worldgennext.fast.orePlacement=false;worldgennext.fast.lazyNoiseWrap=false;worldgennext.fast.uniformBiome=false;worldgennext.fast.cavePlans=false;worldgennext.fast.heightCache=false;worldgennext.asyncIoMailboxBatch=1;worldgennext.asyncGroupCommit=false;worldgennext.asyncChunkLoad=false;worldgennext.parallelMailboxThreads=false;worldgennext.fast.regionChunkCache=false;worldgennext.regionHeaderBatch=false;worldgennext.fast.freshRegionShortcut=false;worldgennext.fast.shapeCache=false;worldgennext.unloadPacing=false;worldgennext.promptTaskRelease=false;worldgennext.bench.productionThreadNames=false;$props" >/dev/null 2>&1
+        -Properties "$D;worldgennext.fast.gpu=off;worldgennext.parallelStructureSteps=false;worldgennext.parallelSurfaceCarvers=false;worldgennext.parallelFeatures=false;worldgennext.asyncChunkSave=false;worldgennext.asyncChunkCompress=false;worldgennext.biomeColumnCache=false;worldgennext.unloadTypeCache=false;worldgennext.fast.rtreeStoreSkip=false;worldgennext.fast.biomeIndex=false;worldgennext.fast.aquiferPrefill=false;worldgennext.fast.orePlacement=false;worldgennext.fast.lazyNoiseWrap=false;worldgennext.fast.uniformBiome=false;worldgennext.fast.cavePlans=false;worldgennext.fast.heightCache=false;worldgennext.asyncIoMailboxBatch=1;worldgennext.asyncGroupCommit=false;worldgennext.asyncChunkLoad=false;worldgennext.parallelMailboxThreads=false;worldgennext.fast.regionChunkCache=false;worldgennext.regionHeaderBatch=false;worldgennext.fast.freshRegionShortcut=false;worldgennext.fast.shapeCache=false;worldgennext.unloadPacing=false;worldgennext.promptTaskRelease=false;worldgennext.bench.productionThreadNames=false;$props" >"$vout" 2>&1 \
+        || launch="the reference run failed (see $vout)"
     # shellcheck disable=SC2086
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bench-cps.ps1 -Status "$STATUS" -Label "${P}mg-$name" -RadiusChunks "$RADIUS" \
         -ModsDir "$MODS/$mods" $args \
-        -Properties "$G;$D;$props;$EXTRA" >/dev/null 2>&1
+        -Properties "$G;$D;$props;$EXTRA" >"$gout" 2>&1 \
+        || launch="${launch:+$launch; }the GPU run failed (see $gout)"
+    vreport=$(printed REPORT "$vout"); greport=$(printed REPORT "$gout")
+    vrun=$(printed RUNDIR "$vout"); grun=$(printed RUNDIR "$gout")
+  else
+    vreport=$(ls -t build/bench/"$P"mv-"$name"-"$status_lc"-*.json 2>/dev/null | head -1)
+    greport=$(ls -t build/bench/"$P"mg-"$name"-"$status_lc"-*.json 2>/dev/null | head -1)
+    vrun=$(ls -td build/run/bench-"$P"mv-"$name"-"$status_lc"-* 2>/dev/null | head -1)
+    grun=$(ls -td build/run/bench-"$P"mg-"$name"-"$status_lc"-* 2>/dev/null | head -1)
   fi
-  local vdigest gdigest vlog glog
-  vdigest=$(ls -t build/bench/"$P"mv-"$name"-"$status_lc"-*.digest.txt 2>/dev/null | head -1)
-  gdigest=$(ls -t build/bench/"$P"mg-"$name"-"$status_lc"-*.digest.txt 2>/dev/null | head -1)
-  vlog=$(ls -td build/run/bench-"$P"mv-"$name"-"$status_lc"-* 2>/dev/null | head -1)/logs/latest.log
-  glog=$(ls -td build/run/bench-"$P"mg-"$name"-"$status_lc"-* 2>/dev/null | head -1)/logs/latest.log
-  local comparison="no digests"
-  if [ -n "$vdigest" ] && [ -n "$gdigest" ]; then
-    comparison=$(python scripts/compare-digests.py "$vdigest" "$gdigest" | tr '\n' ' ')
+  local vdigest="${vreport%.json}.digest.txt" gdigest="${greport%.json}.digest.txt"
+  local vlog="$vrun/logs/latest.log" glog="$grun/logs/latest.log"
+  if [ -z "$launch" ]; then
+    # The two reports must be finished runs of this status and radius over the same chunks.
+    local bound
+    if ! bound=$(python scripts/check-bench-report.py "$vreport" --endpoint "$STATUS" --radius "$RADIUS" 2>&1); then launch="reference report: $bound"
+    elif ! bound=$(python scripts/check-bench-report.py "$greport" --endpoint "$STATUS" --radius "$RADIUS" --same-area-as "$vreport" 2>&1); then launch="GPU report: $bound"
+    fi
+  fi
+  local comparison="no digests" identical=""
+  if [ -f "$vdigest" ] && [ -f "$gdigest" ]; then
+    # The comparison's exit status decides; its text is for the reader.
+    if comparison=$(python scripts/compare-digests.py "$vdigest" "$gdigest" | tr '\n' ' '; exit "${PIPESTATUS[0]}"); then identical=yes; fi
   fi
   local stopped gpuChunks bail expected surface surfaceBail
   stopped=$(grep -E "Fast GPU NOISE stopped" "$glog" 2>/dev/null | tail -1 | sed -E 's/.*stopped: //')
@@ -59,17 +84,19 @@ pair() { # name, mods subdirectory, extra script args, extra properties, "terrai
   surfaceBail=$(echo "$stopped" | sed -nE 's/.*surfaceBail=([0-9]+).*/\1/p')
   expected=$(echo "$comparison" | sed -nE 's/.*expected=([0-9]+).*/\1/p')
   local verdict="FAIL"
-  case "$comparison" in
-    *PASS*)
+  if [ -n "$launch" ]; then
+    verdict="FAIL($launch)"
+  elif [ -n "$identical" ]; then
       if [ -z "$gpuChunks" ] || [ -z "$expected" ] || [ "$gpuChunks" -lt $((expected * 9 / 10)) ]; then
         verdict="FAIL(gpu generated ${gpuChunks:-0} of ${expected:-?})"
       elif [ "$STATUS" != "NOISE" ] && [ -z "$EXTRA" ] && [ "${5:-}" != "terrain-only" ] && { [ -z "$surface" ] || [ "$surface" -lt $((expected * 8 / 10)) ]; }; then
         verdict="FAIL(gpu surfaced ${surface:-0} of ${expected:-?})"
       else
         verdict="PASS"
-      fi ;;
-  esac
+      fi
+  fi
   [ "$verdict" = "PASS" ] && passed=$((passed + 1))
+  [ -n "${EVALUATE_ONLY:-}" ] && verdict="$verdict (historical: newest existing files, not run now)"
   echo "$name | vanilla $(cps "$vlog") cps | gpu $(cps "$glog") cps gpuChunks=${gpuChunks:-0} bail=${bail:-?} surface=${surface:-0} surfaceBail=${surfaceBail:-?} | $comparison| $verdict"
 }
 NETHER="worldgennext.bench.dimension=minecraft:the_nether;worldgennext.bench.centerX=300;worldgennext.bench.centerZ=300"
@@ -98,6 +125,11 @@ EXPECTED_ROWS=15
 [ -n "${ROWS:-}" ] && EXPECTED_ROWS=$total
 # The dimension-pack rows are optional, so a full run has at least the 15 core rows.
 # A ROWS filter that matches no row has verified nothing.
+if [ -n "${EVALUATE_ONLY:-}" ]; then
+  # Old files say what earlier runs did, not what the code does now.
+  echo "MATRIX HISTORICAL ($passed/$total rows of earlier runs would pass; nothing was run)"
+  exit 3
+fi
 if [ "$total" -gt 0 ] && [ "$passed" -eq "$total" ] && [ "$total" -ge "$EXPECTED_ROWS" ]; then
   echo "MATRIX PASS ($passed/$total)"
   exit 0

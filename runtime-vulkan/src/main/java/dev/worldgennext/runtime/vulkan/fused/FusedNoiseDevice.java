@@ -55,6 +55,25 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
     private volatile boolean lost;
     private volatile String lostReason = "";
     private final List<Program> programs = new ArrayList<>();
+    private boolean closed;
+    /**
+     * Vulkan wants a command pool, and every command buffer from it, used by one thread at a time: slots of a
+     * program being loaded allocate from the pool while the GPU worker records into buffers of another.
+     */
+    private final Object poolLock = new Object();
+    /** The queue is used by one thread at a time too (submissions, and waiting for it to drain at close). */
+    private final Object queueLock = new Object();
+    /** A submission whose fence has not signalled after this long is taken as never going to. */
+    static final long FENCE_TIMEOUT_NANOS = java.util.concurrent.TimeUnit.SECONDS.toNanos(
+            Math.max(1, Long.getLong("worldgennext.fast.fenceTimeoutSeconds", 60)));
+    /** Developer fault injection: from this many submissions on, a fence is reported as never signalling. */
+    private static final long STALL_AFTER = Long.getLong("worldgennext.fast.stallFenceAfterSubmissions", 0);
+    private final java.util.concurrent.atomic.AtomicLong submissions = new java.util.concurrent.atomic.AtomicLong();
+
+    /** Whether a fence that has been pending since {@code submittedNanos} has run out of time. */
+    static boolean overdue(long submittedNanos, long nowNanos, long timeoutNanos) {
+        return nowNanos - submittedNanos >= timeoutNanos;
+    }
 
     private FusedNoiseDevice(VkInstance instance, VkPhysicalDevice physical, VkDevice device, VkQueue queue,
                              int queueFamily, String deviceName, long commandPool,
@@ -136,16 +155,26 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
                 var deviceInfo = VkDeviceCreateInfo.calloc(stack).sType$Default().pQueueCreateInfos(queues).pEnabledFeatures(enabled);
                 check(vkCreateDevice(best, deviceInfo, null, pointer), "vkCreateDevice");
                 VkDevice device = new VkDevice(pointer.get(0), best, deviceInfo);
-                vkGetDeviceQueue(device, bestFamily, 0, pointer);
-                VkQueue queue = new VkQueue(pointer.get(0), device);
-                var poolInfo = VkCommandPoolCreateInfo.calloc(stack).sType$Default()
-                        .flags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT).queueFamilyIndex(bestFamily);
-                LongBuffer handle = stack.mallocLong(1);
-                check(vkCreateCommandPool(device, poolInfo, null, handle), "vkCreateCommandPool");
-                var memory = VkPhysicalDeviceMemoryProperties.malloc();
-                vkGetPhysicalDeviceMemoryProperties(best, memory);
-                return new FusedNoiseDevice(instance, best, device, queue, bestFamily, bestName, handle.get(0), memory);
-            } catch (RuntimeException failure) {
+                long pool = VK_NULL_HANDLE;
+                VkPhysicalDeviceMemoryProperties memory = null;
+                try {
+                    vkGetDeviceQueue(device, bestFamily, 0, pointer);
+                    VkQueue queue = new VkQueue(pointer.get(0), device);
+                    var poolInfo = VkCommandPoolCreateInfo.calloc(stack).sType$Default()
+                            .flags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT).queueFamilyIndex(bestFamily);
+                    LongBuffer handle = stack.mallocLong(1);
+                    check(vkCreateCommandPool(device, poolInfo, null, handle), "vkCreateCommandPool");
+                    pool = handle.get(0);
+                    memory = VkPhysicalDeviceMemoryProperties.malloc();
+                    vkGetPhysicalDeviceMemoryProperties(best, memory);
+                    return new FusedNoiseDevice(instance, best, device, queue, bestFamily, bestName, pool, memory);
+                } catch (Throwable failure) {
+                    if (memory != null) memory.free();
+                    if (pool != VK_NULL_HANDLE) vkDestroyCommandPool(device, pool, null);
+                    vkDestroyDevice(device, null);
+                    throw failure;
+                }
+            } catch (Throwable failure) {
                 vkDestroyInstance(instance, null);
                 throw failure;
             }
@@ -165,10 +194,22 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
 
     /** Compiles all kernels of one fused program and allocates its batch slots. */
     @Override
-    public synchronized Program load(FusedNoiseCompiler.Compiled compiled, int maxBatchChunks, int slotCount) {
-        if (lost) throw new IllegalStateException("Fused NOISE device is lost: " + lostReason);
+    public Program load(FusedNoiseCompiler.Compiled compiled, int maxBatchChunks, int slotCount) {
+        if (maxBatchChunks <= 0 || slotCount <= 0) throw new IllegalArgumentException("Batch size and slot count must be positive");
+        synchronized (this) {
+            if (closed) throw new IllegalStateException("Fused NOISE device is closed");
+            if (lost) throw new IllegalStateException("Fused NOISE device is lost: " + lostReason);
+        }
+        // Building the kernels can take seconds, or minutes on a cold driver cache; a program that is already
+        // loaded keeps generating meanwhile, so the device's monitor is not held here.
         Program program = new Program(compiled, maxBatchChunks, slotCount);
-        programs.add(program);
+        synchronized (this) {
+            if (closed) {
+                program.close();
+                throw new IllegalStateException("Fused NOISE device is closed");
+            }
+            programs.add(program);
+        }
         return program;
     }
 
@@ -181,15 +222,17 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
 
         Buffer(long size, boolean hostVisible) {
             this.size = Math.max(16, (size + 15) & ~15L);
+            long createdBuffer = VK_NULL_HANDLE, createdMemory = VK_NULL_HANDLE;
+            ByteBuffer view = null;
             try (MemoryStack stack = MemoryStack.stackPush()) {
                 var info = VkBufferCreateInfo.calloc(stack).sType$Default().size(this.size)
                         .usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
                         .sharingMode(VK_SHARING_MODE_EXCLUSIVE);
                 LongBuffer handle = stack.mallocLong(1);
                 check(vkCreateBuffer(device, info, null, handle), "vkCreateBuffer");
-                buffer = handle.get(0);
+                createdBuffer = handle.get(0);
                 var requirements = VkMemoryRequirements.calloc(stack);
-                vkGetBufferMemoryRequirements(device, buffer, requirements);
+                vkGetBufferMemoryRequirements(device, createdBuffer, requirements);
                 int type = hostVisible
                         ? memoryType(requirements.memoryTypeBits(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                         VK_MEMORY_PROPERTY_HOST_CACHED_BIT)
@@ -197,16 +240,22 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
                 var allocate = VkMemoryAllocateInfo.calloc(stack).sType$Default()
                         .allocationSize(requirements.size()).memoryTypeIndex(type);
                 check(vkAllocateMemory(device, allocate, null, handle), "vkAllocateMemory(" + this.size + ")");
-                memory = handle.get(0);
-                check(vkBindBufferMemory(device, buffer, memory, 0), "vkBindBufferMemory");
+                createdMemory = handle.get(0);
+                check(vkBindBufferMemory(device, createdBuffer, createdMemory, 0), "vkBindBufferMemory");
                 if (hostVisible) {
                     PointerBuffer data = stack.mallocPointer(1);
-                    check(vkMapMemory(device, memory, 0, this.size, 0, data), "vkMapMemory");
-                    mapped = MemoryUtil.memByteBuffer(data.get(0), (int) this.size).order(ByteOrder.LITTLE_ENDIAN);
-                } else {
-                    mapped = null;
+                    check(vkMapMemory(device, createdMemory, 0, this.size, 0, data), "vkMapMemory");
+                    view = MemoryUtil.memByteBuffer(data.get(0), (int) this.size).order(ByteOrder.LITTLE_ENDIAN);
                 }
+            } catch (Throwable failure) {
+                // Nothing of a buffer that could not be finished is kept (freeing memory unmaps it).
+                if (createdBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, createdBuffer, null);
+                if (createdMemory != VK_NULL_HANDLE) vkFreeMemory(device, createdMemory, null);
+                throw failure;
             }
+            buffer = createdBuffer;
+            memory = createdMemory;
+            mapped = view;
         }
 
         void destroy() {
@@ -233,20 +282,33 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
     public final class Program implements AutoCloseable, dev.worldgennext.compiler.vulkan.fused.FusedGpuBackend.Program {
         public final FusedNoiseCompiler.Compiled compiled;
         public final int maxBatchChunks;
-        private final long descriptorSetLayout;
-        private final long pipelineLayout;
+        // Zero or null until created, so that a program that could not be finished is taken apart by the same code as a whole one.
+        private long descriptorSetLayout;
+        private long pipelineLayout;
         private final long[] pipelines = new long[KERNELS.length];
         private final long[] modules = new long[KERNELS.length];
-        private final long descriptorPool;
-        private final Buffer permBuffer;
-        private final Buffer dtabBuffer;
+        private long descriptorPool;
+        private Buffer permBuffer;
+        private Buffer dtabBuffer;
         private final Slot[] slots;
         public final long compileNanos;
+        private boolean destroyed;
 
         Program(FusedNoiseCompiler.Compiled compiled, int maxBatchChunks, int slotCount) {
             this.compiled = compiled;
             this.maxBatchChunks = maxBatchChunks;
+            this.slots = new Slot[slotCount];
             long start = System.nanoTime();
+            try {
+                build(compiled, slotCount);
+            } catch (Throwable failure) {
+                destroyAll();
+                throw failure;
+            }
+            compileNanos = System.nanoTime() - start;
+        }
+
+        private void build(FusedNoiseCompiler.Compiled compiled, int slotCount) {
             try (MemoryStack stack = MemoryStack.stackPush()) {
                 var bindings = VkDescriptorSetLayoutBinding.calloc(BINDINGS, stack);
                 for (int i = 0; i < BINDINGS; i++) {
@@ -263,6 +325,7 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
                         .pSetLayouts(stack.longs(descriptorSetLayout)).pPushConstantRanges(push), null, handle), "vkCreatePipelineLayout");
                 pipelineLayout = handle.get(0);
                 long pipelineCache = createPipelineCache(stack, compiled.fingerprint());
+                try {
                 for (int k = 0; k < KERNELS.length; k++) {
                     long kernelStart = System.nanoTime();
                     byte[] spirv = compileGlsl(compiled.source(), KERNELS[k]);
@@ -286,7 +349,9 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
                             + shadercNanos / 1_000_000 + " ms, pipeline " + (System.nanoTime() - kernelStart - shadercNanos) / 1_000_000 + " ms");
                 }
                 savePipelineCache(pipelineCache, compiled.fingerprint());
-                vkDestroyPipelineCache(device, pipelineCache, null);
+                } finally {
+                    vkDestroyPipelineCache(device, pipelineCache, null);
+                }
                 var sizes = VkDescriptorPoolSize.calloc(1, stack);
                 sizes.get(0).type(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER).descriptorCount(BINDINGS * slotCount);
                 check(vkCreateDescriptorPool(device, VkDescriptorPoolCreateInfo.calloc(stack).sType$Default()
@@ -297,9 +362,7 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
             permBuffer.mapped.asIntBuffer().put(compiled.permTable());
             dtabBuffer = new Buffer((long) compiled.doubleTable().length * 8, true);
             dtabBuffer.mapped.asDoubleBuffer().put(compiled.doubleTable());
-            slots = new Slot[slotCount];
             for (int i = 0; i < slotCount; i++) slots[i] = new Slot();
-            compileNanos = System.nanoTime() - start;
         }
 
         @Override public FusedNoiseCompiler.Compiled compiled() { return compiled; }
@@ -309,9 +372,26 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
 
         @Override
         public synchronized void close() {
-            for (Slot slot : slots) slot.destroy();
-            permBuffer.destroy();
-            dtabBuffer.destroy();
+            destroyAll();
+        }
+
+        /** True when a submission of this program was never proven finished: nothing it may still use was freed. */
+        synchronized boolean quarantined() {
+            for (Slot slot : slots) if (slot != null && slot.pending) return true;
+            return false;
+        }
+
+        /**
+         * Frees what was created (a destroy call ignores a null handle).  A submission that was never proven
+         * finished may still be running on the GPU, and it uses the pipelines, the descriptors and the shared
+         * tables as well as its own slot: then nothing of the program is freed.
+         */
+        private synchronized void destroyAll() {
+            if (destroyed || quarantined()) return;
+            destroyed = true;
+            for (Slot slot : slots) if (slot != null) slot.destroy();
+            if (permBuffer != null) permBuffer.destroy();
+            if (dtabBuffer != null) dtabBuffer.destroy();
             vkDestroyDescriptorPool(device, descriptorPool, null);
             for (int k = 0; k < KERNELS.length; k++) {
                 vkDestroyPipeline(device, pipelines[k], null);
@@ -324,18 +404,30 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
         /** One in-flight batch: all buffers are owned until its fence signals. */
         public final class Slot implements dev.worldgennext.compiler.vulkan.fused.FusedGpuBackend.Slot {
             public static final int CHUNK_INFO_INTS = 8;
-            private final Buffer chunks, columns, corners, aquifer, blocks, beard, flags, heights, xzcache, prelimIndex, prelimCols, prelimOut;
+            private Buffer chunks, columns, corners, aquifer, blocks, beard, flags, heights, xzcache, prelimIndex, prelimCols, prelimOut;
             /** Block output is produced in device memory (the surface kernels rewrite it in place) and copied out once. */
-            private final Buffer blocksHost, biomes, surfTmp, aquiferHost;
+            private Buffer blocksHost, biomes, surfTmp, aquiferHost;
             private final int prelimCapacity;
-            private final long descriptorSet;
-            private final VkCommandBuffer commands;
-            private final long fence;
-            private boolean pending;
+            private long descriptorSet;
+            private VkCommandBuffer commands;
+            private long fence;
+            private volatile boolean pending;
             private int pendingChunks;
+            private long submittedNanos;
             public final int beardCapacityInts;
 
             Slot() {
+                beardCapacityInts = maxBatchChunks * 2048;
+                prelimCapacity = maxBatchChunks * 961;
+                try {
+                    build();
+                } catch (Throwable failure) {
+                    destroy();
+                    throw failure;
+                }
+            }
+
+            private void build() {
                 var g = compiled.geometry();
                 int n = maxBatchChunks;
                 chunks = new Buffer((long) n * CHUNK_INFO_INTS * 4, true);
@@ -347,11 +439,9 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
                 aquiferHost = new Buffer((long) n * g.aquiferCellCount() * 8 * 4, true);
                 biomes = new Buffer((long) n * compiled.biomeWordsPerChunk() * 4, true);
                 surfTmp = new Buffer((long) n * 256 * 4, false);
-                beardCapacityInts = n * 2048;
                 beard = new Buffer((long) beardCapacityInts * 4, true);
                 flags = new Buffer((long) n * 4, true);
                 heights = new Buffer((long) n * 2 * 256 * 4, true);
-                prelimCapacity = n * 961;
                 prelimIndex = new Buffer((long) prelimCapacity * 4, true);
                 prelimCols = new Buffer((long) prelimCapacity * 8, true);
                 prelimOut = new Buffer((long) prelimCapacity * 4, false);
@@ -373,10 +463,12 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
                     }
                     vkUpdateDescriptorSets(device, writes, null);
                     PointerBuffer pointer = stack.mallocPointer(1);
-                    check(vkAllocateCommandBuffers(device, VkCommandBufferAllocateInfo.calloc(stack).sType$Default()
-                            .commandPool(commandPool).level(VK_COMMAND_BUFFER_LEVEL_PRIMARY).commandBufferCount(1), pointer),
-                            "vkAllocateCommandBuffers");
-                    commands = new VkCommandBuffer(pointer.get(0), device);
+                    synchronized (poolLock) {
+                        check(vkAllocateCommandBuffers(device, VkCommandBufferAllocateInfo.calloc(stack).sType$Default()
+                                .commandPool(commandPool).level(VK_COMMAND_BUFFER_LEVEL_PRIMARY).commandBufferCount(1), pointer),
+                                "vkAllocateCommandBuffers");
+                        commands = new VkCommandBuffer(pointer.get(0), device);
+                    }
                     check(vkCreateFence(device, VkFenceCreateInfo.calloc(stack).sType$Default(), null, handle), "vkCreateFence");
                     fence = handle.get(0);
                 }
@@ -418,21 +510,21 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
                         if (threads[k] == 0) continue;
                         long start = System.nanoTime();
                         record(count, prelimCount, threads, order, step, step + 1);
+                        // record() marked the slot owned; a wait that fails leaves it so
                         int status = vkWaitForFences(device, new long[]{fence}, true, 60_000_000_000L);
-                        if (status != VK_SUCCESS) { lost = true; lostReason = "profile fence VkResult=" + status; throw new IllegalStateException(lostReason); }
+                        if (status != VK_SUCCESS) { lostReason = "profile fence VkResult=" + status; lost = true; throw new IllegalStateException(lostReason); }
                         PROFILE_NANOS[k].addAndGet(System.nanoTime() - start);
                     }
                     PROFILE_CHUNKS.addAndGet(count);
-                    pending = true; // fence already signalled; poll() completes immediately
-                    pendingChunks = count;
-                    return;
+                    return; // the slot is still marked owned; its fence has signalled, so poll() completes at once
                 }
                 record(count, prelimCount, threads, order, 0, order.length);
-                pending = true;
-                pendingChunks = count;
             }
 
             private void record(int count, int prelimCount, long[] threads, int[] order, int from, int to) {
+                // Recording uses the pool the buffer came from (see poolLock).  The slot is marked owned as soon as
+                // the queue has taken the submission, before anything can fail or time out after it.
+                synchronized (poolLock) {
                 try (MemoryStack stack = MemoryStack.stackPush()) {
                     vkResetCommandBuffer(commands, 0);
                     check(vkBeginCommandBuffer(commands, VkCommandBufferBeginInfo.calloc(stack).sType$Default()
@@ -466,9 +558,14 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
                     check(vkEndCommandBuffer(commands), "vkEndCommandBuffer");
                     check(vkResetFences(device, stack.longs(fence)), "vkResetFences");
                     var submit = VkSubmitInfo.calloc(stack).sType$Default().pCommandBuffers(stack.pointers(commands));
-                    synchronized (FusedNoiseDevice.this) {
+                    synchronized (queueLock) {
                         check(vkQueueSubmit(queue, submit, fence), "vkQueueSubmit");
                     }
+                    pending = true;
+                    pendingChunks = count;
+                    submittedNanos = System.nanoTime();
+                    submissions.incrementAndGet();
+                }
                 }
             }
 
@@ -498,14 +595,20 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
 
             public boolean poll() {
                 if (!pending) return true;
-                int status = vkGetFenceStatus(device, fence);
+                boolean stalled = STALL_AFTER > 0 && submissions.get() >= STALL_AFTER;
+                int status = stalled ? VK_NOT_READY : vkGetFenceStatus(device, fence);
                 if (status == VK_SUCCESS) {
                     pending = false;
                     return true;
                 }
                 if (status != VK_NOT_READY) {
-                    lost = true;
                     lostReason = "Fence status VkResult=" + status;
+                    lost = true;
+                } else if (!lost && overdue(submittedNanos, System.nanoTime(), FENCE_TIMEOUT_NANOS)) {
+                    // A queue that neither finishes nor reports an error would keep the chunks of this batch waiting
+                    // for ever.  The slot stays owned; the device is given up and the chunks go to the original code.
+                    lostReason = "a batch did not finish within " + FENCE_TIMEOUT_NANOS / 1_000_000_000L + " s";
+                    lost = true;
                 }
                 return false;
             }
@@ -520,8 +623,10 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
             void destroy() {
                 if (pending) return; // never free storage of an unproven submission
                 vkDestroyFence(device, fence, null);
+                fence = VK_NULL_HANDLE;
+                // The descriptor set goes with the program's descriptor pool and the command buffer with the device's pool.
                 for (Buffer b : new Buffer[]{chunks, columns, corners, aquifer, blocks, beard, flags, heights, xzcache, prelimIndex, prelimCols, prelimOut,
-                        blocksHost, biomes, surfTmp, aquiferHost}) b.destroy();
+                        blocksHost, biomes, surfTmp, aquiferHost}) if (b != null) b.destroy();
             }
         }
 
@@ -618,16 +723,31 @@ public final class FusedNoiseDevice implements dev.worldgennext.compiler.vulkan.
 
     @Override
     public synchronized void close() {
-        if (!lost) vkDeviceWaitIdle(device);
+        if (closed) return;
+        closed = true;
+        if (!lost) {
+            synchronized (queueLock) {
+                vkDeviceWaitIdle(device);
+            }
+        }
+        boolean quarantined = false;
         for (Program program : programs) {
             try {
                 program.close();
             } catch (RuntimeException ignored) {
                 // keep tearing down the remaining handles
             }
+            quarantined |= program.quarantined();
         }
         programs.clear();
-        vkDestroyCommandPool(device, commandPool, null);
+        if (quarantined) {
+            // A device cannot be destroyed under work it may still be doing; the process keeps it until it exits.
+            System.out.println("[worldgennext-fast] GPU device not released: a batch was never proven finished (" + lostReason + ")");
+            return;
+        }
+        synchronized (poolLock) {
+            vkDestroyCommandPool(device, commandPool, null);
+        }
         vkDestroyDevice(device, null);
         vkDestroyInstance(instance, null);
         memoryProperties.free();

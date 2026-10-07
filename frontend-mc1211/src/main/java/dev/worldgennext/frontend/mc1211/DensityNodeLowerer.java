@@ -113,19 +113,48 @@ public final class DensityNodeLowerer {
                 var fromConstant = new ProgramNode.Constant(source.type(), parseValue(source.type(), source.parameters().getOrDefault("fromValue", "0")), source.domain());
                 var toConstant = new ProgramNode.Constant(source.type(), parseValue(source.type(), source.parameters().getOrDefault("toValue", "1")), source.domain());
                 var lowY = new ProgramNode.Constant(source.type(), parseValue(source.type(), Integer.toString(from)), source.domain());
-                var span = new ProgramNode.Constant(source.type(), parseValue(source.type(), Integer.toString(to - from)), source.domain());
+                // The difference of two ints as Minecraft takes it, in double: it does not wrap.
+                var span = new ProgramNode.Constant(source.type(), parseValue(source.type(), Long.toString((long) to - from)), source.domain());
                 var fraction = new ProgramNode.Binary("divide", source.type(), source.domain(), new ProgramNode.Binary("subtract", source.type(), source.domain(), y, lowY), span);
                 var zero = new ProgramNode.Constant(source.type(), parseValue(source.type(), "0"), source.domain());
                 var one = new ProgramNode.Constant(source.type(), parseValue(source.type(), "1"), source.domain());
                 var clamped = new ProgramNode.Binary("min", source.type(), source.domain(), new ProgramNode.Binary("max", source.type(), source.domain(), fraction, zero), one);
                 var valueSpan = new ProgramNode.Binary("subtract", source.type(), source.domain(), toConstant, fromConstant);
-                yield new ProgramNode.Binary("add", source.type(), source.domain(), fromConstant,
-                        new ProgramNode.Binary("multiply", source.type(), source.domain(), clamped, valueSpan));
+                // Mth.clampedMap returns the end values themselves outside the bounds and interpolates only
+                // between them.  Interpolating with the clamped fraction gives the same bits only where
+                // from + 0 * (to - from) is from and from + 1 * (to - from) is to, which rounding does not
+                // promise (-1 + (0.1 - -1) is 0.10000000000000009).  Where it does hold, as for every gradient
+                // of the tested generators, the node stays as it always was; otherwise the three cases are
+                // written out.
+                if (endpointsSurviveInterpolation(source.type(), fromConstant.value(), toConstant.value())) {
+                    yield new ProgramNode.Binary("add", source.type(), source.domain(), fromConstant,
+                            new ProgramNode.Binary("multiply", source.type(), source.domain(), clamped, valueSpan));
+                }
+                if (to == from) throw new IllegalArgumentException("y_gradient with fromY equal to toY and end values that interpolation does not reproduce");
+                var between = new ProgramNode.Binary("add", source.type(), source.domain(), fromConstant,
+                        new ProgramNode.Binary("multiply", source.type(), source.domain(), fraction, valueSpan));
+                // fraction < 0: the start value; fraction > 1: the end value; otherwise (1 included) the interpolation.
+                var outside = new ProgramNode.RangeChoice(fraction, -Double.MAX_VALUE, 0.0, fromConstant, toConstant, source.type(), source.domain());
+                yield new ProgramNode.RangeChoice(fraction, 0.0, Math.nextUp(1.0), between, outside, source.type(), source.domain());
             }
             case "interpolate" -> { requireArity(kind, source, 1); requireNumeric(source.type(), kind); requireChildType(source, children.get(0), source.type()); yield new ProgramNode.Interpolated(children.get(0), new InterpolationGeometry(parsePositive(source, "horizontalCell", 4), parsePositive(source, "verticalCell", 8)), source.type()); }
             case "marker", "cache_once", "cache_all_in_cell" -> { requireArity(kind, source, 1); requireChildType(source, children.get(0), source.type()); String mode = kind.equals("cache_once") ? "ONCE" : kind.equals("cache_all_in_cell") ? "ALL_IN_CELL" : source.parameters().getOrDefault("mode", "NONE"); yield new ProgramNode.Marker(source.parameters().getOrDefault("name", source.sourcePath()), mode, source.type(), source.domain(), children.get(0), source.parameters()); }
             default -> throw new IllegalArgumentException("No lowerer for " + source.kind());
         };
+    }
+    /** Whether {@code from + t * (to - from)} gives exactly {@code from} at t = 0 and exactly {@code to} at t = 1, in the node's own arithmetic. */
+    static boolean endpointsSurviveInterpolation(ValueType type, Object from, Object to) {
+        if (type == ValueType.FP64) {
+            double a = (Double) from, b = (Double) to;
+            return Double.doubleToRawLongBits(a + 0.0 * (b - a)) == Double.doubleToRawLongBits(a)
+                    && Double.doubleToRawLongBits(a + 1.0 * (b - a)) == Double.doubleToRawLongBits(b);
+        }
+        if (type == ValueType.FP32) {
+            float a = (Float) from, b = (Float) to;
+            return Float.floatToRawIntBits(a + 0.0f * (b - a)) == Float.floatToRawIntBits(a)
+                    && Float.floatToRawIntBits(a + 1.0f * (b - a)) == Float.floatToRawIntBits(b);
+        }
+        return true; // integer gradients have no rounding to lose
     }
     private static String canonicalBinary(String kind) { return switch (kind) { case "add" -> "add"; case "subtract" -> "subtract"; case "mul", "multiply" -> "multiply"; case "div", "divide" -> "divide"; default -> kind; }; }
     private static String canonicalUnary(String kind) { return switch (kind) { case "negative" -> "negate"; default -> kind; }; }

@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **674**, plus this generated index.
+Indexed project files: **679**, plus this generated index.
 
 ## semantic-core
 
@@ -202,6 +202,7 @@ Tile identities, bounded bytes and shared ownership.
 | [spatial-data/src/main/java/dev/worldgennext/spatial/worldgen/UncachedSampleStore.java](../spatial-data/src/main/java/dev/worldgennext/spatial/worldgen/UncachedSampleStore.java) | Implementation or explicit public contract |
 | [spatial-data/src/test/java/dev/worldgennext/spatial/ByteBudgetTest.java](../spatial-data/src/test/java/dev/worldgennext/spatial/ByteBudgetTest.java) | Executable CPU test |
 | [spatial-data/src/test/java/dev/worldgennext/spatial/SharedTileCacheTest.java](../spatial-data/src/test/java/dev/worldgennext/spatial/SharedTileCacheTest.java) | Executable CPU test |
+| [spatial-data/src/test/java/dev/worldgennext/spatial/TiledConsumerOwnershipTest.java](../spatial-data/src/test/java/dev/worldgennext/spatial/TiledConsumerOwnershipTest.java) | Executable CPU test |
 | [spatial-data/src/test/java/dev/worldgennext/spatial/TileKeyTest.java](../spatial-data/src/test/java/dev/worldgennext/spatial/TileKeyTest.java) | Executable CPU test |
 | [spatial-data/src/test/java/dev/worldgennext/spatial/V02SpatialStoreTest.java](../spatial-data/src/test/java/dev/worldgennext/spatial/V02SpatialStoreTest.java) | Executable CPU test |
 | [spatial-data/src/test/java/dev/worldgennext/spatial/V02TiledConsumerTest.java](../spatial-data/src/test/java/dev/worldgennext/spatial/V02TiledConsumerTest.java) | Executable CPU test |
@@ -608,6 +609,7 @@ The mod: common source, per-loader and per-Minecraft-version files, and the buil
 | [.gitignore](../.gitignore) | Tooling, data or provenance |
 | [AGENTS.md](../AGENTS.md) | Documentation |
 | [build.gradle](../build.gradle) | Build configuration/tooling |
+| [CODE_REVIEW.md](../CODE_REVIEW.md) | Documentation |
 | [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) | Documentation |
 | [docs/ATTRIBUTION.md](../docs/ATTRIBUTION.md) | Documentation |
 | [docs/branding/launch-video.md](../docs/branding/launch-video.md) | Documentation |
@@ -624,6 +626,7 @@ The mod: common source, per-loader and per-Minecraft-version files, and the buil
 | [docs/design/EVIDENCE.md](../docs/design/EVIDENCE.md) | Documentation |
 | [docs/design/performance-model.json](../docs/design/performance-model.json) | Tooling, data or provenance |
 | [docs/design/PROPOSAL.md](../docs/design/PROPOSAL.md) | Documentation |
+| [docs/evidence/code-review-20261006.md](../docs/evidence/code-review-20261006.md) | Documentation |
 | [docs/evidence/comparison-c2me.md](../docs/evidence/comparison-c2me.md) | Documentation |
 | [docs/evidence/comparison-distant-horizons.md](../docs/evidence/comparison-distant-horizons.md) | Documentation |
 | [docs/evidence/comparison-voxy.md](../docs/evidence/comparison-voxy.md) | Documentation |
@@ -697,6 +700,7 @@ The mod: common source, per-loader and per-Minecraft-version files, and the buil
 | [scripts/capture-original-endpoint-matrix.ps1](../scripts/capture-original-endpoint-matrix.ps1) | Tooling, data or provenance |
 | [scripts/capture-original-full.ps1](../scripts/capture-original-full.ps1) | Tooling, data or provenance |
 | [scripts/capture-original-saved.ps1](../scripts/capture-original-saved.ps1) | Tooling, data or provenance |
+| [scripts/check-bench-report.py](../scripts/check-bench-report.py) | Tooling, data or provenance |
 | [scripts/check-region-files.py](../scripts/check-region-files.py) | Tooling, data or provenance |
 | [scripts/check.ps1](../scripts/check.ps1) | Tooling, data or provenance |
 | [scripts/compare-chunk-mods.sh](../scripts/compare-chunk-mods.sh) | Tooling, data or provenance |
@@ -738,6 +742,7 @@ The mod: common source, per-loader and per-Minecraft-version files, and the buil
 | [scripts/tests/test-original-endpoint-matrix-plan.ps1](../scripts/tests/test-original-endpoint-matrix-plan.ps1) | Tooling, data or provenance |
 | [scripts/tests/test-replay-process.ps1](../scripts/tests/test-replay-process.ps1) | Tooling, data or provenance |
 | [scripts/tests/test_capture_baseline.py](../scripts/tests/test_capture_baseline.py) | Tooling, data or provenance |
+| [scripts/tests/test_verification_scripts.py](../scripts/tests/test_verification_scripts.py) | Tooling, data or provenance |
 | [scripts/update-file-map.py](../scripts/update-file-map.py) | Tooling, data or provenance |
 | [scripts/verify-fast-matrix.sh](../scripts/verify-fast-matrix.sh) | Tooling, data or provenance |
 | [scripts/verify-kill-recovery.sh](../scripts/verify-kill-recovery.sh) | Tooling, data or provenance |

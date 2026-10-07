@@ -29,6 +29,8 @@ jobs:
       - name: Synthetic CPU replay
         shell: bash
         run: bash ./gradlew :oracle-and-replay:run --args='replay --output=build/replay/cpu.json' --no-daemon
+      - name: Verification script tests
+        run: python -m unittest discover -s scripts/tests -p "test_*.py" -v
       - name: Summarize actual tests
         if: always()
         run: python scripts/summarize-tests.py --output build/reports/test-summary.json
@@ -40,5 +42,6 @@ jobs:
             **/build/reports/
             **/build/test-results/
             **/build/replay/
-            neoforge-1211/build/libs/
+            build/release/
+            mod/targets/*/build/libs/
           if-no-files-found: warn

@@ -57,7 +57,17 @@ grep -E "WorldgenNext [0-9.]+ loaded|Pregeneration finished|Chunks since start|o
 errors=$(grep -E "/ERROR\]|/FATAL\]|Mixin apply failed|InvalidInjectionException|InvalidMixinException" "$log" 2>/dev/null | grep -vc "Failed to fetch mob spawner entity")
 echo "  error lines: ${errors:-no log}"
 grep -E "/ERROR\]|/FATAL\]|Mixin apply failed|Invalid(Injection|Mixin)Exception" "$log" 2>/dev/null | grep -v "Failed to fetch mob spawner entity" | head -5 | cut -c1-240
-echo "  saved chunks: $(python scripts/check-region-files.py "$server/world/region" | tail -1)"
+# Every chunk of the square asked for has to be on disk and readable ("0 problems" alone would also be
+# true of a world with nothing in it).  Another dimension's chunks are in its own folder.
+case "${DIM:-minecraft:overworld}" in
+  minecraft:overworld) regions="$server/world/region" ;;
+  minecraft:the_nether) regions="$server/world/DIM-1/region" ;;
+  minecraft:the_end) regions="$server/world/DIM1/region" ;;
+  *) regions="$server/world/dimensions/$(echo "$DIM" | tr ':' '/')/region" ;;
+esac
+side=$((2 * radius + 1))
+saved=$(python scripts/check-region-files.py --min-chunks $((side * side)) "$regions" | tail -1; exit "${PIPESTATUS[0]}") && savedOk=yes || savedOk=
+echo "  saved chunks: $saved"
 # A world generator the mod could not read or does not list falls back to vanilla code, which must not count
 # as a pass.
 # In check mode (gpu.mode = "check" in the server's config) vanilla code generates and the GPU's result is
@@ -65,10 +75,14 @@ echo "  saved chunks: $(python scripts/check-region-files.py "$server/world/regi
 checked=$(grep -E "chunks compared" "$log" 2>/dev/null | tail -1 | grep -oE "[0-9,]+ chunks compared, [0-9,]+ differ")
 [ -n "$checked" ] && echo "  check mode: $checked"
 gpu=$(grep -E "Chunks since start" "$log" 2>/dev/null | tail -1 | sed -E 's/.*start: ([0-9,]+) on the GPU.*/\1/' | tr -d ',')
-if grep -q "Pregeneration finished" "$log" 2>/dev/null && [ "${errors:-1}" = 0 ] && echo "$checked" | grep -qE "^[1-9][0-9,]* chunks compared, 0 differ$"; then
+if [ -z "$savedOk" ]; then
+  echo "INSTALLED-NEOFORGE FAIL (saved chunks: $saved)"
+  exit 1
+elif grep -q "Pregeneration finished" "$log" 2>/dev/null && [ "${errors:-1}" = 0 ] && echo "$checked" | grep -qE "^[1-9][0-9,]* chunks compared, 0 differ$"; then
   echo "INSTALLED-NEOFORGE PASS (check mode: $checked)"
 elif grep -q "Pregeneration finished" "$log" 2>/dev/null && [ "${errors:-1}" = 0 ] && [ "${gpu:-0}" -gt 0 ] 2>/dev/null; then
   echo "INSTALLED-NEOFORGE PASS (${gpu} chunks' terrain on the GPU)"
 else
   echo "INSTALLED-NEOFORGE FAIL (errors ${errors:-?}, GPU chunks ${gpu:-0})"
+  exit 1
 fi

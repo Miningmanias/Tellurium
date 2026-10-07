@@ -30,8 +30,13 @@ check() { # name, pass pattern, command...
   local name="$1" pattern="$2"; shift 2
   local start=$SECONDS
   "$@" > "$out/$name.log" 2>&1
+  local status=$?
+  # A check passes when its command succeeded AND printed its own verdict: output that reads like a pass
+  # from a command that then failed is a failure, and so is a clean exit without the verdict.
   local verdict="FAIL"
-  if grep -qE "$pattern" "$out/$name.log" && ! grep -qE "MATRIX FAIL|SAVE-REOPEN FAIL|KILL-RECOVERY FAIL|COMMANDS FAIL|BUILD FAILED" "$out/$name.log"; then verdict="PASS"; else failed=1; fi
+  if [ $status -eq 0 ] && grep -qE "$pattern" "$out/$name.log" \
+      && ! grep -qE "MATRIX FAIL|SAVE-REOPEN FAIL|KILL-RECOVERY FAIL|COMMANDS FAIL|BUILD FAILED" "$out/$name.log"; then verdict="PASS"; else failed=1; fi
+  [ $status -ne 0 ] && verdict="$verdict(exit $status)"
   results+=("$(printf '%-10s %s  (%d s)  %s' "$name" "$verdict" $((SECONDS - start)) "$(grep -E "$pattern|FAIL" "$out/$name.log" | tail -1 | cut -c1-110)")")
   echo "${results[-1]}"
 }
@@ -46,16 +51,27 @@ fi
 check carvers "MATRIX PASS" env STATUS=CARVERS ROWS="vanilla-overworld" bash scripts/verify-fast-matrix.sh 45
 check reopen "SAVE-REOPEN PASS" bash scripts/verify-save-reopen.sh 45 vanilla
 check kill "KILL-RECOVERY PASS" bash scripts/verify-kill-recovery.sh 120 8
-check console "unexpected or unknown commands: 0" bash scripts/test-installed-commands.sh 60
+check console "COMMANDS PASS" bash scripts/test-installed-commands.sh 60
 if [ -n "${CLIENT:-}" ]; then
-  reference=$(ls -t build/bench/mv-vanilla-overworld-surface-*.digest.txt 2>/dev/null | head -1)
+  # The reference is the vanilla run of the exactness check above, by the path that run printed.
+  reference=$(grep -m1 "^REPORT " build/bench/matrix-logs/mv-vanilla-overworld-surface.out 2>/dev/null | sed 's/^REPORT //' | tr -d '\r' | tr '\\' '/')
+  reference="${reference%.json}.digest.txt"
   client() {
+    [ -f "$reference" ] || { echo "no reference digest from this run's exactness check (ROWS must include vanilla-overworld)"; return 1; }
+    rm -f build/bench/release-client.digest.txt
     DIGEST=build/bench/release-client.json bash scripts/run-client-pregen.sh 45 vanilla
     python scripts/compare-digests.py "$reference" build/bench/release-client.digest.txt | tr -d '\r' | tr '\n' ' '
+    local compared=${PIPESTATUS[0]}
     echo
+    return "$compared"
   }
   check client "missing=0 extra=0 +PASS" client
-  check tour "player tour PASS" env TOUR=120 bash scripts/run-client-pregen.sh 1 vanilla
+  tour() {
+    TOUR=120 bash scripts/run-client-pregen.sh 1 vanilla | tee "$out/tour.out"
+    # The client is closed by the script once the tour has reported; the tour's own line is the result.
+    grep -q "player tour PASS" "$out/tour.out" && ! grep -q "player tour FAIL" "$out/tour.out"
+  }
+  check tour "player tour PASS" tour
 fi
 
 echo

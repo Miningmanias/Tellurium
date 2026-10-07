@@ -20,7 +20,15 @@ python scripts/summarize-tests.py
 
 The Windows helper `scripts/check.ps1` finds a Java21 installation or accepts `-JavaHome`. It changes only its process environment.
 
-`test` and `testFast` run CPU tests. They do not launch Minecraft or exercise a physical GPU. Standard reports live under each module's `build/reports/tests/test`; the aggregate is `build/reports/tests/all`. The summary script fails if no tests exist or any test failed.
+`test` and `testFast` run CPU tests. They do not launch Minecraft or exercise a physical GPU. Standard reports live under each module's `build/reports/tests/test`; the aggregate is `build/reports/tests/all`. The summary script reads the results of the library modules and of the mod's builds under `mod/targets`; it fails if no tests exist, any test failed, or a module that has tests (or the reference build, `neoforge-1211`) has no results.
+
+The verification scripts have tests of their own, which need neither the game nor a GPU:
+
+```sh
+python -m unittest discover -s scripts/tests -p "test_*.py"
+```
+
+What the scripts require is deliberately more than a line of text in a log: a comparison passes by its exit status; a digest row must hold exactly its five fields; a benchmark run counts only if it exited successfully with a report that says PASS; a matrix row uses the files its own two runs printed (`EVALUATE_ONLY=1` looks at older files and reports `MATRIX HISTORICAL`, never `MATRIX PASS`); and a region check asked for a number of chunks (`--min-chunks`) fails without them. `docs/evidence/code-review-20261006.md` has the reasons.
 
 The installed-jar smoke is opt-in and requires a disposable NeoForge server
 template containing `server.jar`, `eula.txt` with `eula=true`, and no existing

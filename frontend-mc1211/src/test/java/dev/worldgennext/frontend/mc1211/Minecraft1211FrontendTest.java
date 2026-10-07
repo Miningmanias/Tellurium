@@ -162,6 +162,69 @@ class Minecraft1211FrontendTest {
         assertEquals("add", zeroWidthResult.node().operation());
     }
 
+    /** Mth.clampedMap as Minecraft 1.21.1 has it, written out for the comparison. */
+    private static double clampedMap(double value, double fromMin, double fromMax, double toMin, double toMax) {
+        double delta = (value - fromMin) / (fromMax - fromMin);
+        if (delta < 0.0) return toMin;
+        if (delta > 1.0) return toMax;
+        return toMin + delta * (toMax - toMin);
+    }
+
+    /** The few node kinds a lowered gradient is made of, in IEEE double arithmetic. */
+    private static double gradientValue(ProgramNode node, double y) {
+        if (node instanceof ProgramNode.Constant constant) return ((Number) constant.value()).doubleValue();
+        if (node instanceof ProgramNode.Input input) { assertEquals("y", input.name()); return y; }
+        if (node instanceof ProgramNode.RangeChoice range) {
+            double selector = gradientValue(range.input(), y);
+            return gradientValue(selector >= range.minInclusive() && selector < range.maxExclusive() ? range.whenInRange() : range.whenOutOfRange(), y);
+        }
+        var binary = assertInstanceOf(ProgramNode.Binary.class, node);
+        double left = gradientValue(binary.children().get(0), y), right = gradientValue(binary.children().get(1), y);
+        return switch (binary.operation()) {
+            case "add" -> left + right;
+            case "subtract" -> left - right;
+            case "multiply" -> left * right;
+            case "divide" -> left / right;
+            case "min" -> Math.min(left, right);
+            case "max" -> Math.max(left, right);
+            default -> throw new AssertionError(binary.operation());
+        };
+    }
+
+    @Test void yGradientGivesMinecraftsBitsBelowAtInsideAndAboveItsBounds() {
+        // from, to, start value, end value: decimal ends whose interpolation does not land on the end value,
+        // ends that do, a negative zero, and reversed bounds.
+        String[][] cases = {{"0", "1", "-1.0", "0.1"}, {"-64", "320", "1.5", "-1.5"}, {"0", "16", "-0.0", "0.3"},
+                {"8", "-8", "0.1", "0.7"}, {"-2000000000", "2000000000", "0.1", "0.2"}};
+        for (String[] c : cases) {
+            var source = new SourceNodeSnapshot("y_gradient", "root/gradient", ValueType.FP64, EvaluationDomain.BLOCK,
+                    Map.of("fromY", c[0], "toY", c[1], "fromValue", c[2], "toValue", c[3]), List.of());
+            var result = new DensityNodeLowerer().lower(source);
+            assertTrue(result.supported(), result.diagnostics().summary());
+            int from = Integer.parseInt(c[0]), to = Integer.parseInt(c[1]);
+            for (int y : new int[]{from - 3, from - 1, from, from + 1, (int) (((long) from + to) / 2), to - 1, to, to + 1, to + 3}) {
+                double expected = clampedMap(y, from, to, Double.parseDouble(c[2]), Double.parseDouble(c[3]));
+                double actual = gradientValue(result.node(), y);
+                assertEquals(Double.doubleToRawLongBits(expected), Double.doubleToRawLongBits(actual),
+                        "y_gradient " + String.join(",", c) + " at y=" + y + ": expected " + expected + ", got " + actual);
+            }
+        }
+    }
+
+    @Test void yGradientOfTheTestedGeneratorsKeepsItsShape() {
+        // The tested-generator list is keyed on the kernel text: a gradient whose end values interpolation
+        // reproduces has to lower to the node it always did.
+        var plain = new SourceNodeSnapshot("y_gradient", "root/plain", ValueType.FP64, EvaluationDomain.BLOCK,
+                Map.of("fromY", "-64", "toY", "320", "fromValue", "1.5", "toValue", "-1.5"), List.of());
+        assertEquals("add", new DensityNodeLowerer().lower(plain).node().operation());
+        var decimal = new SourceNodeSnapshot("y_gradient", "root/decimal", ValueType.FP64, EvaluationDomain.BLOCK,
+                Map.of("fromY", "0", "toY", "1", "fromValue", "-1.0", "toValue", "0.1"), List.of());
+        assertInstanceOf(ProgramNode.RangeChoice.class, new DensityNodeLowerer().lower(decimal).node());
+        var zeroWidthDecimal = new SourceNodeSnapshot("y_gradient", "root/zero-width-decimal", ValueType.FP64, EvaluationDomain.BLOCK,
+                Map.of("fromY", "8", "toY", "8", "fromValue", "-1.0", "toValue", "0.1"), List.of());
+        assertFalse(new DensityNodeLowerer().lower(zeroWidthDecimal).supported());
+    }
+
     @Test void ap2LoweringPreservesOperationAndRightArgumentBounds() {
         var source = new SourceNodeSnapshot("AP2", "root/ap2", ValueType.FP64, EvaluationDomain.BLOCK,
                 Map.of("operation", "multiply",

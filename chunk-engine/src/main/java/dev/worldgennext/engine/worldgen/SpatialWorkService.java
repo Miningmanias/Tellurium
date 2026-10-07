@@ -125,6 +125,11 @@ public final class SpatialWorkService implements AutoCloseable {
         synchronized (lifecycleLock) {
             if (closed.get()) {
                 result.cancel(false);
+                // Cancelling does nothing to a source that has already produced its window; that window,
+                // or one still to come, has nobody to receive it.
+                source.whenComplete((window, failure) -> {
+                    if (window != null) window.close();
+                });
                 return result;
             }
             activeResults.add(result);

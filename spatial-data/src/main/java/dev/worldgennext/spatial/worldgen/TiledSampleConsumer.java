@@ -192,13 +192,28 @@ public final class TiledSampleConsumer implements AutoCloseable {
             queue.addLast(task);
             if (draining.get()) return;
             draining.set(true);
+            Throwable rejected = null;
             try {
+                // The first task is the caller's own: if the delegate refuses it the caller is told.  Tasks
+                // queued behind it came from calls that have already returned, so nobody is left to tell;
+                // one of those the delegate refuses is run here instead of being dropped.
+                boolean first = true;
                 Runnable next;
-                while ((next = queue.pollFirst()) != null) delegate.execute(next);
+                while ((next = queue.pollFirst()) != null) {
+                    try {
+                        delegate.execute(next);
+                    } catch (Throwable failure) {
+                        if (first) rejected = failure;
+                        else next.run();
+                    }
+                    first = false;
+                }
             } finally {
                 queue.clear();
                 draining.set(false);
             }
+            if (rejected instanceof RuntimeException runtime) throw runtime;
+            if (rejected instanceof Error error) throw error;
         }
     }
 
@@ -253,7 +268,11 @@ public final class TiledSampleConsumer implements AutoCloseable {
             }
             if (!stopped && completed == tiles.size() && active == 0) {
                 stopped = true;
-                result.complete(new SampleWindow(key, key.requestedExtent(), values, leases));
+                SampleWindow window = new SampleWindow(key, key.requestedExtent(), values, leases);
+                leases.clear(); // the window owns them now
+                // A cancellation that got in first found nothing to release (this state had already stopped),
+                // so the window nobody will receive is closed here.
+                if (!result.complete(window)) window.close();
             }
         }
 
@@ -279,11 +298,22 @@ public final class TiledSampleConsumer implements AutoCloseable {
                 }
                 pending.add(future);
             }
+            AtomicBoolean delivered = new AtomicBoolean();
             try {
-                future.whenCompleteAsync((lease, failure) -> finishTile(index, lease, failure),
-                        continuationExecutor);
+                future.whenCompleteAsync((lease, failure) -> {
+                    delivered.set(true);
+                    finishTile(index, lease, failure);
+                }, continuationExecutor).whenComplete((ignored, notRun) -> {
+                    // An executor that refuses the continuation fails this stage without running it: the tile
+                    // would never finish and a lease the store has handed over would stay held.
+                    if (notRun == null || delivered.get()) return;
+                    SampleLease lease = null;
+                    if (future.isDone() && !future.isCompletedExceptionally()) lease = future.getNow(null);
+                    if (lease != null) lease.close();
+                    finishTile(index, null, notRun);
+                });
             } catch (Throwable registrationFailure) {
-                finishTile(index, null, registrationFailure);
+                if (!delivered.get()) finishTile(index, null, registrationFailure);
             }
         }
 

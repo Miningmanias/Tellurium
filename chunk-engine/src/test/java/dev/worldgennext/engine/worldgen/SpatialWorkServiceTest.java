@@ -102,4 +102,43 @@ class SpatialWorkServiceTest {
         assertTrue(service.isClosed());
         assertEquals(0, service.activeRequests());
     }
+
+    @Test
+    void aWindowAcquiredWhileTheServiceClosesIsNotLeftHeld() throws Exception {
+        // A request whose tiles are there at once races the service being closed.  Whichever wins, once a
+        // delivered result has been closed no lease may still be held.
+        SampleKey key = new SampleKey("racing", SampleDomain.LATTICE,
+                new SampleExtent(0, 0, 0, 1, 1, 1), 0, CONTEXT);
+        for (int round = 0; round < 3_000; round++) {
+            var held = new java.util.concurrent.atomic.AtomicInteger();
+            SpatialSampleStore store = new SpatialSampleStore() {
+                @Override public java.util.concurrent.CompletionStage<dev.worldgennext.spatial.worldgen.SampleLease> acquire(
+                        SampleKey tile, SampleProducer producer) {
+                    held.incrementAndGet();
+                    return java.util.concurrent.CompletableFuture.completedFuture(new dev.worldgennext.spatial.worldgen.SampleLease(
+                            tile, new double[tile.requestedExtent().volume()], held::decrementAndGet));
+                }
+                @Override public java.util.concurrent.CompletionStage<dev.worldgennext.spatial.worldgen.SampleLease> acquireAsync(
+                        SampleKey tile, dev.worldgennext.spatial.worldgen.AsyncSampleProducer producer) {
+                    return acquire(tile, null);
+                }
+            };
+            var service = new SpatialWorkService(store, new StaticRoutePolicy(StaticRoutePolicy.Mode.CPU_ONLY), 1, 1, Runnable::run);
+            var barrier = new java.util.concurrent.CyclicBarrier(2);
+            Thread closer = new Thread(() -> {
+                try {
+                    barrier.await(10, java.util.concurrent.TimeUnit.SECONDS);
+                } catch (Exception failure) {
+                    throw new IllegalStateException(failure);
+                }
+                service.close();
+            });
+            closer.start();
+            barrier.await(10, java.util.concurrent.TimeUnit.SECONDS);
+            var request = service.request(key, ignored -> new double[]{1}, null, true, false).toCompletableFuture();
+            closer.join();
+            if (!request.isCompletedExceptionally()) request.join().close();
+            assertEquals(0, held.get(), "round " + round + ": a lease stayed held after the service closed");
+        }
+    }
 }

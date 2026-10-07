@@ -104,6 +104,12 @@ class ChunkResultValidatorTest {
                 new ChunkResultHeader(0, 0, 0, 15, CONTEXT, TABLE.fingerprint(), ABI));
         assertThrows(IllegalArgumentException.class, () ->
                 new ChunkResultHeader(0, 0, 0, 17, CONTEXT, TABLE.fingerprint(), ABI));
+        // A bottom off a section boundary: the sections would be named for a different range than they hold.
+        assertThrows(IllegalArgumentException.class, () ->
+                new ChunkResultHeader(0, 0, 1, 16, CONTEXT, TABLE.fingerprint(), ABI));
+        assertThrows(IllegalArgumentException.class, () ->
+                new ChunkResultHeader(0, 0, -63, 16, CONTEXT, TABLE.fingerprint(), ABI));
+        assertEquals(-64, new ChunkResultHeader(0, 0, -64, 16, CONTEXT, TABLE.fingerprint(), ABI).minY());
         assertThrows(IllegalArgumentException.class, () ->
                 new ChunkResultHeader(0, 0, 0, -16, CONTEXT, TABLE.fingerprint(), ABI));
         assertThrows(IllegalArgumentException.class, () ->
