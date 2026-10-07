@@ -27,28 +27,43 @@ for p in "${extra[@]}"; do [ -n "$p" ] && common+=("-D$p"); done
 printf '[pregen]\nprogress_seconds = 2\n' > "$run/tellurium.toml.seed"
 mkdir -p "$run/config" && cp "$run/tellurium.toml.seed" "$run/config/tellurium.toml"
 ./gradlew.bat :neoforge-1211:runServer "${common[@]}" "-Dtellurium.pregen.autostart=$RADIUS" > "$run/gradle-1.out" 2>&1 &
+progressed=
 for _ in $(seq 1 120); do
   sleep 1
-  grep -q "Pregeneration: " "$run/logs/latest.log" 2>/dev/null && break
+  grep -q "Pregeneration: " "$run/logs/latest.log" 2>/dev/null && { progressed=yes; break; }
 done
+# A kill before any progress, or of nothing, would test nothing.
+[ -n "$progressed" ] || { echo "KILL-RECOVERY FAIL: the pregeneration never reported progress"; exit 1; }
 sleep "$AFTER"
+running=$(powershell.exe -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name='java.exe'\" | Where-Object { \$_.CommandLine -like '*$(basename "$run")*' }).Count" | tr -d '\r')
+[ "${running:-0}" -ge 1 ] 2>/dev/null || { echo "KILL-RECOVERY FAIL: the server was not running when it was to be killed"; exit 1; }
+grep -q "Pregeneration finished" "$run/logs/latest.log" && { echo "KILL-RECOVERY FAIL: the pregeneration had already finished; nothing was interrupted"; exit 1; }
 powershell.exe -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='java.exe'\" | Where-Object { \$_.CommandLine -like '*$(basename "$run")*' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force }" >/dev/null 2>&1
 wait 2>/dev/null
 cp "$run/logs/latest.log" "$run/logs/killed.log"
 echo "killed at: $(grep "Pregeneration: " "$run/logs/killed.log" | tail -1 | sed 's/^.*Pregeneration: //' | cut -c1-80)"
-echo "after kill:  $(python scripts/check-region-files.py "$run/candidate-world/region" --optional "$run/candidate-world/poi" --optional "$run/candidate-world/entities" | tail -3 | tr '\n' ' ')"
+# What the kill left behind is checked now and decides by itself: a later clean resume does not make it valid.
+afterKill=$(python scripts/check-region-files.py --min-chunks 1 "$run/candidate-world/region" --optional "$run/candidate-world/poi" --optional "$run/candidate-world/entities" | tail -3 | tr '\n' ' '; exit "${PIPESTATUS[0]}") && killValid=yes || killValid=
+echo "after kill:  $afterKill"
+[ -n "$killValid" ] || { echo "KILL-RECOVERY FAIL: invalid chunks on disk after the kill"; exit 1; }
 
 ls "$run/candidate-world/tellurium-pregen.properties" >/dev/null 2>&1 || { echo "KILL-RECOVERY FAIL: no saved pregeneration progress"; exit 1; }
 
 ./gradlew.bat :neoforge-1211:runServer "${common[@]}" "-Dtellurium.prototype.resume=true" "-Dtellurium.pregen.autoresume=true" \
     "-Dtellurium.pregen.stopServerWhenDone=true" > "$run/gradle-2.out" 2>&1
+resumeExit=$?
 grep -E "continuing at|Pregeneration finished" "$run/logs/latest.log" | sed -E 's/^\[[^]]*\] \[[^]]*\] \[[^]]*\]: /resume: /' | cut -c1-170
 readErrors=$(grep -ciE "wrong location|Failed to read|corrupt|Couldn't load chunk|Chunk file at|Invalid chunk|Region file .* (is truncated|has)" "$run/logs/latest.log")
 echo "resume: read errors in the log: $readErrors"
 side=$((2 * RADIUS + 1))
 # Every chunk of the square has to be on disk and readable after the resume, not merely "no problems found".
-final=$(python scripts/check-region-files.py --min-chunks $((side * side)) "$run/candidate-world/region" --optional "$run/candidate-world/poi" --optional "$run/candidate-world/entities" | tail -3 | tr '\n' ' '; exit "${PIPESTATUS[0]}") && valid=yes || valid=
+# The terrain folder alone has to hold them: points of interest and entities are counted apart, or their
+# records could stand in for missing terrain.
+final=$(python scripts/check-region-files.py --min-chunks $((side * side)) "$run/candidate-world/region" | tail -3 | tr '\n' ' '; exit "${PIPESTATUS[0]}") && valid=yes || valid=
 echo "after resume: $final"
+sidecars=$(python scripts/check-region-files.py --optional "$run/candidate-world/poi" --optional "$run/candidate-world/entities" | tail -1; exit "${PIPESTATUS[0]}") || valid=
+echo "after resume, points of interest and entities: $sidecars"
+[ "$resumeExit" = 0 ] || { echo "KILL-RECOVERY FAIL: the resumed server exited with $resumeExit"; exit 1; }
 [ -n "$valid" ] || { echo "KILL-RECOVERY FAIL: invalid or missing chunks after the resume"; exit 1; }
 grep -q "Pregeneration finished" "$run/logs/latest.log" || { echo "KILL-RECOVERY FAIL: the resumed job did not finish"; exit 1; }
 [ "$readErrors" = "0" ] || { echo "KILL-RECOVERY FAIL: chunk read errors after the kill"; exit 1; }

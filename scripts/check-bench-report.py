@@ -36,13 +36,25 @@ def main(argv):
     if report.get("status") != "PASS":
         reasons.append(f"status {report.get('status')}")
     measured = report.get("measured")
-    if not isinstance(measured, dict) or not measured.get("requested"):
-        reasons.append("no measured phase")
+    counts = [measured.get(name) if isinstance(measured, dict) else None for name in ("requested", "completed", "failed")]
+    # The three counts have to be there as whole numbers: an omitted "failed" is not "none failed".
+    if any(type(count) is not int for count in counts):
+        reasons.append("the measured phase lacks whole-number requested/completed/failed counts")
+        measured = {}
     else:
-        if measured.get("completed") != measured.get("requested"):
-            reasons.append(f"completed {measured.get('completed')} of {measured.get('requested')}")
-        if measured.get("failed"):
-            reasons.append(f"{measured.get('failed')} chunks failed")
+        requested, completed, failed = counts
+        if requested <= 0:
+            reasons.append(f"requested {requested} chunks")
+        if completed != requested:
+            reasons.append(f"completed {completed} of {requested}")
+        if failed != 0:
+            reasons.append(f"{failed} chunks failed")
+        radius = report.get("radiusChunks")
+        # The measured square is the one the radius describes.
+        if type(radius) is not int or radius < 0:
+            reasons.append(f"radius {radius!r} is not a whole number of chunks")
+        elif requested != (2 * radius + 1) ** 2:
+            reasons.append(f"requested {requested} chunks, a radius of {radius} is {(2 * radius + 1) ** 2}")
     if args.endpoint and report.get("endpoint") != f"MINECRAFT:{args.endpoint.upper()}":
         reasons.append(f"endpoint {report.get('endpoint')}, not {args.endpoint.upper()}")
     if args.radius is not None and report.get("radiusChunks") != args.radius:

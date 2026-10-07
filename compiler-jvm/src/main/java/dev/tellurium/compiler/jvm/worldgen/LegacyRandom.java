@@ -17,7 +17,8 @@ public final class LegacyRandom {
         do { bits = nextBits(31); value = bits % bound; } while (bits - value + (bound - 1) < 0);
         return value;
     }
-    public long nextLong() { return ((long) nextInt() << 32) + (nextInt() & 0xffffffffL); }
+    /** As java.util.Random and Minecraft's legacy source: the low word is added as a signed int. */
+    public long nextLong() { long high = (long) nextInt() << 32; return high + (long) nextInt(); }
     public float nextFloat() { return nextBits(24) * 5.9604645E-8F; }
     public double nextDouble() { return ((long) nextBits(26) << 27 | nextBits(27)) * 0x1.0p-53; }
     public LegacyRandom fork(long salt) { return new LegacyRandom(nextLong() ^ salt); }

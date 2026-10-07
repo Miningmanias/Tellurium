@@ -21,9 +21,17 @@ public abstract class ClimateParameterListMixin {
         if (!ColumnBiomeIndex.ENABLED) return;
         Object index = tellurium$index;
         if (index == null) {
-            ColumnBiomeIndex built = ColumnBiomeIndex.build((Climate.ParameterList<?>) (Object) this);
-            index = built == null ? Boolean.FALSE : built;
-            tellurium$index = index;
+            // One index for all threads: each index keeps, per thread, the leaf it found last, and that decides
+            // ties.  Two threads building one each would have the first answer come from an index that the
+            // second then replaces.
+            synchronized (this) {
+                index = tellurium$index;
+                if (index == null) {
+                    ColumnBiomeIndex built = ColumnBiomeIndex.build((Climate.ParameterList<?>) (Object) this);
+                    index = built == null ? Boolean.FALSE : built;
+                    tellurium$index = index;
+                }
+            }
         }
         if (index instanceof ColumnBiomeIndex fast) callback.setReturnValue(fast.find(target));
     }

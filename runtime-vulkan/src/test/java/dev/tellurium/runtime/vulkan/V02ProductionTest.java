@@ -120,7 +120,17 @@ class V02ProductionTest {
         assertThrows(java.util.concurrent.CompletionException.class, result::join);
         assertTrue(supplied.isClosed());
         assertEquals(0, service.diagnostics().inFlight());
-        assertEquals(0, service.diagnostics().reservedBytes());
+        // A completion that failed has not shown its memory was given back: the bytes are quarantined and stay
+        // counted, so a second dispatch of the whole budget is not admitted on top of them.
+        assertEquals(8, service.diagnostics().reservedBytes());
+        var second = new VulkanGenerationService(caps, 8, descriptor -> stage);
+        second.start();
+        assertThrows(java.util.concurrent.CompletionException.class, () -> second.submit(context, new DispatchDescriptor("pipeline", 1, 1, 4, 4),
+                dev.tellurium.semantic.program.NumericProfile.GPU_IEEE_BITS, context.programHash(), "abi").toCompletableFuture().join());
+        assertThrows(java.util.concurrent.CompletionException.class, () -> second.submit(context, new DispatchDescriptor("pipeline", 1, 1, 4, 4),
+                dev.tellurium.semantic.program.NumericProfile.GPU_IEEE_BITS, context.programHash(), "abi").toCompletableFuture().join());
+        assertEquals(8, second.diagnostics().reservedBytes(), "the refused second dispatch added nothing");
+        second.close();
         service.close();
     }
 

@@ -14,7 +14,8 @@ public final class ChunkLogicalChecksum {
             for (String state : result.denseStates()) digest.update((state + "\0").getBytes(StandardCharsets.UTF_8));
             for (var entry : result.heightmaps().maps().entrySet()) {
                 digest.update((entry.getKey() + "\0").getBytes(StandardCharsets.UTF_8));
-                for (int value : entry.getValue()) digest.update(Integer.toString(value).getBytes(StandardCharsets.UTF_8));
+                // Every value ends with a separator: without one, 1,23 and 12,3 are the same bytes.
+                for (int value : entry.getValue()) digest.update((Integer.toString(value) + ",").getBytes(StandardCharsets.UTF_8));
             }
             for (boolean mark : result.postProcessing().fluidMarks()) digest.update((byte) (mark ? 1 : 0));
             for (var entry : result.metadata().fields().entrySet()) {

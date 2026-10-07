@@ -106,6 +106,10 @@ public final class FusedNoiseCompiler {
             Objects.requireNonNull(settings, "settings");
             Objects.requireNonNull(palette, "palette");
             Objects.requireNonNull(beardKernel, "beardKernel");
+            // A kernel that draws from a random source needs the source that was captured; without it the constants
+            // would be a made-up zero seed.  A source for a feature that is off is never drawn from and may be absent.
+            if (settings.aquifersEnabled() && aquiferRandom == null) throw new IllegalArgumentException("Aquifers are enabled but their random source was not captured");
+            if (settings.oresEnabled() && oreRandom == null) throw new IllegalArgumentException("Ore veins are enabled but their random source was not captured");
             if (beardKernel.length != 24 * 24 * 24) throw new IllegalArgumentException("Beardifier kernel must have 13824 entries");
             beardKernel = beardKernel.clone();
         }

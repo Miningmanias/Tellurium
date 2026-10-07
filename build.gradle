@@ -302,6 +302,13 @@ tasks.register('qualifyV02') {
     doLast {
         def manifest = new groovy.json.JsonSlurper().parse(rootProject.file('test-manifest/v0.2-acceptance.json'))
         if (manifest.executionStatus != 'PASS') throw new GradleException("v0.2 qualification is fail-closed: executionStatus=${manifest.executionStatus}; real Minecraft/GPU/FULL/SAVED evidence is not present")
+        // One flag is not evidence: the file has to be an execution report, not the plan, and every required gate
+        // in it has to say it passed and name what shows that.
+        if (manifest.kind == 'acceptance_plan' || manifest.isExecutionReport != true) throw new GradleException("v0.2 qualification needs an execution report; ${manifest.kind} (isExecutionReport=${manifest.isExecutionReport}) is a plan")
+        def gates = manifest.gates
+        if (!(gates instanceof List) || gates.isEmpty()) throw new GradleException('v0.2 qualification report lists no gates')
+        def open = gates.findAll { it.required != false && (it.status != 'PASS' || !it.evidence) }
+        if (!open.isEmpty()) throw new GradleException("v0.2 qualification: gates not passed with evidence: ${open.collect { it.id + '=' + it.status }.join(', ')}")
     }
 }
 

@@ -36,7 +36,7 @@ class LiveNoiseBridgeTest {
         var events = new ArrayList<String>();
         CommitCoordinator commits = new CommitCoordinator((token, candidate, receipt) -> {
             events.add("commit");
-            return new dev.tellurium.engine.worldgen.CommitReceipt(true, "published", token.expectedRevision(), receipt);
+            return new dev.tellurium.engine.worldgen.CommitReceipt(true, "published", token.expectedRevision(), receipt.committed(receipt.validated()));
         });
 
         var decision = new LiveNoiseBridge(runtime).interceptAndCommit("known", new Object(), ownership,
@@ -66,7 +66,7 @@ class LiveNoiseBridgeTest {
         MinecraftOwnershipToken ownership = ownership(context);
         ChunkNoiseResult result = result(context);
         CommitCoordinator commits = new CommitCoordinator((token, candidate, receipt) ->
-                new dev.tellurium.engine.worldgen.CommitReceipt(true, "published", token.expectedRevision(), receipt));
+                new dev.tellurium.engine.worldgen.CommitReceipt(true, "published", token.expectedRevision(), receipt.committed(receipt.validated())));
 
         var decision = new LiveNoiseBridge(runtime).interceptAndCommit("known", new Object(), ownership,
                 new MinecraftStageAdapter() {
@@ -122,7 +122,7 @@ class LiveNoiseBridgeTest {
                 }, new CommitCoordinator((token, result, execution) -> {
                     commits.incrementAndGet();
                     return new dev.tellurium.engine.worldgen.CommitReceipt(true, "published",
-                            token.expectedRevision(), execution);
+                            token.expectedRevision(), execution.committed(execution.validated()));
                 }), captured -> {
                     cancelled.set(true);
                     return new LiveNoiseBridge.Produced(result(context), execution(context));

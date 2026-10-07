@@ -558,8 +558,18 @@ public final class FusedNoiseDevice implements dev.tellurium.compiler.vulkan.fus
                     check(vkEndCommandBuffer(commands), "vkEndCommandBuffer");
                     check(vkResetFences(device, stack.longs(fence)), "vkResetFences");
                     var submit = VkSubmitInfo.calloc(stack).sType$Default().pCommandBuffers(stack.pointers(commands));
+                    int submitted;
                     synchronized (queueLock) {
-                        check(vkQueueSubmit(queue, submit, fence), "vkQueueSubmit");
+                        submitted = vkQueueSubmit(queue, submit, fence);
+                    }
+                    if (submitted != VK_SUCCESS) {
+                        // Vulkan's failures of a submission are the device being lost or out of memory.  Neither
+                        // is something to retry batch after batch: the device is given up, so nothing more is
+                        // submitted and every later chunk goes to the original code.  The slot is not marked
+                        // owned (the queue did not take the work), and is not used again either.
+                        lostReason = "vkQueueSubmit failed with VkResult=" + submitted;
+                        lost = true;
+                        throw new IllegalStateException(lostReason);
                     }
                     pending = true;
                     pendingChunks = count;

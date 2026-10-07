@@ -161,6 +161,9 @@ public final class WorldgenCoordinator implements AutoCloseable {
                 if (!record.invalidate("captured world/device generation is stale")) continue;
                 invalidated++;
                 if (record.outcome() != null) {
+                    // It was still waiting: its ticket leaves the queue with it, or it would keep a place there
+                    // that a live request is then refused.
+                    queue.remove(record.request());
                     counters.stale();
                     publications.add(completeExecution(record));
                 }

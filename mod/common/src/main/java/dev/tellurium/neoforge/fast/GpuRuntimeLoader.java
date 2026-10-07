@@ -57,20 +57,35 @@ final class GpuRuntimeLoader {
     private static void load(Path gameDirectory) throws Exception {
         List<String> names = index();
         if (names.isEmpty()) throw new IllegalStateException("GPU runtime jars are not bundled in this build");
-        String fingerprint = Integer.toHexString(String.join("|", names).hashCode());
-        Path directory = gameDirectory.resolve("tellurium-cache").resolve("gpu-runtime-" + fingerprint).toAbsolutePath();
-        Files.createDirectories(directory);
-        List<URL> urls = new ArrayList<>();
+        // The folder is named for what the jars contain, not for what they are called: a rebuilt runtime with the
+        // same file names (and, as it happens, lengths) must not be run from an earlier build's copies, and the
+        // native libraries extracted beside them belong to the same content.
+        List<byte[]> contents = new ArrayList<>();
+        java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
         for (String name : names) {
-            Path target = directory.resolve(name);
             try (InputStream in = GpuRuntimeLoader.class.getResourceAsStream(RESOURCE_ROOT + name)) {
                 if (in == null) throw new IllegalStateException("Bundled GPU runtime jar missing: " + name);
                 byte[] bytes = in.readAllBytes();
-                if (!Files.isRegularFile(target) || Files.size(target) != bytes.length) {
-                    Path temporary = Files.createTempFile(directory, name, ".tmp");
-                    Files.write(temporary, bytes);
-                    Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING);
-                }
+                contents.add(bytes);
+                digest.update(name.getBytes(StandardCharsets.UTF_8));
+                digest.update((byte) 0);
+                digest.update(java.nio.ByteBuffer.allocate(4).putInt(bytes.length).array());
+                digest.update(bytes);
+            }
+        }
+        String fingerprint = java.util.HexFormat.of().formatHex(digest.digest(), 0, 8);
+        Path directory = gameDirectory.resolve("tellurium-cache").resolve("gpu-runtime-" + fingerprint).toAbsolutePath();
+        Files.createDirectories(directory);
+        List<URL> urls = new ArrayList<>();
+        for (int i = 0; i < names.size(); i++) {
+            String name = names.get(i);
+            byte[] bytes = contents.get(i);
+            Path target = directory.resolve(name);
+            // A copy that is damaged, whatever its length, is replaced before anything is loaded from it.
+            if (!Files.isRegularFile(target) || Files.size(target) != bytes.length || !java.util.Arrays.equals(Files.readAllBytes(target), bytes)) {
+                Path temporary = Files.createTempFile(directory, name, ".tmp");
+                Files.write(temporary, bytes);
+                Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING);
             }
             urls.add(target.toUri().toURL());
         }

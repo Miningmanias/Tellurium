@@ -25,6 +25,10 @@ public final class CommitCoordinator {
         if (!result.header().abiVersion().equals(token.context().abiVersion())) {
             return CommitReceipt.rejected("result ABI identity mismatch");
         }
+        // What is published has to have been executed and validated; a receipt that was only issued, or that
+        // already claims a commit, changes nothing and leaves the token for a proper attempt.
+        if (receipt.validated() <= 0) return CommitReceipt.rejected("execution receipt has no validated coverage");
+        if (receipt.committed() != 0) return CommitReceipt.rejected("execution receipt already claims committed coverage");
         if (!token.consume()) return CommitReceipt.rejected("duplicate or late commit token");
         try {
             CommitReceipt published = committer.commit(token, result, receipt);
@@ -52,6 +56,12 @@ public final class CommitCoordinator {
                 try { committer.rollback(token); }
                 catch (Throwable rollbackFailure) { throw new IllegalStateException("Rollback failed after provenance mismatch", rollbackFailure); }
                 return CommitReceipt.rejected("committed receipt execution provenance mismatch");
+            }
+            if (published.execution().submitted() != receipt.submitted() || published.execution().completed() != receipt.completed()
+                    || published.execution().validated() != receipt.validated() || published.execution().committed() <= 0) {
+                try { committer.rollback(token); }
+                catch (Throwable rollbackFailure) { throw new IllegalStateException("Rollback failed after coverage mismatch", rollbackFailure); }
+                return CommitReceipt.rejected("committed receipt changed the execution's coverage or committed nothing");
             }
             return published;
         } catch (Exception | Error failure) {

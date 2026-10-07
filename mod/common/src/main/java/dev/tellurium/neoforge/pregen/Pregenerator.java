@@ -59,6 +59,8 @@ public final class Pregenerator {
     }
 
     private static volatile Job CURRENT;
+    /** Guards the progress file: who may write or delete it, and one at a time. */
+    private static final Object STATE_LOCK = new Object();
 
     private Pregenerator() {}
 
@@ -154,11 +156,15 @@ public final class Pregenerator {
     /** Server stop: keep the progress file, stop asking for chunks. */
     public static synchronized void serverStopping() {
         Job job = CURRENT;
-        CURRENT = null;
-        if (job == null || job.finished) return;
+        if (job == null || job.finished) {
+            CURRENT = null;
+            return;
+        }
+        // Saved while this job still owns the progress file, and kept: only then is it let go.
+        job.keepState = true;
         job.saveState();
         job.cancelled = true;
-        job.keepState = true;
+        CURRENT = null;
         job.thread.interrupt();
     }
 
@@ -235,6 +241,7 @@ public final class Pregenerator {
                 while (!cancelled && (index < total || permits.availablePermits() < inFlight)) {
                     boolean submit = index < total && !paused;
                     if (submit && permits.tryAcquire(200, TimeUnit.MILLISECONDS)) {
+                        long requested = index;
                         long packed = order.at(index++);
                         submitted = index;
                         ChunkPos pos = new ChunkPos((int) packed, (int) (packed >> 32));
@@ -242,6 +249,7 @@ public final class Pregenerator {
                         cache.getChunkFuture(pos.x, pos.z, ChunkStatus.FULL, true).whenComplete((result, error) -> {
                             if (error == null && result != null && result.isSuccess()) completed.incrementAndGet();
                             else failed.incrementAndGet();
+                            settled(requested);
                             server.execute(() -> TICKET.remove(cache, pos, 0, pos));
                             permits.release();
                         });
@@ -299,31 +307,69 @@ public final class Pregenerator {
             }
         }
 
-        /** Chunks complete out of order; restarting two windows back re-requests only chunks that already exist. */
+        // Requests are answered out of order.  Everything before the watermark has been answered (generated, or
+        // failed and reported); answered requests beyond it wait in the set until the gap before them closes.
+        private long watermark = -1;
+        private final it.unimi.dsi.fastutil.longs.LongOpenHashSet answeredAhead = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
+
+        private synchronized void settled(long index) {
+            if (watermark < 0) watermark = firstIndex;
+            answeredAhead.add(index);
+            while (answeredAhead.remove(watermark)) watermark++;
+        }
+
+        private synchronized long watermark() {
+            return watermark < 0 ? firstIndex : watermark;
+        }
+
+        /**
+         * Where a resumed job starts again: never beyond a request that has not been answered (one slow chunk
+         * does not get skipped, however many later ones finished), and two windows back from the last request,
+         * because a generated chunk is only on disk once it has unloaded.  That margin is a practical one, not a
+         * proof that everything before it was saved; chunks asked for again that already exist are just loaded.
+         */
         void saveState() {
+            // Only the job that is current writes the file, and one writer at a time: a job that was stopped must
+            // not overwrite or remove the progress of the one started after it.
+            synchronized (STATE_LOCK) {
+                if (CURRENT != this) return;
+                writeState();
+            }
+        }
+
+        private void writeState() {
             Properties state = new Properties();
             state.setProperty("dimension", area.dimension().location().toString());
             state.setProperty("centerX", Integer.toString(area.centerX()));
             state.setProperty("centerZ", Integer.toString(area.centerZ()));
             state.setProperty("radius", Integer.toString(area.radius()));
-            state.setProperty("next", Long.toString(Math.max(0, submitted - 2L * inFlight)));
+            state.setProperty("next", Long.toString(Math.max(0, Math.min(watermark(), submitted - 2L * inFlight))));
             Path file = stateFile(server);
             try {
-                Path temporary = file.resolveSibling(STATE_FILE + ".tmp");
+                Path temporary = Files.createTempFile(file.toAbsolutePath().getParent(), STATE_FILE, ".tmp");
                 try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
                     state.store(writer, "Tellurium pregeneration progress; delete to forget the job");
                 }
-                Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING);
+                try {
+                    Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+                } catch (java.nio.file.AtomicMoveNotSupportedException plain) {
+                    Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING);
+                }
             } catch (IOException failure) {
                 LOG.warn("Could not save pregeneration progress to {}: {}", file, failure.toString());
             }
         }
 
         void deleteState() {
-            try {
-                Files.deleteIfExists(stateFile(server));
-            } catch (IOException failure) {
-                LOG.warn("Could not delete {}: {}", stateFile(server), failure.toString());
+            synchronized (STATE_LOCK) {
+                // After a stop the file, if there is one, belongs to whatever job was started since.
+                Job current = CURRENT;
+                if (current != null && current != this) return;
+                try {
+                    Files.deleteIfExists(stateFile(server));
+                } catch (IOException failure) {
+                    LOG.warn("Could not delete {}: {}", stateFile(server), failure.toString());
+                }
             }
         }
     }

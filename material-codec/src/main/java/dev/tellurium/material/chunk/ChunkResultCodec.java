@@ -114,11 +114,22 @@ public final class ChunkResultCodec {
         }
     }
 
+    /** The tallest chunk decoded: Minecraft's own limit on a dimension's height is 4,064 blocks. */
+    static final int MAX_DECODED_HEIGHT = 4096;
+
+    /** The dense arrays are sized from the header, so the header is held to a height a world can have first. */
+    private static void requireDecodableHeight(ChunkResultHeader header) {
+        if (header.height() > MAX_DECODED_HEIGHT) throw new IllegalArgumentException("Chunk height " + header.height() + " exceeds the decodable " + MAX_DECODED_HEIGHT);
+    }
+
     private static ChunkNoiseResult decodeLegacy(ByteBuffer in) {
         ChunkResultHeader header = readHeader(in);
         BlockStateTable table = readTable(in, header.registryFingerprint());
+        requireDecodableHeight(header);
         int stateCount = positive(in.getInt(), Math.multiplyExact(header.height(), 256));
         if (stateCount != Math.multiplyExact(header.height(), 256)) throw new IllegalArgumentException("State count does not match header");
+        // Four bytes a state follow: a header that promises more than the input holds is refused before the array is made.
+        if ((long) stateCount * 4 > in.remaining()) throw new IllegalArgumentException("Truncated result bytes");
         String[] dense = new String[stateCount];
         for (int i = 0; i < stateCount; i++) dense[i] = table.state(in.getInt()).canonical();
         int[] heights = readHeightmaps(in);
@@ -132,6 +143,9 @@ public final class ChunkResultCodec {
         BlockStateTable table = readTable(in, header.registryFingerprint());
         int sectionCount = positive(in.getInt(), header.sectionCount());
         if (sectionCount != header.sectionCount()) throw new IllegalArgumentException("Section count does not match header");
+        requireDecodableHeight(header);
+        // Sixteen bytes of directory a section follow, before any payload.
+        if ((long) sectionCount * 16 > in.remaining()) throw new IllegalArgumentException("Truncated result bytes");
         String[] dense = new String[Math.multiplyExact(header.height(), 256)];
         var wireDirectories = new ArrayList<SectionDirectory>(sectionCount);
         int expectedOffset = 0;

@@ -16,6 +16,8 @@ public final class SplineEvaluator {
     }
     public double sample(double input) {
         if (!Double.isFinite(input)) throw new IllegalArgumentException("Non-finite spline input");
+        // One point has no slope: the spline is that point's value everywhere.
+        if (points.length == 1) return points[0].value();
         if (input <= points[0].location()) return extrapolate(points[0], points[Math.min(1, points.length - 1)], input);
         for (int i = 1; i < points.length; i++) if (input <= points[i].location()) return interpolate(points[i - 1], points[i], input);
         return extrapolate(points[points.length - 2], points[points.length - 1], input);

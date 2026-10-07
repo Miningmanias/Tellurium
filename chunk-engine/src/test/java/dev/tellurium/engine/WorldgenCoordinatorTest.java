@@ -94,7 +94,7 @@ class WorldgenCoordinatorTest {
         };
         CommitCoordinator commits = new CommitCoordinator((token, value, execution) -> {
             commitCalls.incrementAndGet();
-            return new CommitReceipt(true, "request-bound commit", token.expectedRevision(), execution);
+            return new CommitReceipt(true, "request-bound commit", token.expectedRevision(), execution.committed(execution.validated()));
         });
         var coordinator = new WorldgenCoordinator(Runnable::run, new ResourceAdmission(1_000),
                 (request, reservation) -> CompletableFuture.failedFuture(
@@ -120,7 +120,7 @@ class WorldgenCoordinatorTest {
         AtomicInteger commitCalls = new AtomicInteger();
         CommitCoordinator commits = new CommitCoordinator((token, value, execution) -> {
             commitCalls.incrementAndGet();
-            return new CommitReceipt(true, "mailbox commit", token.expectedRevision(), execution);
+            return new CommitReceipt(true, "mailbox commit", token.expectedRevision(), execution.committed(execution.validated()));
         });
         StageExecutor stage = (request, reservation) -> CompletableFuture.completedFuture(
                 new BackendResult(ExecutionRoute.CPU_PLANNED, receipt(context), result(context)));
@@ -149,7 +149,7 @@ class WorldgenCoordinatorTest {
         StageExecutor stage = (request, reservation) -> CompletableFuture.completedFuture(
                 new BackendResult(ExecutionRoute.CPU_PLANNED, cpuReceipt, result(context)));
         var coordinator = new WorldgenCoordinator(Runnable::run, new ResourceAdmission(1_000), stage,
-                new CommitCoordinator((token, value, execution) -> new CommitReceipt(true, "committed", token.expectedRevision(), execution)), 2);
+                new CommitCoordinator((token, value, execution) -> new CommitReceipt(true, "committed", token.expectedRevision(), execution.committed(execution.validated()))), 2);
         try {
             var request = new GenerationRequest(new WorkKey(context, 0, 0, GenerationStage.NOISE, "noise"), "owner", 0, 8, true);
             var terminal = coordinator.submit(request).completion().toCompletableFuture().join();
@@ -175,7 +175,7 @@ class WorldgenCoordinatorTest {
         var coordinator = new WorldgenCoordinator(Runnable::run, new ResourceAdmission(1_000), stage,
                 new CommitCoordinator((token, value, execution) -> {
                     commits.incrementAndGet();
-                    return new CommitReceipt(true, "committed", token.expectedRevision(), execution);
+                    return new CommitReceipt(true, "committed", token.expectedRevision(), execution.committed(execution.validated()));
                 }), 2);
         try {
             var request = new GenerationRequest(new WorkKey(context, 0, 0, GenerationStage.NOISE, "noise"),
@@ -199,7 +199,7 @@ class WorldgenCoordinatorTest {
             return CompletableFuture.completedFuture(new BackendResult(ExecutionRoute.CPU_PLANNED, receipt(context), result(context)));
         };
         var coordinator = new WorldgenCoordinator(pending::set, new ResourceAdmission(1_000), stage,
-                new CommitCoordinator((token, value, execution) -> new CommitReceipt(true, "committed", token.expectedRevision(), execution)), 2);
+                new CommitCoordinator((token, value, execution) -> new CommitReceipt(true, "committed", token.expectedRevision(), execution.committed(execution.validated()))), 2);
         try {
             var subscription = coordinator.submit(request(context, 0));
             assertTrue(subscription.cancel());
@@ -220,7 +220,7 @@ class WorldgenCoordinatorTest {
                 (request, reservation) -> CompletableFuture.completedFuture(
                         new BackendResult(ExecutionRoute.CPU_PLANNED, receipt(context), result(context))),
                 new CommitCoordinator((token, value, execution) ->
-                        new CommitReceipt(true, "committed", token.expectedRevision(), execution)), 2);
+                        new CommitReceipt(true, "committed", token.expectedRevision(), execution.committed(execution.validated()))), 2);
         GenerationRequest first = request(context, 0);
         GenerationRequest conflictingOwner = new GenerationRequest(first.key(), "different-owner", 0,
                 first.resources(), false);
@@ -287,7 +287,7 @@ class WorldgenCoordinatorTest {
         var coordinator = new WorldgenCoordinator(Runnable::run, admission,
                 (request, reservation) -> backend,
                 new CommitCoordinator((token, value, execution) ->
-                        new CommitReceipt(true, "must not publish stale work", token.expectedRevision(), execution)), 2);
+                        new CommitReceipt(true, "must not publish stale work", token.expectedRevision(), execution.committed(execution.validated()))), 2);
         try {
             var subscription = coordinator.submit(request(context, 0));
             assertEquals(40, admission.usedBytes());
@@ -315,7 +315,7 @@ class WorldgenCoordinatorTest {
                 (request, reservation) -> CompletableFuture.completedFuture(
                         new BackendResult(ExecutionRoute.CPU_PLANNED, receipt(context), result(context))),
                 new CommitCoordinator((token, value, execution) ->
-                        new CommitReceipt(true, "committed", token.expectedRevision(), execution)), 2);
+                        new CommitReceipt(true, "committed", token.expectedRevision(), execution.committed(execution.validated()))), 2);
         try {
             var subscription = coordinator.submit(request(context, 0));
             CountDownLatch callbackFinished = new CountDownLatch(1);
@@ -362,7 +362,7 @@ class WorldgenCoordinatorTest {
             return backend;
         };
         var coordinator = new WorldgenCoordinator(worker, new ResourceAdmission(1_000), stage,
-                new CommitCoordinator((token, value, execution) -> new CommitReceipt(true, "committed", token.expectedRevision(), execution)), 2);
+                new CommitCoordinator((token, value, execution) -> new CommitReceipt(true, "committed", token.expectedRevision(), execution.committed(execution.validated()))), 2);
         try {
             var terminal = coordinator.submit(request(context, 0)).completion()
                     .toCompletableFuture().get(2, java.util.concurrent.TimeUnit.SECONDS);
@@ -383,7 +383,7 @@ class WorldgenCoordinatorTest {
                     receipt(context), result(context)));
         };
         var coordinator = new WorldgenCoordinator(pending::set, new ResourceAdmission(1_000), stage,
-                new CommitCoordinator((token, value, execution) -> new CommitReceipt(true, "committed", token.expectedRevision(), execution)), 2);
+                new CommitCoordinator((token, value, execution) -> new CommitReceipt(true, "committed", token.expectedRevision(), execution.committed(execution.validated()))), 2);
         var subscription = coordinator.submit(request(context, 0));
         try {
             coordinator.drain(Duration.ofSeconds(1)).toCompletableFuture().join();
@@ -403,7 +403,7 @@ class WorldgenCoordinatorTest {
                 (request, reservation) -> CompletableFuture.completedFuture(
                         new BackendResult(ExecutionRoute.CPU_PLANNED, receipt(context), result(context))),
                 new CommitCoordinator((token, value, execution) ->
-                        new CommitReceipt(true, "committed", token.expectedRevision(), execution)), 2);
+                        new CommitReceipt(true, "committed", token.expectedRevision(), execution.committed(execution.validated()))), 2);
         try {
             assertThrows(IllegalArgumentException.class,
                     () -> coordinator.close(Duration.ofSeconds(Long.MAX_VALUE)));
@@ -428,7 +428,7 @@ class WorldgenCoordinatorTest {
                             ExecutionRoute.CPU_PLANNED, receipt(context), result(context)));
                 },
                 new CommitCoordinator((token, value, execution) ->
-                        new CommitReceipt(true, "committed", token.expectedRevision(), execution)), 2);
+                        new CommitReceipt(true, "committed", token.expectedRevision(), execution.committed(execution.validated()))), 2);
         try {
             GenerationRequest request = request(context, 0);
             assertEquals(WorkRecord.State.COMMITTED,

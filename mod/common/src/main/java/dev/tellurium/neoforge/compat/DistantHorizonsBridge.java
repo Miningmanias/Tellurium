@@ -314,6 +314,7 @@ public final class DistantHorizonsBridge {
             Object inner = inner();
             Runnable after = null;
             if (method.getName().equals("close")) {
+                closeRequests();
                 letGo(0);
             } else if (method.getName().equals("generateLod") && (byte) arguments[4] == 0 && planGeneratesChunks()) {
                 String mode = ((Enum<?>) arguments[6]).name();
@@ -351,8 +352,12 @@ public final class DistantHorizonsBridge {
                     }
                 };
                 synchronized (waiting) {
+                    if (closed) {
+                        done.completeExceptionally(new java.util.concurrent.CancellationException("the generator was closed"));
+                        return done;
+                    }
                     if (active >= LodPace.allowance(maxActive, 3)) {
-                        waiting.add(forward);
+                        waiting.add(new Waiting(forward, done));
                         return done;
                     }
                     active++;
@@ -441,8 +446,12 @@ public final class DistantHorizonsBridge {
             // How many tiles are worked on at once follows the pace the game can take (LodPace); the rest wait
             // their turn, which holds Distant Horizons' own threads back with them.
             synchronized (waiting) {
+                if (closed) {
+                    done.completeExceptionally(new java.util.concurrent.CancellationException("the generator was closed"));
+                    return done;
+                }
                 if (active >= LodPace.allowance(maxActive, 3)) {
-                    waiting.add(() -> convertTile(minX, minZ, tileDataSource, consumer, done));
+                    waiting.add(new Waiting(() -> convertTile(minX, minZ, tileDataSource, consumer, done), done));
                     return done;
                 }
                 active++;
@@ -460,21 +469,46 @@ public final class DistantHorizonsBridge {
         private final int maxActive;
         private static final boolean PACE_ROUGH = Boolean.parseBoolean(System.getProperty("tellurium.dh.paceRough", "true"));
         private int active;
-        private final java.util.ArrayDeque<Runnable> waiting = new java.util.ArrayDeque<>();
+        private record Waiting(Runnable start, CompletableFuture<Void> done) {}
+        private final java.util.ArrayDeque<Waiting> waiting = new java.util.ArrayDeque<>();
+        /** Guarded by {@link #waiting}: Distant Horizons closed this generator; nothing more is started for it. */
+        private boolean closed;
 
         private void turnOver() {
-            Runnable next;
+            Waiting next;
             synchronized (waiting) {
-                next = active <= LodPace.allowance(maxActive, 3) ? waiting.poll() : null;
+                next = !closed && active <= LodPace.allowance(maxActive, 3) ? waiting.poll() : null;
                 if (next == null) active--;
             }
-            if (next != null) next.run();
+            if (next != null) next.start().run();
+        }
+
+        /** Requests still waiting for a turn are answered (as cancelled) instead of being started after the close. */
+        private void closeRequests() {
+            java.util.List<Waiting> left;
+            synchronized (waiting) {
+                closed = true;
+                left = new java.util.ArrayList<>(waiting);
+                waiting.clear();
+            }
+            for (Waiting request : left) request.done().completeExceptionally(new java.util.concurrent.CancellationException("the generator was closed"));
         }
 
         private void convertTile(int minX, int minZ, Object tileDataSource, Consumer<Object> consumer, CompletableFuture<Void> done) {
             REQUESTS.incrementAndGet();
             long asked = System.nanoTime();
-            Tile tile = take(minX, minZ);
+            Tile tile;
+            try {
+                tile = take(minX, minZ);
+            } catch (Throwable failure) {
+                // The turn is given back and the request answered; otherwise the slot would stay taken for good.
+                REQUESTS_DONE.incrementAndGet();
+                complete(done, failure);
+                turnOver();
+                return;
+            }
+            Tile taken = tile;
+            try {
             tile.settled.whenCompleteAsync((nothing, failure) -> {
                 REQUESTS_DONE.incrementAndGet();
                 Throwable problem = failure;
@@ -494,6 +528,12 @@ public final class DistantHorizonsBridge {
                 complete(done, problem);
                 turnOver();
             }, DistantHorizonsConverter.pool());
+            } catch (Throwable failure) {
+                REQUESTS_DONE.incrementAndGet();
+                release(taken, true);
+                complete(done, failure);
+                turnOver();
+            }
         }
 
         /**

@@ -880,6 +880,15 @@ public final class VulkanWorldgenExecutor implements AutoCloseable {
         if (maxElements <= 0 || maxElements > MAX_DISPATCH_ELEMENTS) {
             throw new IllegalArgumentException("Batch size must be in [1, " + MAX_DISPATCH_ELEMENTS + "]");
         }
+        // The whole input is checked before it is cut up: copyOfRange would pad a short last slice with zeros and
+        // never look at words beyond the last row, turning a malformed input into batches that each look right.
+        if (elementCount <= 0 || inputWordsPerElement <= 0) {
+            throw new IllegalArgumentException("Element count and words per element must be positive");
+        }
+        if (inputWords.length != Math.multiplyExact((long) elementCount, (long) inputWordsPerElement)) {
+            throw new IllegalArgumentException("Raw chain input has " + inputWords.length + " words for " + elementCount
+                    + " elements of " + inputWordsPerElement);
+        }
         if (elementCount <= maxElements) {
             return executeRawChain(inputWords, inputWordsPerElement, elementCount,
                     defaultStateId, airStateId, invalidStateId, stages);
@@ -1305,6 +1314,7 @@ public final class VulkanWorldgenExecutor implements AutoCloseable {
                         Hashes.sha256(spirv), count, outputWordsPerElement);
             } finally {
                 activeSubmission = false;
+                releaseEvicted(completed || !submissionAttempted);
                 if (!completed && (submissionAttempted || state == State.LOST)) {
                     String reason = lossReason.isBlank()
                             ? "queue completion was not proven; native resources remain quarantined"
@@ -1592,6 +1602,7 @@ public final class VulkanWorldgenExecutor implements AutoCloseable {
                         count, resultStride);
             } finally {
                 activeSubmission = false;
+                releaseEvicted(completed || !submissionAttempted);
                 if (!completed && (submissionAttempted || state == State.LOST)) {
                     String reason = lossReason.isBlank()
                             ? "chained queue completion was not proven; native resources remain quarantined"
@@ -1670,7 +1681,10 @@ public final class VulkanWorldgenExecutor implements AutoCloseable {
 
                 CompiledPipeline compiled = new CompiledPipeline(shader, descriptorLayout, pipelineLayout, pipeline);
                 for (CompiledPipeline evicted : selectedCache.putAndCollectEvicted(key, compiled)) {
-                    destroyPipeline(evicted);
+                    // A chain collects its pipelines one stage at a time: with a cache smaller than the chain, the
+                    // pipeline of an earlier stage is evicted by a later one while the chain still holds it.
+                    if (activeSubmission) evictedInUse.add(evicted);
+                    else destroyPipeline(evicted);
                 }
                 return compiled;
             } catch (Throwable failure) {
@@ -1679,6 +1693,16 @@ public final class VulkanWorldgenExecutor implements AutoCloseable {
             } finally {
                 MemoryUtil.memFree(code);
             }
+        }
+
+        /** Pipelines evicted from the cache while a submission that may use them was being built or run. */
+        private final List<CompiledPipeline> evictedInUse = new ArrayList<>();
+
+        /** Destroys what was evicted during a submission, unless that submission may still be running on the device. */
+        private void releaseEvicted(boolean submissionProvenOver) {
+            if (!submissionProvenOver) return; // kept with the rest of an unproven submission's resources
+            for (CompiledPipeline evicted : evictedInUse) destroyPipeline(evicted);
+            evictedInUse.clear();
         }
 
         private void destroyPipeline(CompiledPipeline pipeline) {

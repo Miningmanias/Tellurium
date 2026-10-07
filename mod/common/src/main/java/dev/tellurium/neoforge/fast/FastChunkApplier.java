@@ -82,6 +82,13 @@ public final class FastChunkApplier {
     public static void apply(ChunkAccess chunk, byte[] data, int[] heights, PaletteInfo info,
                              int minY, int genHeight, int cellWidth, int cellHeight) {
         LevelChunkSection[] sections = chunk.getSections();
+        // Nothing of the chunk is changed until the whole result has been read: a result of the wrong size or
+        // with a block index outside the palette fails here, with the chunk as it was.
+        if (data.length != sections.length * 4096) {
+            throw new IllegalArgumentException("GPU block result of " + data.length + " bytes for " + sections.length + " sections");
+        }
+        if (heights.length < 512) throw new IllegalArgumentException("GPU heightmap result of " + heights.length + " values");
+        LevelChunkSection[] replacement = new LevelChunkSection[sections.length];
         boolean[] marked = new boolean[sections.length];
         boolean anyMark = false;
         int[] local = new int[info.palette.length];
@@ -89,14 +96,15 @@ public final class FastChunkApplier {
         byte[] indices = new byte[4096];
         for (int s = 0; s < sections.length; s++) {
             int offset = s * 4096;
-            if (offset + 4096 > data.length) break;
             Arrays.fill(local, -1);
             int distinct = 0, marks = 0;
             boolean onlyAir = true;
             for (int i = 0; i < 4096; i++) {
                 int raw = data[offset + i];
                 marks |= raw;
-                int index = info.canonical[raw & 0x7F];
+                int paletteIndex = raw & 0x7F;
+                if (paletteIndex >= info.canonical.length) throw new IllegalArgumentException("GPU block index " + paletteIndex + " outside the palette");
+                int index = info.canonical[paletteIndex];
                 int slot = local[index];
                 if (slot < 0) {
                     slot = distinct++;
@@ -112,8 +120,9 @@ public final class FastChunkApplier {
                 anyMark = true;
             }
             if (onlyAir) continue; // doFill never touches an all-air section
-            sections[s] = buildSection(indices, local, counts, distinct, info, sections[s].getBiomes());
+            replacement[s] = buildSection(indices, local, counts, distinct, info, sections[s].getBiomes());
         }
+        for (int s = 0; s < sections.length; s++) if (replacement[s] != null) sections[s] = replacement[s];
         // Worldgen heightmaps: doFill creates both and updates them for every placed block.
         int bits = Mth.ceillog2(chunk.getHeight() + 1);
         setHeightmap(chunk, Heightmap.Types.OCEAN_FLOOR_WG, heights, 0, bits, minY);

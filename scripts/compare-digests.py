@@ -8,6 +8,7 @@ comparison whatever the two files contain; two files that are wrong in the same 
 
   --ignore a,b   differences in these fields are reported but do not fail the comparison
   --only a,b     only these fields are compared
+  --expect-chunks N  both files must list exactly N chunks (the measured square)
 A chunk missing from either file, a MISSING row and a malformed file always fail.
 """
 import argparse
@@ -75,6 +76,7 @@ def main(argv):
     parser.add_argument("actual")
     parser.add_argument("--ignore", default="")
     parser.add_argument("--only", default="")
+    parser.add_argument("--expect-chunks", type=int, help="the number of chunks both files must list")
     args = parser.parse_args(argv)
     ignored = set(names(args.ignore))
     compared_fields = names(args.only) or list(FIELDS)
@@ -84,6 +86,11 @@ def main(argv):
             raise Malformed(f"{args.expected}: no chunks")
     except Malformed as failure:
         print(f"malformed: {failure}")
+        print("FAIL")
+        return 1
+    if args.expect_chunks is not None and len(expected) != args.expect_chunks:
+        # Two files cut short in the same way agree with each other and cover less than was measured.
+        print(f"expected digest lists {len(expected)} chunks, the run measured {args.expect_chunks}")
         print("FAIL")
         return 1
     missing = sorted(set(expected) - set(actual))

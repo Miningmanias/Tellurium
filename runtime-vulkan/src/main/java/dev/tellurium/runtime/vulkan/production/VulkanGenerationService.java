@@ -129,6 +129,11 @@ public final class VulkanGenerationService implements AutoCloseable {
                             throw new IllegalStateException("GPU result belongs to an invalid device generation");
                         }
                     }
+                    // Coverage is only called validated for a result that is there in full.
+                    if (buffer.isClosed()) throw new IllegalStateException("Native dispatcher completed with a closed result buffer");
+                    if (buffer.capacity() < descriptor.outputBytes()) {
+                        throw new IllegalStateException("Native result buffer holds " + buffer.capacity() + " bytes, the dispatch produces " + descriptor.outputBytes());
+                    }
                     Submission submission = new Submission(
                             issued.completed(descriptor.elementCount()).validated(descriptor.elementCount()), buffer, lease,
                             () -> releaseLease(lease));
@@ -152,14 +157,20 @@ public final class VulkanGenerationService implements AutoCloseable {
                 recordFailure("completion callback failed: " + detail(callbackFailure));
                 completion.completeExceptionally(callbackFailure);
             } finally {
+                boolean quarantined = false;
                 synchronized (this) {
                     inFlight.remove(completion);
                     boolean lostGeneration = state == State.LOST && issued.deviceGeneration() != context.generation().value();
                     if (completionFailure != null && !lostGeneration) {
                         quarantine.quarantine(issued.executionId(), lease.bytes(), "dispatch failure");
+                        quarantined = true;
+                        // No longer a live lease that a close has to wait for; its bytes stay reserved.
+                        liveLeases.remove(lease);
                     }
                 }
-                if (completionFailure != null) releaseLease(lease);
+                // What is quarantined was not proven given back: its bytes stay counted against the budget, so
+                // repeated failures cannot admit more than the bound in total.  They return with the generation.
+                if (completionFailure != null && !quarantined) releaseLease(lease);
             }
         });
         return completion;

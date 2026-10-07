@@ -20,7 +20,11 @@ public final class ChunkSnapshotComparator {
         var required = EnumSet.copyOf(requiredFields == null || requiredFields.isEmpty() ? EnumSet.allOf(SnapshotField.class) : requiredFields);
         var coverage = new ComparisonCoverage(); coverage.expect(expected.identity().caseKey()); coverage.observe(actual.identity().caseKey());
         var differences = new ArrayList<Difference>(); int compared = 0;
-        for (SnapshotField field : required) { String left = expected.field(field), right = actual.field(field); if (left == null || right == null) differences.add(new Difference(field.name(), String.valueOf(left), String.valueOf(right))); else { compared++; if (!left.equals(right)) differences.add(new Difference(field.name(), left, right)); } }
+        for (SnapshotField field : required) { String left = expected.field(field), right = actual.field(field);
+            // Two snapshots that both carry no block data are equal and have compared nothing: block coverage
+            // has to be there (an all-air chunk still lists its positions) before a case counts as covered.
+            if (field == SnapshotField.BLOCK_STATES && left != null && right != null && (left.isBlank() || right.isBlank())) { differences.add(new Difference(field.name(), "<empty block payload>", "<empty block payload>")); continue; }
+            if (left == null || right == null) differences.add(new Difference(field.name(), String.valueOf(left), String.valueOf(right))); else { compared++; if (!left.equals(right)) differences.add(new Difference(field.name(), left, right)); } }
         expected.values().keySet().forEach(key -> { String left = expected.value(key), right = actual.value(key); if (right == null || !left.equals(right)) differences.add(new Difference(key, left, right)); else { } });
         actual.values().keySet().stream().filter(key -> expected.value(key) == null).forEach(key -> differences.add(new Difference(key, null, actual.value(key))));
         boolean pass = coverage.complete() && differences.isEmpty() && compared == required.size(); return new Comparison(pass, compared, differences, coverage, pass ? "equal" : "logical fields differ or coverage incomplete");

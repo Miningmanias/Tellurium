@@ -4,7 +4,7 @@ Generated from the files on disk by `python scripts/update-file-map.py`.
 
 This inventory excludes Git state, build output, dependency caches and development worlds. It does not treat a planned file as implemented. See [IMPLEMENTATION_MAP.md](IMPLEMENTATION_MAP.md) for future files and [STATUS.md](STATUS.md) for observed validation.
 
-Indexed project files: **680**, plus this generated index.
+Indexed project files: **682**, plus this generated index.
 
 ## semantic-core
 
@@ -611,6 +611,7 @@ The mod: common source, per-loader and per-Minecraft-version files, and the buil
 | [AGENTS.md](../AGENTS.md) | Documentation |
 | [build.gradle](../build.gradle) | Build configuration/tooling |
 | [CODE_REVIEW.md](../CODE_REVIEW.md) | Documentation |
+| [CODE_REVIEW_2026-10-07.md](../CODE_REVIEW_2026-10-07.md) | Documentation |
 | [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) | Documentation |
 | [docs/ATTRIBUTION.md](../docs/ATTRIBUTION.md) | Documentation |
 | [docs/branding/launch-video.md](../docs/branding/launch-video.md) | Documentation |
@@ -628,6 +629,7 @@ The mod: common source, per-loader and per-Minecraft-version files, and the buil
 | [docs/design/performance-model.json](../docs/design/performance-model.json) | Tooling, data or provenance |
 | [docs/design/PROPOSAL.md](../docs/design/PROPOSAL.md) | Documentation |
 | [docs/evidence/code-review-20261006.md](../docs/evidence/code-review-20261006.md) | Documentation |
+| [docs/evidence/code-review-20261007.md](../docs/evidence/code-review-20261007.md) | Documentation |
 | [docs/evidence/comparison-c2me.md](../docs/evidence/comparison-c2me.md) | Documentation |
 | [docs/evidence/comparison-distant-horizons.md](../docs/evidence/comparison-distant-horizons.md) | Documentation |
 | [docs/evidence/comparison-voxy.md](../docs/evidence/comparison-voxy.md) | Documentation |

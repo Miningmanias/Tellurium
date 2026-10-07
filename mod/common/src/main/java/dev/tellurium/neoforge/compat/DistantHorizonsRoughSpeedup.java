@@ -48,7 +48,7 @@ final class DistantHorizonsRoughSpeedup {
                     if (!(function instanceof DensityFunctions.MarkerOrMarked marker) || function instanceof ColumnMemo) return function;
                     String type = String.valueOf((Object) marker.type());
                     if (!type.equals("Cache2D") && !type.equals("FlatCache")) return function;
-                    if (!sameAtEveryHeight(marker.wrapped())) {
+                    if (!independentOfHeight(marker.wrapped()) || !sameAtEveryHeight(marker.wrapped())) {
                         wrapped[1]++;
                         return function;
                     }
@@ -78,7 +78,45 @@ final class DistantHorizonsRoughSpeedup {
         throw new NoSuchFieldException(name);
     }
 
-    /** Whether a part gives one value down each of a set of columns spread over a wide area. */
+    /** Node kinds whose value follows from their children's alone, and leaves that do not read the height. */
+    private static final java.util.Set<String> HEIGHT_FREE = java.util.Set.of("Constant", "BlendAlpha", "BlendOffset", "ShiftA", "ShiftB",
+            "Clamp", "Mapped", "MulOrAdd", "Ap2", "RangeChoice", "Spline", "HolderHolder", "Marker");
+
+    /**
+     * Whether nothing in a part can read the height: every node is of a kind known not to, and every noise in
+     * it is sampled with a vertical scale of zero.  This is what allows the memo; a function of a kind not
+     * listed here (a mod's own, a height gradient, a 3D noise) keeps its part as it was, however equal its
+     * values look at the heights {@link #sameAtEveryHeight} tries.
+     */
+    private static boolean independentOfHeight(DensityFunction part) {
+        boolean[] free = {true};
+        try {
+            part.mapAll(new DensityFunction.Visitor() {
+                @Override
+                public DensityFunction apply(DensityFunction node) {
+                    if (!free[0]) return node;
+                    String kind = dev.tellurium.neoforge.loader.Names.simpleName(node.getClass());
+                    if (kind.equals("Noise") || kind.equals("ShiftedNoise")) {
+                        try {
+                            var scale = dev.tellurium.neoforge.loader.Names.publicMethod(node.getClass(), "yScale");
+                            if (!scale.canAccess(node)) scale.setAccessible(true);
+                            if (((Number) scale.invoke(node)).doubleValue() != 0.0) free[0] = false;
+                        } catch (ReflectiveOperationException | RuntimeException unknown) {
+                            free[0] = false;
+                        }
+                    } else if (!HEIGHT_FREE.contains(kind)) {
+                        free[0] = false;
+                    }
+                    return node;
+                }
+            });
+        } catch (RuntimeException unexpected) {
+            return false;
+        }
+        return free[0];
+    }
+
+    /** A second look, by trying: whether a part gives one value down each of a set of columns spread over a wide area. */
     private static boolean sameAtEveryHeight(DensityFunction part) {
         long seed = 0x9E3779B97F4A7C15L;
         for (int column = 0; column < 24; column++) {

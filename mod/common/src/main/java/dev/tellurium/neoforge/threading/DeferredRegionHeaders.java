@@ -15,8 +15,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * IO worker runs out of pending writes, and before flush and close.  Chunk
  * data is on disk as before; a header that is behind only matters if the
  * process dies inside that window, in which case the chunks written in it
- * are not referenced and are generated again.  Reads use the in-memory
- * header and are unaffected.</p>
+ * are not referenced and are generated again.  That holds only for chunks
+ * that had no place in the file yet: a chunk that replaces an earlier copy
+ * frees the earlier sectors, which another write may reuse, so its header is
+ * written at once as in the original.  A header write that fails stays owed
+ * and is tried again.  Reads use the in-memory header and are unaffected.</p>
  */
 public final class DeferredRegionHeaders {
     public static final boolean ENABLED = Boolean.parseBoolean(System.getProperty("tellurium.regionHeaderBatch", "true"));

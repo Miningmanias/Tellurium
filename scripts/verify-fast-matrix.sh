@@ -74,7 +74,7 @@ pair() { # name, mods subdirectory, extra script args, extra properties, "terrai
   local comparison="no digests" identical=""
   if [ -f "$vdigest" ] && [ -f "$gdigest" ]; then
     # The comparison's exit status decides; its text is for the reader.
-    if comparison=$(python scripts/compare-digests.py "$vdigest" "$gdigest" | tr '\n' ' '; exit "${PIPESTATUS[0]}"); then identical=yes; fi
+    if comparison=$(python scripts/compare-digests.py --expect-chunks $(( (2 * RADIUS + 1) * (2 * RADIUS + 1) )) "$vdigest" "$gdigest" | tr '\n' ' '; exit "${PIPESTATUS[0]}"); then identical=yes; fi
   fi
   local stopped gpuChunks bail expected surface surfaceBail
   stopped=$(grep -E "Fast GPU NOISE stopped" "$glog" 2>/dev/null | tail -1 | sed -E 's/.*stopped: //')
