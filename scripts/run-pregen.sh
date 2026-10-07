@@ -4,6 +4,7 @@
 # Usage: scripts/run-pregen.sh [radius in chunks] [mods subdirectory] [extra properties, semicolon-separated]
 #   CONFIG=<file>  copied to config/tellurium.toml before the start
 #   RUN=<dir>      reuse an existing run directory (and its world) instead of a fresh one
+#   RUN_ROOT=<dir> put the fresh run directory there instead of build/run
 set -u
 cd "$(dirname "$0")/.."
 RADIUS="${1:-60}"
@@ -11,7 +12,8 @@ MODS="build/test-mods/${2:-vanilla}"
 EXTRA="${3:-}"
 export JAVA_HOME="${JAVA_HOME:-C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.12.101-hotspot}"
 root="$(pwd -W 2>/dev/null || pwd)"
-run="${RUN:-$root/build/run/pregen-$(date -u +%Y%m%d-%H%M%S)}"
+# RUN_ROOT=<dir>: where fresh run directories go (another drive, when this one is short of space).
+run="${RUN:-${RUN_ROOT:-$root/build/run}/pregen-$(date -u +%Y%m%d-%H%M%S)}"
 mkdir -p "$run/mods" "$run/config"
 cp "$MODS"/*.jar "$run/mods/" 2>/dev/null
 [ -n "${CONFIG:-}" ] && cp "$CONFIG" "$run/config/tellurium.toml"
