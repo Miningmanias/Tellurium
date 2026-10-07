@@ -35,7 +35,8 @@ public final class LodPace {
     private static final double JOINING = 0.25;
 
     /** Blocks a second: below the first a player is walking or sprinting, from the second on the allowance is at its travelling part. */
-    private static final double SLOW = 10.0, FAST = 30.0, TRAVELLING = 0.375;
+    private static final double SLOW = 10.0, FAST = 30.0;
+    private static final double TRAVELLING = Math.max(0.125, Math.min(1.0, Double.parseDouble(System.getProperty("tellurium.lod.travelling", "0.375"))));
 
     private static volatile double share = 1.0;
     private static volatile boolean anyone;

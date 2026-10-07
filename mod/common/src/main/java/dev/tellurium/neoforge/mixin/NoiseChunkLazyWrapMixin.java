@@ -57,6 +57,19 @@ public abstract class NoiseChunkLazyWrapMixin {
                 tellurium$defer(router.veinGap(), visitor));
     }
 
+    /**
+     * The sum of the mapped final density and the structure term.  The game builds it at once, which needs the
+     * bounds of the final density and so its mapping; here it is built when first used, after its term.
+     */
+    @Redirect(method = "<init>", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/world/level/levelgen/DensityFunctions;add(Lnet/minecraft/world/level/levelgen/DensityFunction;Lnet/minecraft/world/level/levelgen/DensityFunction;)Lnet/minecraft/world/level/levelgen/DensityFunction;"))
+    private DensityFunction tellurium$deferSum(DensityFunction first, DensityFunction second) {
+        if (!LazyMappedDensity.SUM || !(first instanceof LazyMappedDensity lazy)) return net.minecraft.world.level.levelgen.DensityFunctions.add(first, second);
+        LazyMappedDensity sum = LazyMappedDensity.sum(lazy, second);
+        tellurium$deferred.add(sum);
+        return sum;
+    }
+
     /** The cell-cached final density: its source holds the deferred router function, resolved first when this one is. */
     @Redirect(method = "<init>", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/levelgen/DensityFunction;mapAll(Lnet/minecraft/world/level/levelgen/DensityFunction$Visitor;)Lnet/minecraft/world/level/levelgen/DensityFunction;"))

@@ -20,22 +20,36 @@ import net.minecraft.world.level.levelgen.DensityFunction;
 public final class LazyMappedDensity implements DensityFunction {
     public static final boolean ENABLED = Boolean.parseBoolean(System.getProperty("tellurium.fast.lazyNoiseWrap", "true"));
 
-    private DensityFunction source;
-    private Visitor visitor;
+    /** Developer switch for measuring {@link #sum}: false builds the constructor's sum at once, as the game does. */
+    public static final boolean SUM = Boolean.parseBoolean(System.getProperty("tellurium.fast.lazyNoiseSum", "true"));
+
+    private java.util.function.Supplier<DensityFunction> pending;
     private DensityFunction resolved;
 
     public LazyMappedDensity(DensityFunction source, Visitor visitor) {
-        this.source = source;
-        this.visitor = visitor;
+        this.pending = () -> source.mapAll(visitor);
+    }
+
+    private LazyMappedDensity(java.util.function.Supplier<DensityFunction> pending) {
+        this.pending = pending;
+    }
+
+    /**
+     * {@code DensityFunctions.add(first, second)}, built on first use.  Building a sum asks both terms for their
+     * bounds, which a deferred term can only answer by being mapped: NoiseChunk's constructor adds the
+     * structure term to the mapped final density, and that alone used to undo the deferral of the largest
+     * tree for every chunk.
+     */
+    public static LazyMappedDensity sum(LazyMappedDensity first, DensityFunction second) {
+        return new LazyMappedDensity(() -> net.minecraft.world.level.levelgen.DensityFunctions.add(first.resolve(), second));
     }
 
     public DensityFunction resolve() {
         DensityFunction result = resolved;
         if (result == null) {
-            result = source.mapAll(visitor);
+            result = pending.get();
             resolved = result;
-            source = null;
-            visitor = null;
+            pending = null;
         }
         return result;
     }

@@ -97,6 +97,7 @@ in the last column of the second table restores the original code path.
 | `tellurium.fast.surface` | `true` | `false` | Surface rules on the GPU for qualified surface programs. |
 | `tellurium.fast.aquiferPrefill` | `true` | `false` | Carvers reuse aquifer cell results the GPU already computed. |
 | `tellurium.fast.lazyNoiseWrap` | `true` | `false` | NoiseChunk maps its router on first use instead of in its constructor. |
+| `tellurium.fast.lazyNoiseSum` | `true` | `false` | The sum of final density and the structure term in NoiseChunk's constructor is built on first use too (without this the line above is undone for the largest tree). Off with `lazyNoiseWrap=false`. |
 | `tellurium.fast.orePlacement` | `true` | `false` | Ore veins use the row-mask scan (`tellurium.fast.oreRows=false` keeps the hoisted terms but the original visited index). |
 | `tellurium.fast.cavePlans` | `true` | `false` | The cave systems of a starting chunk are walked once and replayed for each chunk they can reach, skipping tunnels whose bounding box misses the chunk. |
 | `tellurium.fast.heightCache` | `true` | `false` | Terrain-height answers (`getBaseHeight`) are remembered per thread, keyed by generator, random state, position, heightmap type and level heights. |

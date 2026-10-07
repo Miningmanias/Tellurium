@@ -152,6 +152,56 @@ session that is one second old (cold code, a chain of stages for one chunk). A p
 speed half a second after joining; the tour can. From 8 s on the three scenes are where they were, within
 run-to-run differences (Flight 6 late ticks / 0 long frames, Voxy 2 / 1, Distant Horizons 21 / 19).
 
+## Less garbage per chunk (2026-10-07)
+
+An allocation profile of the Voxy scene (Java Flight Recorder, dumped while the area filled): 19% of
+everything allocated was the game rebuilding the world generator's density functions for a chunk
+(`NoiseChunk` wraps the whole noise router, `mapAll`), 12% section encoding for saves, 9% reading chunks
+back from disk that had been unloaded half-generated. The mod already put the first off until a function is
+used, which for a chunk whose terrain came from the GPU is never; but the constructor then adds the
+structure term to the final density, building that sum asks for the final density's bounds, and answering
+needs the rebuild. The sum is now built on first use as well (`LazyMappedDensity.sum`). In the profile of
+the server benchmark afterwards the rebuilding is 6.5% of allocation: what is left is the climate sampler
+of the biome step and height queries by structures.
+
+Same code with the change switched off and on (`tellurium.fast.lazyNoiseSum`), runs alternating:
+
+| Measurement | Off | On |
+| --- | --- | --- |
+| Server benchmark, 32,761 chunks to FULL, whole run | 2,344 and 2,423 chunks/s | 2,538 and 2,570 chunks/s |
+| The same, steady part | 2,700 and 2,968 | 2,963 and 3,203 |
+| Distant Horizons pregeneration from the console, 66,049 chunks | 2,006 and 2,082 chunks/s | 2,210 and 2,236 chunks/s |
+| Voxy scene: collector time in the minute | 2,151 and 2,037 ms | 1,857 and 2,034 ms |
+| Voxy scene: late ticks / frames over 33 ms | 2 / 0 and 1 / 0 | 2 / 0 and 3 / 0 |
+| Voxy scene: fastest 10 s of the fill | 1,942 and 1,953 chunks/s | 1,988 and 1,950 chunks/s |
+| Flight: collector time | 2,492, 2,376 and 2,580 ms | 2,192, 2,158 and 2,189 ms |
+| Flight: pauses over 20 ms | 3 and 4 | 0 and 2 |
+| Flight: late ticks / frames over 33 ms | 2 / 0, 6 / 0, 5 / 0 | 4 / 0, 6 / 0, 4 / 0 |
+| Flight: chunks handed to Voxy (one run each) | 852 chunks/s | 794 chunks/s |
+| Distant Horizons scene: late ticks | 33, 39, 30, 16 | 15, 15, 17, 30, 24 |
+| Distant Horizons scene: frames over 33 ms | 25, 23, 24, 12 | 16, 15, 12, 29, 28 |
+| Distant Horizons scene: collector time | 3,951, 4,487, 3,722, 2,763 ms | 3,035, 2,977, 3,074, 3,795, 3,991 ms |
+| Distant Horizons scene: chunks in the minute (two runs each) | 31,664 and 33,264 | 33,152 and 33,584 |
+
+What that shows: generation is 6 to 10% faster where it runs flat out (server pregeneration, Distant
+Horizons' pregeneration). In the client scenes the collector has about a tenth less to do in Flight and
+Voxy, where late ticks and long frames were already near none, and nothing got faster: the Voxy fill is
+limited by the processor, which Voxy's own threads share (36% of the samples), and the flight by the
+allowance. The Distant Horizons scene does **not** show an effect that can be told from its own spread:
+sessions of the same configuration fall into a calmer kind (15 to 17 late ticks, 3.0 s of collector time)
+and a rougher kind (24 to 39, 3.7 to 4.5 s), three of four rough with the change off and two of five with
+it on. The rough sessions are not the ones with more chunks loaded (they have fewer at the end, so more
+were saved inside the minute); what decides the kind is not known.
+
+Tried and not adopted: more requests in progress for Distant Horizons (12 instead of 8: 47 late ticks and
+no more chunks, 32,416 against 33,088), and a larger allowance for far terrain while flying
+(`tellurium.lod.travelling`, default 0.375: 0.5 changed nothing measurable; 0.75 gave 965 and 991 chunks/s
+against 794 to 852, with 6 and 12 late ticks against 2 to 6 and one long frame per run).
+
+Seen and left: in the server benchmark a tenth of all allocation is the game copying its map of loaded
+chunks every time the set changes (`ChunkMap.promoteChunkMap`). Other threads read that copy, so replacing
+it is a change to the chunk system itself; it is 0.2% in the Voxy scene.
+
 ## Not done, not known
 
 - Only 1.21.1 on NeoForge was measured. The code is common to every build, but
