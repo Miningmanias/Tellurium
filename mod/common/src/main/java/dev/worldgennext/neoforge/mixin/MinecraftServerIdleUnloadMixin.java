@@ -31,6 +31,7 @@ public abstract class MinecraftServerIdleUnloadMixin {
     @Unique private boolean worldgenNext$betweenTicks;
 
     @Shadow public abstract Iterable<ServerLevel> getAllLevels();
+    @Shadow private long nextTickTimeNanos;
 
     @Inject(method = "waitUntilNextTick", at = @At("HEAD"))
     private void worldgenNext$enterWait(CallbackInfo callback) {
@@ -46,6 +47,8 @@ public abstract class MinecraftServerIdleUnloadMixin {
     private void worldgenNext$unloadWhenIdle(CallbackInfoReturnable<Boolean> callback) {
         if (callback.getReturnValueZ() || !worldgenNext$betweenTicks) return;
         if (((BlockableEventLoopAccessor) this).worldgenNext$blockingCount() != 1) return;
+        // An unload takes a millisecond or a few; started just before the next tick is due, it makes that tick late.
+        if (nextTickTimeNanos - net.minecraft.Util.getNanos() < 4_000_000L) return;
         for (ServerLevel level : getAllLevels()) {
             if (((IdleUnloads) level.getChunkSource().chunkMap).worldgenNext$runIdleUnload()) {
                 callback.setReturnValue(true);

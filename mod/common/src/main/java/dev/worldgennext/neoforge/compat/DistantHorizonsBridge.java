@@ -250,6 +250,7 @@ public final class DistantHorizonsBridge {
                             CompletableFuture<Void> settled, long requestedNanos) {}
 
         Generator(MinecraftServer server, ServerLevel level, Object levelWrapper, DistantHorizonsHandover handover) {
+            LodPace.listen();
             this.server = server;
             this.level = level;
             this.levelWrapper = levelWrapper;
@@ -447,7 +448,8 @@ public final class DistantHorizonsBridge {
                 } else {
                     tile = start(minX, minZ);
                 }
-                int limit = budget / (TILE * TILE);
+                // Nothing ahead while the GPU kernels are being built, and less while the server's ticks come late.
+                int limit = LodPace.hold(level) ? 0 : LodPace.allowance(budget, 4 * TILE * TILE) / (TILE * TILE);
                 int rings = AHEAD_REACH / TILE;
                 ahead:
                 for (int ring = 1; ring <= rings; ring++) {

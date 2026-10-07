@@ -48,7 +48,7 @@ public final class VoxyBridge {
     private static final int RADIUS = Math.max(8, Math.min(1024, Integer.getInteger("worldgennext.voxy.radius", 128)));
     /** Chunks being generated for Voxy at one time: the pregenerator's rule of one per 12 MB of heap, at most 1,024. */
     private static final int IN_FLIGHT = Math.max(16, Integer.getInteger("worldgennext.voxy.inFlight",
-            (int) Math.min(1024, Runtime.getRuntime().maxMemory() / (12L << 20))));
+            (int) Math.min(256, Runtime.getRuntime().maxMemory() / (32L << 20))));
     /** Voxy's ingest queue has no limit of its own; no more chunks are started while it holds this many sections. */
     private static final int QUEUE_LIMIT = Math.max(256, Integer.getInteger("worldgennext.voxy.queueLimit", 8192));
     /** No chunks are started while more chunks than this are loaded in the level. */
@@ -127,6 +127,7 @@ public final class VoxyBridge {
         REFUSED.set(0);
         startedNanos = System.nanoTime();
         if (!listening) {
+            LodPace.listen();
             Loader.onServerTickEnd(VoxyBridge::serverTicked);
             listening = true;
         }
@@ -227,13 +228,15 @@ public final class VoxyBridge {
          * a tile at a time keeps that to the edge of a few tiles.
          */
         void tick(MinecraftServer server, int waiting) {
-            if (waiting >= QUEUE_LIMIT || server.getTickCount() < restAfterRefusalUntilTick) return;
+            if (waiting >= LodPace.allowance(QUEUE_LIMIT, 512) || server.getTickCount() < restAfterRefusalUntilTick) return;
             // Chunks leave memory only after they are saved and unloaded, which generation can outrun.
             if (level.getChunkSource().getLoadedChunksCount() > LOADED_LIMIT) {
                 HELD_BACK.incrementAndGet();
                 return;
             }
-            int room = IN_FLIGHT - inFlight.size();
+            // Not while the GPU kernels are being built, and fewer at a time while the server's ticks come late.
+            if (LodPace.hold(level)) return;
+            int room = LodPace.allowance(IN_FLIGHT, 32) - inFlight.size();
             if (room <= 0) return;
             int reach = (RADIUS + TILE - 1) / TILE;
             for (ServerPlayer player : level.players()) {

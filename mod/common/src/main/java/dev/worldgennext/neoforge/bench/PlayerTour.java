@@ -67,6 +67,9 @@ public final class PlayerTour {
             if (Boolean.getBoolean("worldgennext.bench.tourSpectator")) {
                 CompletableFuture.runAsync(() -> traveller.setGameMode(net.minecraft.world.level.GameType.SPECTATOR), server).join();
             }
+            // -Dworldgennext.bench.tourDelay=<seconds>: stand still first (to leave the start of the session out of the figures).
+            Thread.sleep(1000L * Integer.getInteger("worldgennext.bench.tourDelay", 0));
+            StutterProbe stutter = new StutterProbe(server);
             long worstTickNanos = 0;
             long begin = System.nanoTime();
             for (int step = 1; step <= steps; step++) {
@@ -81,6 +84,7 @@ public final class PlayerTour {
                 Thread.sleep(pause);
                 worstTickNanos = Math.max(worstTickNanos, max(server.getTickTimesNanos()));
             }
+            LOG.info("WorldgenNext player tour smoothness: {}", stutter.finish());
             // Let the last chunks arrive and the ones left behind unload and save.
             Thread.sleep(5000);
             int loaded = CompletableFuture.supplyAsync(() -> Version.level(traveller).getChunkSource().getLoadedChunksCount(), server).join();
